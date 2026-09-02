@@ -1,0 +1,18 @@
+# p10a-move-package plan
+
+Slice 2 of docs/superpowers/plans/2026-08-25-web3-migration.md: the package the chain drivers
+call. Every abort has an expected failure test, and the interest tests are generated from the
+fixture file the TypeScript reads.
+
+## Tasks
+
+- [x] feat(move): a usdc stand in coin for local networks
+- [ ] feat(move): config with three capabilities, pause, and parameters
+- [ ] test(move): pause and parameters answer to the admin capability
+- [ ] feat(move): vault receipts issued and moved by the custodian
+- [ ] test(move): every receipt transition and its rejections
+- [ ] feat(move): custodial wallets, holds, and the payout that must be emptied
+- [ ] test(move): holds release exactly what they held and refund once
+- [ ] feat(move): attest domain events beside the settlement that caused them
+- [ ] feat(move): accrue interest with the borrower's rounding
+- [ ] test(move): interest agrees with the shared fixtures

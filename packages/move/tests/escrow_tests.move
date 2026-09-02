@@ -261,3 +261,67 @@ fun a_refund_and_a_release_work_while_paused() {
     escrow::finish_release(payout);
     finish(scenario, operator);
 }
+
+#[test]
+fun transfer_new_opens_exactly_one_wallet_for_the_recipient() {
+    let (mut scenario, operator) = begin();
+    let borrower = fund(&mut scenario, &operator, BORROWER, 5_000);
+    let mut from = scenario.take_shared_by_id<Wallet<SUI>>(borrower);
+    escrow::transfer_new(&operator, &mut from, LENDER, 3_000, b"LOAN-1", REPAY_LOAN, scenario.ctx());
+    assert!(from.balance() == 2_000);
+    let opened_events = sui::event::events_by_type<escrow::WalletOpened>();
+    assert!(opened_events.length() == 1);
+    assert!(sui::event::events_by_type<escrow::FundsTransferred>().length() == 1);
+    let opened = escrow::opened_wallet_id(&opened_events[0]);
+    test_scenario::return_shared(from);
+    scenario.next_tx(OPERATOR);
+    let wallet = scenario.take_shared_by_id<Wallet<SUI>>(opened);
+    assert!(wallet.owner() == LENDER);
+    assert!(wallet.balance() == 3_000);
+    test_scenario::return_shared(wallet);
+    finish(scenario, operator);
+}
+
+#[test, expected_failure(abort_code = escrow::EZeroAmount)]
+fun a_zero_deposit_is_refused() {
+    let (mut scenario, operator) = begin();
+    let payment = coin::mint_for_testing<SUI>(0, scenario.ctx());
+    escrow::deposit_new(&operator, LENDER, payment, b"seed", scenario.ctx());
+    finish(scenario, operator);
+}
+
+#[test, expected_failure(abort_code = escrow::EZeroAmount)]
+fun a_zero_hold_is_refused() {
+    let (mut scenario, operator) = begin();
+    let lender = fund(&mut scenario, &operator, LENDER, 5_000);
+    hold(&mut scenario, &operator, lender, 0);
+    finish(scenario, operator);
+}
+
+#[test, expected_failure(abort_code = escrow::EZeroAmount)]
+fun a_zero_payment_from_a_payout_is_refused() {
+    let (mut scenario, operator) = begin();
+    let lender = fund(&mut scenario, &operator, LENDER, 5_000);
+    let borrower = open(&mut scenario, &operator, BORROWER);
+    let hold_id = hold(&mut scenario, &operator, lender, 5_000);
+    let hold = scenario.take_shared_by_id<FundsHold<SUI>>(hold_id);
+    let mut payout = escrow::begin_release(&operator, hold, ORIGINATE_LOAN);
+    let mut wallet = scenario.take_shared_by_id<Wallet<SUI>>(borrower);
+    escrow::pay(&mut payout, &mut wallet, 0);
+    escrow::pay(&mut payout, &mut wallet, 5_000);
+    escrow::finish_release(payout);
+    test_scenario::return_shared(wallet);
+    finish(scenario, operator);
+}
+
+#[test, expected_failure(abort_code = escrow::EEmptyKey)]
+fun a_hold_without_a_key_is_refused() {
+    let (mut scenario, operator) = begin();
+    let lender = fund(&mut scenario, &operator, LENDER, 5_000);
+    let config = scenario.take_shared<Config>();
+    let mut wallet = scenario.take_shared_by_id<Wallet<SUI>>(lender);
+    escrow::hold(&operator, &config, &mut wallet, b"", 5_000, b"LISTING-1", scenario.ctx());
+    test_scenario::return_shared(wallet);
+    test_scenario::return_shared(config);
+    finish(scenario, operator);
+}

@@ -232,3 +232,22 @@ fun a_zero_appraisal_is_refused() {
     clock.destroy_for_testing();
     finish(scenario, cap);
 }
+
+#[test, expected_failure(abort_code = custody::EEmptyKey)]
+fun encumbering_without_a_loan_key_is_refused() {
+    let (scenario, cap) = begin();
+    let mut receipt = scenario.take_shared<VaultReceipt>();
+    custody::encumber(&cap, &mut receipt, b"");
+    test_scenario::return_shared(receipt);
+    finish(scenario, cap);
+}
+
+#[test, expected_failure(abort_code = custody::EEmptyKey)]
+fun reissuing_without_a_new_key_is_refused() {
+    let (mut scenario, cap) = begin();
+    let receipt = scenario.take_shared<VaultReceipt>();
+    let clock = clock::create_for_testing(scenario.ctx());
+    custody::reissue_to_buyer(&cap, receipt, b"", BUYER, &clock, scenario.ctx());
+    clock.destroy_for_testing();
+    finish(scenario, cap);
+}

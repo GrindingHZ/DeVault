@@ -107,9 +107,20 @@ describe('accrued interest on the loan list', () => {
         originationSettledAt: new Date(startedAt),
       },
     });
+    /* Both notes. Who owes and who is owed are read off the notes rather
+       than off the loan row, so a loan without them is invisible to the very
+       endpoint under test. */
     await harness.prisma.lenderNote.create({
       data: {
         id: `LN-ACCRUAL-${suffix}`,
+        loanId,
+        holderAccountId: borrowerId,
+        transferable: false,
+      },
+    });
+    await harness.prisma.borrowerNote.create({
+      data: {
+        id: `BN-ACCRUAL-${suffix}`,
         loanId,
         holderAccountId: borrowerId,
         transferable: false,

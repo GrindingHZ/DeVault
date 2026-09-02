@@ -138,9 +138,7 @@ describe('assertNoteSalePurchasable', () => {
   });
 
   it('refuses the borrower buying their own debt', () => {
-    const checked = assertNoteSalePurchasable(
-      attempt({ buyerAccountId: accountIdOf('BORROWER') }),
-    );
+    const checked = assertNoteSalePurchasable(attempt({ buyerAccountId: accountIdOf('BORROWER') }));
     expect(!checked.ok && checked.error.code).toBe('CANNOT_BUY_OWN_POSITION');
   });
 });

@@ -35,10 +35,7 @@ interface NoteSaleFields {
 }
 
 export type ListNoteForSaleRejected =
-  | NoteTransferDisabled
-  | NotResourceOwner
-  | LoanNotActive
-  | AskExceedsCurrentValue;
+  NoteTransferDisabled | NotResourceOwner | LoanNotActive | AskExceedsCurrentValue;
 
 export type NoteSaleWithdrawalRejected = NoteSaleNotOpen | NotResourceOwner;
 

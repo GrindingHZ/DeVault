@@ -11,10 +11,7 @@ import { NoteSaleNotOpen } from './note-sale-not-open';
 import { NoteTransferDisabled } from './note-transfer-disabled';
 
 export type PurchaseNoteRejected =
-  | NoteSaleNotOpen
-  | NoteTransferDisabled
-  | LoanNotActive
-  | CannotBuyOwnPosition;
+  NoteSaleNotOpen | NoteTransferDisabled | LoanNotActive | CannotBuyOwnPosition;
 
 export interface PurchaseAttempt {
   readonly sale: NoteSale;

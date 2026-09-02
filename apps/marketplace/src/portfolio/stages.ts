@@ -17,9 +17,10 @@ import type { PositionSide } from './position';
 export interface StageMeaning {
   readonly tone: StatusTone;
   /* Whether the story is over. A terminal position drops out of what the
-     reader is watching and into the history behind it, unless it still has
-     something to do: a repaid loan whose item is still in a vault is
-     finished as a loan and not finished as an errand. */
+     reader is watching and into the history behind it, whatever controls the
+     row still carries: a loan that has been paid off in full is finished
+     even though its item is still on a shelf. A stage with more of the story
+     left in it says so here instead. */
   readonly isTerminal: boolean;
   readonly meaning: string;
 }
@@ -64,7 +65,7 @@ const borrowingStages = {
   },
   'Collection requested': {
     tone: 'active',
-    isTerminal: false,
+    isTerminal: true,
     meaning:
       'You have asked for the item back and the vault is expecting you. Bring photo identification to the counter; staff verify you, break the seal in front of you and hand it over.',
   },
@@ -133,7 +134,11 @@ const lendingStages = {
   },
   Defaulted: {
     tone: 'danger',
-    isTerminal: true,
+    /* Not finished: the collateral is still sitting there waiting to be
+       taken, and until somebody takes it this position is one of the few
+       that is actually costing its holder to ignore. It becomes Claimed,
+       which is finished. */
+    isTerminal: false,
     meaning:
       'The borrower did not repay and grace has run out. Claim the collateral to take the receipt into your own name.',
   },

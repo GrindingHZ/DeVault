@@ -694,10 +694,17 @@ export function positionOfLentLoan(
 
 /* What the reader is still watching, as against what is behind them.
 
-   Terminal by stage, except that something still to do keeps a position in
-   view: a repaid loan whose item is sitting in a vault is finished as a loan
-   and unfinished as an errand, and burying it under a disclosure would hide
-   the only control that ends it. */
+   Purely a question of the stage now. It used to keep any position with an
+   action left on it in view as well, which read wrongly at the one place it
+   mattered: a loan that had been paid off in full sat among the live ones
+   because the item was still on a shelf. Paid off is finished, and the
+   errand that remains is an errand about an item rather than about a loan.
+   It is carried by My items and by the bell in the header, which is visible
+   from every screen rather than only from this one.
+
+   A stage that genuinely has more to happen says so by not being terminal,
+   which is why a defaulted loan whose collateral nobody has claimed stays
+   here. */
 export function isOpen(position: Position): boolean {
-  return !isTerminal(position.stage, position.side) || position.action !== null;
+  return !isTerminal(position.stage, position.side);
 }

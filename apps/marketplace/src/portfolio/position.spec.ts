@@ -225,12 +225,13 @@ describe('a loan the reader owes', () => {
       expect(position.needsAttention).toBe(false);
     });
 
-    /* Still open, not history. Staff have the seal to break and the reader
-       has a counter to walk up to; it is finished when the item is theirs. */
-    it('keeps a requested collection in view', () => {
-      expect(isOpen(positionOfBorrowedLoan(loan({ status: 'REPAID' }), now, 'REQUESTED'))).toBe(
-        true,
-      );
+    /* History, because the loan is what this table is about and the loan is
+       paid off. What is left is an errand about an item, and it is carried
+       by My items and by the bell in the header. */
+    it('files a requested collection into history with the loan it closed', () => {
+      const position = positionOfBorrowedLoan(loan({ status: 'REPAID' }), now, 'REQUESTED');
+      expect(position.stage).toBe('Collection requested');
+      expect(isOpen(position)).toBe(false);
     });
 
     it('files it into history once it has been handed over', () => {
@@ -536,12 +537,21 @@ describe('open and closed', () => {
     expect(isOpen(build())).toBe(false);
   });
 
-  /* Finished as a loan, unfinished as an errand. Burying it under history
-     would hide the only control that ends it. */
-  it('keeps a repaid loan open while the item is still to be collected', () => {
+  /* Paid off is finished, whatever is still on a shelf. The control that
+     ends the errand stays on the row, and the bell carries it from every
+     other screen, but the row itself belongs behind the reader. */
+  it('files a repaid loan into history even with the item still to collect', () => {
     const repaid = positionOfBorrowedLoan(loan({ status: 'REPAID' }), now);
     expect(repaid.action?.kind).toBe('collect');
-    expect(isOpen(repaid)).toBe(true);
+    expect(repaid.needsAttention).toBe(true);
+    expect(isOpen(repaid)).toBe(false);
+  });
+
+  /* The other side of the same rule: a defaulted loan is not finished while
+     the collateral is still there to be taken. */
+  it('keeps a defaulted loan open until its collateral is claimed', () => {
+    expect(isOpen(positionOfLentLoan(loan({ status: 'DEFAULTED' }), now))).toBe(true);
+    expect(isOpen(positionOfLentLoan(loan({ status: 'DEFAULTED' }), now, true))).toBe(false);
   });
 });
 

@@ -111,6 +111,7 @@ function MyOffersCard(): ReactElement {
             },
             {
               key: 'status',
+              label: 'Status',
               header: (
                 <span className="inline-flex items-center">
                   Status

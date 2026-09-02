@@ -180,6 +180,7 @@ function ReceiptsCard(): ReactElement {
             },
             {
               key: 'value',
+              label: 'Appraised value',
               header: (
                 <span className="inline-flex items-center">
                   Appraised value

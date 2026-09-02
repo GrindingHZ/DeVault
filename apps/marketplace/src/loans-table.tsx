@@ -86,6 +86,7 @@ export function LoansTable({
             },
             {
               key: 'matures',
+              label: 'Matures',
               header: (
                 <span className="inline-flex items-center">
                   Matures
@@ -98,6 +99,7 @@ export function LoansTable({
             },
             {
               key: 'grace',
+              label: 'Grace period',
               header: (
                 <span className="inline-flex items-center">
                   Grace ends

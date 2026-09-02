@@ -131,6 +131,7 @@ function MyListingsCard(): ReactElement {
             },
             {
               key: 'ceiling',
+              label: 'Lending ceiling',
               header: (
                 <span className="inline-flex items-center">
                   Rate ceiling

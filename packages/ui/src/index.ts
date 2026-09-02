@@ -34,3 +34,5 @@ export * from './page';
 export * from './app-boundary';
 export * from './use-mutation-feedback';
 export * from './percentage';
+export * from './icons';
+export * from './nav-rail';

@@ -13,7 +13,7 @@ const item: CollateralItem = {
   loanToValueBasisPoints: 5797,
   categoryMaxLoanToValueBasisPoints: 6000,
   bestRateBasisPoints: 1120,
-  closesIn: 'closes in 2h 14m',
+  closes: { lead: 'by', value: '3 Nov 2026' },
   photographSrc: '/api/v1/receipts/r1/photo',
   relationship: 'none',
 };
@@ -41,7 +41,7 @@ describe('CollateralRow', () => {
   it('shows the rate, the loan to value and when it closes', () => {
     render(<CollateralRow item={item} />);
     expect(screen.getByText('11.20%')).toBeTruthy();
-    expect(screen.getByText('closes in 2h 14m')).toBeTruthy();
+    expect(screen.getByText('3 Nov 2026')).toBeTruthy();
   });
 
   it('says so rather than showing a rate when nobody has offered', () => {
@@ -55,7 +55,7 @@ describe('CollateralRow', () => {
     unmount();
 
     const offered = render(<CollateralRow item={{ ...item, relationship: 'offered' }} />);
-    expect(offered.getByText('Your offer')).toBeTruthy();
+    expect(offered.getByText('You offered')).toBeTruthy();
     offered.unmount();
 
     render(<CollateralRow item={{ ...item, relationship: 'funded' }} />);
@@ -65,7 +65,7 @@ describe('CollateralRow', () => {
   it('says nothing about a listing the reader has no stake in', () => {
     render(<CollateralRow item={item} />);
     expect(screen.queryByText('Your item')).toBeNull();
-    expect(screen.queryByText('Your offer')).toBeNull();
+    expect(screen.queryByText('You offered')).toBeNull();
   });
 
   it('reports which listing was chosen', () => {

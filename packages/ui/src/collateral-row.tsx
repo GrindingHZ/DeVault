@@ -20,13 +20,24 @@ export interface CollateralItem {
   /* What this category allows, so the meter bands against the right limit. */
   readonly categoryMaxLoanToValueBasisPoints: number;
   readonly bestRateBasisPoints: number | null;
-  /* Already worded: "by 15 Jan 2026", or "closed". A date rather than a
-     countdown, so the row needs no clock to render it. */
-  readonly closesIn: string;
+  /* Already worded, and split so the date can carry the weight on its own.
+     A date rather than a countdown, so the row needs no clock to render. */
+  readonly closes: ClosingTime;
   /* Whether that date is close enough to change what a lender does today. */
   readonly isClosingSoon?: boolean;
   readonly photographSrc: string | null;
   readonly relationship: CollateralRelationship;
+}
+
+/* When a listing closes, in two parts.
+
+   The date is the fact; "by" is the grammar around it. Emphasising the whole
+   phrase gave equal weight to a preposition, so they are separate and only
+   one of them is bold. `lead` is empty where there is no date to lead into,
+   which is what "closed" is. */
+export interface ClosingTime {
+  readonly lead: string;
+  readonly value: string;
 }
 
 export interface CollateralProps {
@@ -44,7 +55,7 @@ export interface CollateralProps {
 const relationshipReadings: Record<CollateralRelationship, string | null> = {
   none: null,
   borrower: 'Your item',
-  offered: 'Your offer',
+  offered: 'You offered',
   funded: 'You funded',
 };
 
@@ -102,23 +113,30 @@ function Principal({ value }: { readonly value: MoneyValue }): ReactElement {
   );
 }
 
-/* The category and when it closes. The date takes a warning tone in its last
-   week: it is the one fact on the row that becomes urgent on its own, without
-   anybody doing anything. */
+/* When it closes. The date takes a warning tone in its last week: it is the
+   one fact on the row that becomes urgent on its own, without anybody doing
+   anything. */
+function Closes({ item }: { readonly item: CollateralItem }): ReactElement {
+  const urgent = item.isClosingSoon === true;
+  return (
+    <span className="whitespace-nowrap">
+      {item.closes.lead === '' ? null : <span>{`${item.closes.lead} `}</span>}
+      <span className={`font-semibold ${urgent ? 'text-status-warning' : 'text-ink-primary'}`}>
+        {item.closes.value}
+      </span>
+    </span>
+  );
+}
+
+/* The category and when it closes, divided rather than boxed. */
 function Facts({ item }: { readonly item: CollateralItem }): ReactElement {
   return (
     <span className="flex min-w-0 items-center gap-1.5 font-body text-xs text-ink-secondary">
       <span className="truncate">{item.categoryName}</span>
       <span aria-hidden="true" className="text-edge-strong">
-        /
+        |
       </span>
-      <span
-        className={`whitespace-nowrap ${
-          item.isClosingSoon === true ? 'font-medium text-status-warning' : ''
-        }`}
-      >
-        {item.closesIn}
-      </span>
+      <Closes item={item} />
     </span>
   );
 }
@@ -200,14 +218,8 @@ export function CollateralCard({ item, isSelected, onSelect }: CollateralProps):
               takes it when there is one: that they hold an offer here
               outranks how long the listing has left. */}
           {item.relationship === 'none' ? (
-            <span
-              className={`truncate font-body text-xs ${
-                item.isClosingSoon === true
-                  ? 'font-medium text-status-warning'
-                  : 'text-ink-secondary'
-              }`}
-            >
-              {item.closesIn}
+            <span className="truncate font-body text-xs text-ink-secondary">
+              <Closes item={item} />
             </span>
           ) : (
             <Relationship value={item.relationship} />

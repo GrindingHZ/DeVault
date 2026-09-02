@@ -1,7 +1,7 @@
 import { nameForCategory } from '@depawn/contracts';
 import type { ListingSummary } from '@depawn/contracts';
 import { CollateralCard, CollateralRow, EmptyState, Skeleton } from '@depawn/ui';
-import type { CollateralItem, CollateralRelationship } from '@depawn/ui';
+import type { ClosingTime, CollateralItem, CollateralRelationship } from '@depawn/ui';
 import type { ReactElement } from 'react';
 import { BrowseControls } from './browse-controls';
 import type { BrowseDensity, BrowseScope, BrowseSort } from './browse-controls';
@@ -11,7 +11,7 @@ export type { BrowseDensity, BrowseScope, BrowseSort };
 /* What the icon shows a number for. Sort is deliberately not counted: there
    is always a sort, so counting it would mean the badge never reads zero. */
 function activeFilterCount(props: BrowsePaneProps): number {
-  return (props.category === '' ? 0 : 1) + (props.maxLoanToValue === '' ? 0 : 1);
+  return props.category === '' ? 0 : 1;
 }
 
 export interface BrowsePaneProps {
@@ -24,8 +24,6 @@ export interface BrowsePaneProps {
   readonly nowEpochMs: number;
   readonly category: string;
   readonly onCategory: (value: string) => void;
-  readonly maxLoanToValue: string;
-  readonly onMaxLoanToValue: (value: string) => void;
   readonly sort: BrowseSort;
   readonly onSort: (value: BrowseSort) => void;
   readonly scope: BrowseScope;
@@ -61,14 +59,14 @@ const nothingHere: Record<BrowseScope, { readonly title: string; readonly descri
 
    Two figures only when they change a decision. Inside a day the hour does,
    which is the one case that keeps a time. */
-export function closesOn(expiresAt: string, nowEpochMs: number): string {
+export function closesOn(expiresAt: string, nowEpochMs: number): ClosingTime {
   const epochMs = Date.parse(expiresAt);
   if (!Number.isFinite(epochMs)) {
-    return 'no closing date';
+    return { lead: '', value: 'no closing date' };
   }
   const remaining = epochMs - nowEpochMs;
   if (remaining <= 0) {
-    return 'closed';
+    return { lead: '', value: 'closed' };
   }
   const locale = typeof navigator === 'undefined' ? 'en-AU' : navigator.language;
   if (remaining < 24 * 60 * 60 * 1000) {
@@ -76,14 +74,14 @@ export function closesOn(expiresAt: string, nowEpochMs: number): string {
       hour: 'numeric',
       minute: '2-digit',
     }).format(new Date(epochMs));
-    return `by ${time} today`;
+    return { lead: 'by', value: `${time} today` };
   }
   const date = new Intl.DateTimeFormat(locale, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
   }).format(new Date(epochMs));
-  return `by ${date}`;
+  return { lead: 'by', value: date };
 }
 
 /* A week. Long enough that a lender still has time to act on it, short
@@ -111,7 +109,7 @@ function itemFrom(
     loanToValueBasisPoints: listing.loanToValueBasisPoints,
     categoryMaxLoanToValueBasisPoints: listing.categoryMaxLoanToValueBasisPoints,
     bestRateBasisPoints: bestRate,
-    closesIn: closesOn(listing.expiresAt, nowEpochMs),
+    closes: closesOn(listing.expiresAt, nowEpochMs),
     isClosingSoon: isClosingSoon(listing.expiresAt, nowEpochMs),
     photographSrc: listing.hasPhotograph ? `/api/v1/receipts/${listing.receiptId}/photo` : null,
     relationship,
@@ -131,8 +129,6 @@ export function BrowsePane(props: BrowsePaneProps): ReactElement {
         onScope={props.onScope}
         category={props.category}
         onCategory={props.onCategory}
-        maxLoanToValue={props.maxLoanToValue}
-        onMaxLoanToValue={props.onMaxLoanToValue}
         sort={props.sort}
         onSort={props.onSort}
         density={props.density}

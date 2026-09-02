@@ -56,7 +56,11 @@ single-appraisal
 
 ## Q-006: who takes physical delivery after liquidation
 **Blocks:** the final step of Flow 8
-**Currently implemented:** the winning bidder receives a newly issued receipt for the same item
+**Currently implemented:** nothing. This entry used to claim the winning bidder receives a newly
+issued receipt for the same item. They do not: `close-liquidation` burns the old receipt and issues
+none, so a buyer ends a settled sale holding no representation of the thing they paid for. Checked
+against the seeded demo, where both auction winners hold zero receipts for their items
+(docs/14-state-machines.md)
 **Needs:** founder
 **Notes:** The alternative is that we ship it, which introduces logistics, insurance in transit, and
 a delivery-dispute flow.

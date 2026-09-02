@@ -43,7 +43,7 @@ describe('the demo seed', () => {
   it('fills the vault with inventory an operator can see', async () => {
     expect(await prisma.custodyReceipt.count()).toBe(12);
     const vault = await prisma.vault.findUnique({ where: { id: 'VAULT-DEMO-1' } });
-    expect(vault?.city).toBe('Sydney');
+    expect(vault?.city).toBe('New York');
   });
 
   it('leaves live listings with competing offers on each', async () => {

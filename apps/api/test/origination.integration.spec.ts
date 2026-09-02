@@ -7,9 +7,9 @@ import { expectLedgerBalances } from './ledger-assertions';
 
 const vaultId = 'VAULT-ORIG-1';
 const password = 'a-long-enough-password';
-const amount = (minorUnits: string): { minorUnits: string; currency: 'AUD' } => ({
+const amount = (minorUnits: string): { minorUnits: string; currency: 'USD' } => ({
   minorUnits,
-  currency: 'AUD',
+  currency: 'USD',
 });
 
 describe('origination', () => {
@@ -29,9 +29,9 @@ describe('origination', () => {
       data: {
         id: vaultId,
         name: 'Origination vault',
-        city: 'Sydney',
+        city: 'New York',
         insuredLimitMinorUnits: 100_000_000n,
-        currency: 'AUD',
+        currency: 'USD',
       },
     });
   });
@@ -90,7 +90,7 @@ describe('origination', () => {
         holderAccountId: borrowerAccountId,
         intakeRecordHash: `hash-${suffix}`,
         appraisedValueMinorUnits: 500_000n,
-        currency: 'AUD',
+        currency: 'USD',
         appraisedAt: new Date(0),
         appraiserId: 'S1',
         itemCategory: 'BULLION',
@@ -106,7 +106,7 @@ describe('origination', () => {
         borrowerAccountId,
         receiptId,
         requestedPrincipalMinorUnits: 250_000n,
-        currency: 'AUD',
+        currency: 'USD',
         maxAnnualPercentageRateBasisPoints: 2400,
         requestedDurationMs: 2_592_000_000n,
         expiresAt: new Date(Date.now() + 86_400_000),

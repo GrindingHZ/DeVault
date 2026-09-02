@@ -227,7 +227,7 @@ now is not throwaway work.
 
 - Never `number` for an amount. `bigint` minor units plus an explicit currency.
 - Never `parseFloat`, never `toFixed`, never a currency library that uses doubles.
-- API serialises amounts as `{ "minorUnits": "125000", "currency": "AUD" }` with `minorUnits` as a
+- API serialises amounts as `{ "minorUnits": "125000", "currency": "USD" }` with `minorUnits` as a
   **string**, because JSON numbers cannot hold a `bigint` safely.
 - Percentages are basis points as integers. 7.25% is `725`. There are no percentage floats anywhere.
 - Every division documents its rounding direction in the function's name or a one-line comment

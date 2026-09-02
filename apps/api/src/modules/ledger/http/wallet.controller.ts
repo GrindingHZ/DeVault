@@ -20,7 +20,7 @@ import { ZodValidationPipe } from '../../shared/http/zod-validation.pipe';
 import { DepositUseCase } from '../application/deposit.use-case';
 import { WithdrawUseCase } from '../application/withdraw.use-case';
 
-const walletCurrency = currencyOf('AUD');
+const walletCurrency = currencyOf('USD');
 const defaultPageSize = 25;
 const maxPageSize = 100;
 

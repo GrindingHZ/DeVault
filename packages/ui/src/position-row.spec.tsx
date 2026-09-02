@@ -10,7 +10,7 @@ function row(overrides: Partial<Parameters<typeof PositionRow>[0]> = {}) {
       stage="Running"
       tone="active"
       caption="You borrowed at 18.00% p.a."
-      figure={{ label: 'Owed today', value: 'AUD 4,059.17' }}
+      figure={{ label: 'Owed today', value: 'USD 4,059.17' }}
       actionLabel="Repay"
       {...overrides}
     />

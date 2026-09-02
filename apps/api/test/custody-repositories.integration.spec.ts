@@ -25,7 +25,7 @@ import { PrismaVaultRepository } from '../src/infrastructure/persistence/reposit
 import { createTestApplication } from './create-test-application';
 import type { TestApplication } from './create-test-application';
 
-const aud = currencyOf('AUD');
+const aud = currencyOf('USD');
 const vaultId = vaultIdOf('REPO-VAULT');
 
 describe('custody repositories', () => {
@@ -58,7 +58,7 @@ describe('custody repositories', () => {
         Vault.create({
           id: vaultId,
           name: 'Repo vault',
-          city: 'Sydney',
+          city: 'New York',
           insuredLimit: Money.of(10_000_000n, aud),
         }),
         context,

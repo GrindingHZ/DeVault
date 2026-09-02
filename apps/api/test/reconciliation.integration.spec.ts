@@ -24,9 +24,9 @@ describe('reconciliation', () => {
       data: {
         id: vaultId,
         name: 'Reconciliation vault',
-        city: 'Sydney',
+        city: 'New York',
         insuredLimitMinorUnits: 1_000_000_000n,
-        currency: 'AUD',
+        currency: 'USD',
       },
     });
   });
@@ -61,7 +61,7 @@ describe('reconciliation', () => {
         holderAccountId,
         intakeRecordHash: `hash-${suffix}`,
         appraisedValueMinorUnits: 500_000n,
-        currency: 'AUD',
+        currency: 'USD',
         appraisedAt: new Date(0),
         appraiserId: 'S1',
         itemCategory: 'BULLION',
@@ -142,7 +142,7 @@ describe('reconciliation', () => {
       .post('/api/v1/me/deposits')
       .set('Cookie', ops.cookies)
       .set('Idempotency-Key', randomUUID())
-      .send({ email: 'member@recon.test', amount: { minorUnits: '10000', currency: 'AUD' } })
+      .send({ email: 'member@recon.test', amount: { minorUnits: '10000', currency: 'USD' } })
       .expect(201);
 
     // The database refuses an unbalanced transaction, so the trigger comes
@@ -163,7 +163,7 @@ describe('reconciliation', () => {
         accountId: account.id,
         direction: 'CREDIT',
         minorUnits: 1n,
-        currency: 'AUD',
+        currency: 'USD',
       },
     });
     await harness.prisma.$executeRawUnsafe('ALTER TABLE ledger_entry ENABLE TRIGGER USER');
@@ -221,14 +221,14 @@ describe('reconciliation', () => {
       .set('Cookie', ops.cookies)
       .expect(200);
     expect(book.body.outstandingCount).toBe(0);
-    expect(book.body.outstandingPrincipal).toEqual({ minorUnits: '0', currency: 'AUD' });
+    expect(book.body.outstandingPrincipal).toEqual({ minorUnits: '0', currency: 'USD' });
 
     const exposure = await server()
       .get('/api/v1/admin/exposure-by-vault')
       .set('Cookie', ops.cookies)
       .expect(200);
     const row = exposure.body.items.find((item: { vaultId: string }) => item.vaultId === vaultId);
-    expect(row.exposure).toEqual({ minorUnits: '500000', currency: 'AUD' });
+    expect(row.exposure).toEqual({ minorUnits: '500000', currency: 'USD' });
     expect(row.receiptCount).toBe(1);
   });
 

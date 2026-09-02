@@ -124,7 +124,7 @@ function WithdrawCard(): ReactElement {
 
   const withdrawMutation = useMutation({
     mutationFn: (minorUnits: string) =>
-      withdraw({ amount: { minorUnits, currency: 'AUD' } }, { idempotencyKey }),
+      withdraw({ amount: { minorUnits, currency: 'USD' } }, { idempotencyKey }),
     onSuccess: async () => {
       feedback.reportSuccess('The withdrawal went through.');
       setAmountInput('');
@@ -150,7 +150,7 @@ function WithdrawCard(): ReactElement {
         }}
       >
         <Field
-          label="Amount (AUD)"
+          label="Amount (USD)"
           data-testid="withdraw-amount"
           value={amountInput}
           onChange={(event) => setAmountInput(event.target.value)}

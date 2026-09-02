@@ -10,7 +10,7 @@ import { PrismaCustodyReceiptRepository } from '../src/infrastructure/persistenc
 import { PrismaVaultRepository } from '../src/infrastructure/persistence/repositories/prisma-vault.repository';
 import { createTestApplication } from './create-test-application';
 
-const aud = currencyOf('AUD');
+const aud = currencyOf('USD');
 let commandCounter = 0;
 
 describeCustodyPortContract('database', async () => {
@@ -26,7 +26,7 @@ describeCustodyPortContract('database', async () => {
       Vault.create({
         id: vaultId,
         name: 'Contract vault',
-        city: 'Sydney',
+        city: 'New York',
         insuredLimit: Money.of(100_000_000n, aud),
       }),
       context,

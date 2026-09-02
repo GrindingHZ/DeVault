@@ -19,7 +19,7 @@ export interface StoredParameters {
   readonly dualAppraisalThresholdMinorUnits: string;
   /* Written from P7 onwards. Rows stored before it existed carry no
      currency, and Phase 1 has only ever had one, so reading falls back to
-     AUD rather than refusing a row that was correct when it was written. */
+     USD rather than refusing a row that was correct when it was written. */
   readonly dualAppraisalThresholdCurrency?: string;
   readonly notesTransferable: boolean;
 }
@@ -53,7 +53,7 @@ export function fromStoredParameters(stored: StoredParameters): ProtocolParamete
     statutoryHoldingPeriodMs: BigInt(stored.statutoryHoldingPeriodMs),
     dualAppraisalThreshold: Money.of(
       BigInt(stored.dualAppraisalThresholdMinorUnits),
-      currencyOf(stored.dualAppraisalThresholdCurrency ?? 'AUD'),
+      currencyOf(stored.dualAppraisalThresholdCurrency ?? 'USD'),
     ),
     notesTransferable: stored.notesTransferable,
   };

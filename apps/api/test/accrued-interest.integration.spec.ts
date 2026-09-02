@@ -49,9 +49,9 @@ describe('accrued interest on the loan list', () => {
       data: {
         id: vaultId,
         name: 'Accrual vault',
-        city: 'Sydney',
+        city: 'New York',
         insuredLimitMinorUnits: 100_000_000_000n,
-        currency: 'AUD',
+        currency: 'USD',
       },
     });
     const email = `borrower-${randomUUID().slice(0, 8)}@accrual.test`;
@@ -76,7 +76,7 @@ describe('accrued interest on the loan list', () => {
         holderAccountId: borrowerId,
         intakeRecordHash: `hash-accrual-${suffix}`,
         appraisedValueMinorUnits: 2_000_000n,
-        currency: 'AUD',
+        currency: 'USD',
         appraisedAt: new Date(0),
         appraiserId: 'S1',
         itemCategory: 'WATCH',
@@ -93,7 +93,7 @@ describe('accrued interest on the loan list', () => {
         receiptId,
         borrowerAccountId: borrowerId,
         principalMinorUnits,
-        currency: 'AUD',
+        currency: 'USD',
         annualPercentageRateBasisPoints: rateBasisPoints,
         startedAt: new Date(startedAt),
         maturesAt: new Date(startedAt + thirtyDays),

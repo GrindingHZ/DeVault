@@ -12,7 +12,7 @@ import { Appraisal } from './appraisal';
 import { IntakeRecord } from './intake-record';
 import { canonicalIntakeRecordHash } from './intake-record-hash';
 
-const aud = currencyOf('AUD');
+const aud = currencyOf('USD');
 const threshold = Money.of(1_000_000n, aud);
 
 function draftIntake(): IntakeRecord {

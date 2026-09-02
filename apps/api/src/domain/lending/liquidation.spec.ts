@@ -12,7 +12,7 @@ import { Money, currencyOf } from '../shared/money';
 import { Liquidation, allowedLiquidationTransitions, canBeScheduled } from './liquidation';
 import type { Bid, LiquidationEvent, LiquidationStatus } from './liquidation';
 
-const aud = currencyOf('AUD');
+const aud = currencyOf('USD');
 const now = Instant.fromEpochMilliseconds(1_700_000_000_000n);
 const oneDay = 24n * 60n * 60n * 1000n;
 const closesAt = now.plusMilliseconds(7n * oneDay);

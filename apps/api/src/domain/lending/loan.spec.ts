@@ -12,7 +12,7 @@ import type { SettlementRef } from '../shared/settlement-ref';
 import { Loan, allowedLoanTransitions } from './loan';
 import type { LoanEvent, LoanStatus } from './loan';
 
-const aud = currencyOf('AUD');
+const aud = currencyOf('USD');
 const startedAt = Instant.fromEpochMilliseconds(1_700_000_000_000n);
 const settlementRef: SettlementRef = {
   kind: 'ledger',

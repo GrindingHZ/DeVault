@@ -36,7 +36,7 @@ test('operations deposit funds and the member sees them in the wallet', async ({
   await expect(memberPage.getByTestId('authenticated-home')).toBeVisible();
 
   await memberPage.getByRole('link', { name: 'Wallet' }).click();
-  await expect(memberPage.getByTestId('available-balance')).toHaveText('AUD 2,500.00');
+  await expect(memberPage.getByTestId('available-balance')).toHaveText('USD 2,500.00');
   await expect(memberPage.getByTestId('ledger-history')).toContainText('DEPOSIT');
   await memberContext.close();
 });

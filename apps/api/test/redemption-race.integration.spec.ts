@@ -50,9 +50,9 @@ describe('release race', () => {
         data: {
           id: vaultId,
           name: 'Release vault',
-          city: 'Sydney',
+          city: 'New York',
           insuredLimitMinorUnits: 100_000_000n,
-          currency: 'AUD',
+          currency: 'USD',
         },
       });
       const borrower = await loginAs(`borrower-${round}@release.test`, 'MEMBER');
@@ -66,7 +66,7 @@ describe('release race', () => {
           holderAccountId: borrower.accountId,
           intakeRecordHash: `hash-rrel-${round}`,
           appraisedValueMinorUnits: 500_000n,
-          currency: 'AUD',
+          currency: 'USD',
           appraisedAt: new Date(0),
           appraiserId: 'S1',
           itemCategory: 'BULLION',

@@ -44,7 +44,7 @@ async function issueReceiptFor(request: APIRequestContext, borrowerEmail: string
   await request.post(`${apiBase}/intakes/${intakeId}/appraisals`, {
     headers: { 'idempotency-key': randomUUID() },
     data: {
-      value: { minorUnits: '500000', currency: 'AUD' },
+      value: { minorUnits: '500000', currency: 'USD' },
       method: 'spot times weight',
       comparableReferences: 'LBMA',
     },
@@ -71,7 +71,7 @@ async function fundAccount(
   });
   const deposit = await request.post(`${apiBase}/me/deposits`, {
     headers: { 'idempotency-key': randomUUID() },
-    data: { email, amount: { minorUnits, currency: 'AUD' } },
+    data: { email, amount: { minorUnits, currency: 'USD' } },
   });
   expect(deposit.status()).toBe(201);
   await request.post(`${apiBase}/auth/logout`);
@@ -168,14 +168,14 @@ test('a borrower accepts an offer and both sides see the loan', async ({
   // The losing hold is committed until its lender pulls it back (rule M8).
   await loserPage.getByRole('link', { name: 'Wallet' }).click();
   await expect(loserPage.getByTestId('attention-count')).toHaveText('1');
-  await expect(loserPage.getByTestId('held-balance')).toHaveText('AUD 2,500.00');
+  await expect(loserPage.getByTestId('held-balance')).toHaveText('USD 2,500.00');
   await loserPage.getByTestId('attention-bell').click();
   await loserPage
     .getByTestId('attention-bell-panel')
     .getByRole('button', { name: 'Reclaim funds' })
     .click();
   await loserPage.getByRole('link', { name: 'Wallet' }).click();
-  await expect(loserPage.getByTestId('available-balance')).toHaveText('AUD 3,000.00');
+  await expect(loserPage.getByTestId('available-balance')).toHaveText('USD 3,000.00');
 
   await winnerPage.context().close();
   await loserPage.context().close();

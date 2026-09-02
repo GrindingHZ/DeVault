@@ -13,7 +13,7 @@ import { Offer } from './offer';
 import type { OfferStatus } from './offer';
 import { rankOffers } from './rank-offers';
 
-const aud = currencyOf('AUD');
+const aud = currencyOf('USD');
 const now = Instant.fromEpochMilliseconds(1_700_000_000_000n);
 
 const listing = Listing.restore({

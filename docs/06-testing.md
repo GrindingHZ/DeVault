@@ -57,7 +57,7 @@ describe('calculateAccruedInterest', () => {
   });
 
   it('does not overflow on a large principal held for a full term', () => {
-    const largePrincipal = Money.of(10_000_000_000n, 'AUD');
+    const largePrincipal = Money.of(10_000_000_000n, 'USD');
     expect(() => calculateAccruedInterest(largePrincipal, 3600, startedAt, maturesAt, maturesAt))
       .not.toThrow();
   });

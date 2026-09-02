@@ -8,9 +8,9 @@ import { expectLedgerBalances } from './ledger-assertions';
 const vaultId = 'VAULT-LIQ-1';
 const password = 'a-long-enough-password';
 const oneDay = 24n * 60n * 60n * 1000n;
-const amount = (minorUnits: string): { minorUnits: string; currency: 'AUD' } => ({
+const amount = (minorUnits: string): { minorUnits: string; currency: 'USD' } => ({
   minorUnits,
-  currency: 'AUD',
+  currency: 'USD',
 });
 
 describe('liquidation', () => {
@@ -30,9 +30,9 @@ describe('liquidation', () => {
       data: {
         id: vaultId,
         name: 'Liquidation vault',
-        city: 'Sydney',
+        city: 'New York',
         insuredLimitMinorUnits: 1_000_000_000n,
-        currency: 'AUD',
+        currency: 'USD',
       },
     });
   });
@@ -106,7 +106,7 @@ describe('liquidation', () => {
         holderAccountId: borrower.accountId,
         intakeRecordHash: `hash-${suffix}`,
         appraisedValueMinorUnits: 500_000n,
-        currency: 'AUD',
+        currency: 'USD',
         appraisedAt: new Date(0),
         appraiserId: 'S1',
         itemCategory: 'BULLION',
@@ -122,7 +122,7 @@ describe('liquidation', () => {
         borrowerAccountId: borrower.accountId,
         receiptId,
         requestedPrincipalMinorUnits: 250_000n,
-        currency: 'AUD',
+        currency: 'USD',
         maxAnnualPercentageRateBasisPoints: 2400,
         requestedDurationMs: 30n * oneDay,
         expiresAt: new Date(Number(harness.clock.now().epochMilliseconds) + 86_400_000),

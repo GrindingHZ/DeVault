@@ -234,7 +234,7 @@ function Holdings(): ReactElement {
     );
   }
 
-  const currency = receipts[0]?.appraisedValue.currency ?? 'AUD';
+  const currency = receipts[0]?.appraisedValue.currency ?? 'USD';
   const inVault = receipts.filter((receipt) => receipt.status === 'IN_VAULT');
   const securing = receipts.filter((receipt) => receipt.status === 'ENCUMBERED');
 
@@ -379,7 +379,7 @@ function ListReceiptDialog({
       const listing = await createListing(
         {
           receiptId: receipt.id,
-          requestedPrincipal: { minorUnits: input.minorUnits, currency: 'AUD' },
+          requestedPrincipal: { minorUnits: input.minorUnits, currency: 'USD' },
           maxAnnualPercentageRateBasisPoints: input.maxRateBasisPoints,
           requestedDurationMs: input.durationDays * 24 * 60 * 60 * 1000,
           requestedLifetimeMs: listingLifetimeMs,
@@ -421,7 +421,7 @@ function ListReceiptDialog({
         }}
       >
         <Field
-          label="Requested principal (AUD)"
+          label="Requested principal (USD)"
           data-testid="list-principal"
           value={principalInput}
           onChange={(event) => setPrincipalInput(event.target.value)}

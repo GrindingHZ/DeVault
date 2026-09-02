@@ -17,7 +17,7 @@ import {
 import { createTestApplication } from './create-test-application';
 import type { TestApplication } from './create-test-application';
 
-const aud = currencyOf('AUD');
+const aud = currencyOf('USD');
 const startedAt = Instant.fromEpochMilliseconds(1_700_000_000_000n);
 
 function originated(id: string) {

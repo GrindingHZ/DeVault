@@ -25,7 +25,7 @@ export function describeSettlementPortContract(
   name: string,
   createSubject: () => Promise<SettlementPortTestSubject>,
 ): void {
-  const aud = currencyOf('AUD');
+  const aud = currencyOf('USD');
 
   describe(`SettlementPort contract: ${name}`, () => {
     let subject: SettlementPortTestSubject;

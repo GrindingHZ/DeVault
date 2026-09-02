@@ -3,7 +3,7 @@ import { Money, currencyOf } from '../shared/money';
 import { assertWithinLoanToValue } from './loan-to-value-policy';
 import type { ProtocolParameters } from './protocol-parameters';
 
-const aud = currencyOf('AUD');
+const aud = currencyOf('USD');
 
 const parameters: ProtocolParameters = {
   maxLoanToValueBasisPointsByCategory: {

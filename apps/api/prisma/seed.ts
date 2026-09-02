@@ -63,7 +63,7 @@ interface Item {
 
 /* Position is a contract, not an ordering. buildDataset reads this list by
    index: 0 is borrowed, repaid and walked back out; 1 defaults and goes to
-   sale against a reserve of AUD 1,500; 2 to 4 carry the running loans;
+   sale against a reserve of USD 1,500; 2 to 4 carry the running loans;
    everything from 5 on stays on the marketplace taking offers. Moving an
    entry moves the story it is in, so add at the end rather than reordering.
 
@@ -80,13 +80,13 @@ const items: readonly Item[] = [
     appraisedMinorUnits: '520000',
     askMinorUnits: '250000',
     appraisalMethod: 'spot price at appraisal against 999.9 assay',
-    comparableReferences: 'Perth Mint published spot, plus retail premium',
+    comparableReferences: 'COMEX published spot, plus retail premium',
     serialNumbers: ['PM-2024-AU1-0084213'],
     tint: [212, 175, 84],
   },
   {
-    /* Position 1: defaults and is sold. Priced so the reserve of AUD 1,500
-       and the bids of AUD 1,800 and 2,100 read as a real result. */
+    /* Position 1: defaults and is sold. Priced so the reserve of USD 1,500
+       and the bids of USD 1,800 and 2,100 read as a real result. */
     description: 'Signed Print',
     category: 'ART',
     appraisedMinorUnits: '380000',
@@ -134,7 +134,7 @@ const items: readonly Item[] = [
     appraisedMinorUnits: '1680000',
     askMinorUnits: '700000',
     appraisalMethod: 'spot price at appraisal, assay card intact and matching',
-    comparableReferences: 'Perth Mint published spot, plus bar premium',
+    comparableReferences: 'COMEX published spot, plus bar premium',
     serialNumbers: ['PAMP-C401882'],
     tint: [216, 182, 96],
   },
@@ -299,8 +299,8 @@ function serverNow(): number {
   return Date.now() + clockOffsetMs;
 }
 
-function money(minorUnits: string): { minorUnits: string; currency: 'AUD' } {
-  return { minorUnits, currency: 'AUD' };
+function money(minorUnits: string): { minorUnits: string; currency: 'USD' } {
+  return { minorUnits, currency: 'USD' };
 }
 
 /* The end to end suite wants the fixed accounts and the vault and nothing
@@ -347,16 +347,16 @@ async function main(): Promise<void> {
     update: {},
     create: {
       id: vaultId,
-      name: 'Sydney vault',
-      city: 'Sydney',
+      name: 'New York vault',
+      city: 'New York',
       insuredLimitMinorUnits: 100_000_000n,
-      currency: 'AUD',
+      currency: 'USD',
     },
   });
 
   if (accountsOnly) {
     await prisma.$disconnect();
-    process.stdout.write('seeded the demo accounts and the Sydney vault\n');
+    process.stdout.write('seeded the demo accounts and the New York vault\n');
     return;
   }
 
@@ -420,7 +420,7 @@ async function buildDataset(origin: string): Promise<void> {
      The binding case is the account that places the losing offer on all five
      originations and then offers on two of the live listings: those holds sit
      side by side, because a superseded hold stays held until its lender
-     reclaims it (flow 4). That account commits AUD 27,000 before anything is
+     reclaims it (flow 4). That account commits USD 27,000 before anything is
      returned, so the float has to clear it with room rather than exactly. */
   for (const email of Object.values(cast)) {
     await operations.call('POST', '/me/deposits', { email, amount: money('4000000') });

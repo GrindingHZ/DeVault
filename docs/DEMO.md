@@ -89,7 +89,7 @@ Sign in as `staff@demo.test`. You are on **Intake**.
 2. Record the seal number. The draft now shows it and still refuses to be sealed.
 3. Attach a photo. It has to be a real JPEG or PNG: the bytes are checked rather than the file
    name, so a renamed script is refused. The evidence list then has one item.
-4. Record an appraisal of AUD 3,000.00. One appraisal is enough below the dual appraisal threshold,
+4. Record an appraisal of USD 3,000.00. One appraisal is enough below the dual appraisal threshold,
    and the screen says so.
 5. Seal the intake, then issue the receipt. You land on a receipt with a status of **IN VAULT**.
 
@@ -100,7 +100,7 @@ can borrow against, and in Phase 3 it is an object on chain.
 
 Sign in as `ada@demo.test` in the marketplace window.
 
-1. **My items** shows the receipt you just issued. List it: AUD 1,500.00 requested, a ceiling of
+1. **My items** shows the receipt you just issued. List it: USD 1,500.00 requested, a ceiling of
    24.00 percent, thirty days.
 2. Publish it. **Browse** now shows it alongside the three the seed left.
 
@@ -180,7 +180,7 @@ borrower. Not to us. That is the difference between a pawnbroker and a repossess
 
 Still as `ops@demo.test`:
 
-1. **Reconciliation**: run one against the Sydney vault. It compares the physical count to the
+1. **Reconciliation**: run one against the New York vault. It compares the physical count to the
    records and the ledger to itself, and reports drift rather than fixing it quietly.
 2. **Parameters**: the fees, with a full history of every edit and who made it. Loan to value is
    set per category, which is why the vault lends against 60 percent of bullion and 30 percent of

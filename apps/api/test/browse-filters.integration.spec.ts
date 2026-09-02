@@ -27,9 +27,9 @@ describe('browsing the marketplace', () => {
       data: {
         id: vaultId,
         name: 'Browse vault',
-        city: 'Sydney',
+        city: 'New York',
         insuredLimitMinorUnits: 100_000_000_000n,
-        currency: 'AUD',
+        currency: 'USD',
       },
     });
     const email = `borrower-${randomUUID().slice(0, 8)}@browse.test`;
@@ -65,7 +65,7 @@ describe('browsing the marketplace', () => {
         holderAccountId: borrowerAccountId,
         intakeRecordHash: `hash-browse-${suffix}`,
         appraisedValueMinorUnits: seed.appraised,
-        currency: 'AUD',
+        currency: 'USD',
         appraisedAt: new Date(0),
         appraiserId: 'S1',
         itemCategory: seed.category,
@@ -81,7 +81,7 @@ describe('browsing the marketplace', () => {
         borrowerAccountId,
         receiptId,
         requestedPrincipalMinorUnits: seed.principal,
-        currency: 'AUD',
+        currency: 'USD',
         maxAnnualPercentageRateBasisPoints: seed.maxRateBasisPoints,
         requestedDurationMs: 30n * BigInt(oneDay),
         expiresAt: new Date(

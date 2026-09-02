@@ -9,7 +9,7 @@ import { createTestApplication } from './create-test-application';
 import type { TestApplication } from './create-test-application';
 import { expectLedgerBalances } from './ledger-assertions';
 
-const aud = currencyOf('AUD');
+const aud = currencyOf('USD');
 const raceRounds = 20;
 
 describe('settlement concurrency', () => {

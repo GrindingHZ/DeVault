@@ -55,7 +55,7 @@ async function fundAccount(
   await signInApi(request, 'ops@demo.test', staffPassword);
   const deposit = await request.post(`${apiBase}/me/deposits`, {
     headers: { 'idempotency-key': randomUUID() },
-    data: { email, amount: { minorUnits, currency: 'AUD' } },
+    data: { email, amount: { minorUnits, currency: 'USD' } },
   });
   expect(deposit.status()).toBe(201);
 }
@@ -96,7 +96,7 @@ test('the demo runbook walks end to end exactly as docs/DEMO.md describes', asyn
   await vaultPage.getByTestId('appraise-value').fill('3000.00');
   await vaultPage.getByTestId('appraise-method').fill('spot price times weight');
   await vaultPage.getByTestId('appraise-save').click();
-  await expect(vaultPage.getByTestId('appraisal-list')).toContainText('AUD 3,000.00');
+  await expect(vaultPage.getByTestId('appraisal-list')).toContainText('USD 3,000.00');
   await vaultPage.getByTestId('appraise-continue').click();
 
   await vaultPage.getByTestId('seal-number').fill(`SEAL-${stamp}`);
@@ -181,8 +181,8 @@ test('the demo runbook walks end to end exactly as docs/DEMO.md describes', asyn
   await borrowerPage.keyboard.press('Escape');
   await borrowerPage.getByRole('button', { name: 'Repay', exact: true }).first().click();
   // Interest stopped at maturity, which the clock is now well past.
-  await expect(borrowerPage.getByTestId('payoff-total')).toContainText('AUD');
-  await expect(borrowerPage.getByTestId('payoff-interest')).toContainText('AUD');
+  await expect(borrowerPage.getByTestId('payoff-total')).toContainText('USD');
+  await expect(borrowerPage.getByTestId('payoff-interest')).toContainText('USD');
   await borrowerPage.getByRole('button', { name: 'Repay and release the item' }).click();
   await expect(borrowerPage.getByTestId('portfolio-open')).toContainText('Repaid');
 
@@ -256,7 +256,7 @@ test('the runbook can settle a sale that is already taking bids', async ({ brows
   await request.post(`${apiBase}/intakes/${intakeId}/appraisals`, {
     headers: { 'idempotency-key': randomUUID() },
     data: {
-      value: { minorUnits: '500000', currency: 'AUD' },
+      value: { minorUnits: '500000', currency: 'USD' },
       method: 'spot times weight',
       comparableReferences: 'LBMA',
     },
@@ -277,7 +277,7 @@ test('the runbook can settle a sale that is already taking bids', async ({ brows
     headers: { 'idempotency-key': randomUUID() },
     data: {
       receiptId,
-      requestedPrincipal: { minorUnits: '250000', currency: 'AUD' },
+      requestedPrincipal: { minorUnits: '250000', currency: 'USD' },
       maxAnnualPercentageRateBasisPoints: 2400,
       requestedDurationMs: 14 * oneDay,
       requestedLifetimeMs: 3_600_000,
@@ -292,7 +292,7 @@ test('the runbook can settle a sale that is already taking bids', async ({ brows
   const offer = await request.post(`${apiBase}/listings/${listingId}/offers`, {
     headers: { 'idempotency-key': randomUUID() },
     data: {
-      principal: { minorUnits: '250000', currency: 'AUD' },
+      principal: { minorUnits: '250000', currency: 'USD' },
       annualPercentageRateBasisPoints: 2400,
       durationMs: 14 * oneDay,
       expiresAt,
@@ -316,7 +316,7 @@ test('the runbook can settle a sale that is already taking bids', async ({ brows
   await signInApi(request, 'ops@demo.test', staffPassword);
   const scheduled = await request.post(`${apiBase}/loans/${loanId}/liquidations`, {
     headers: { 'idempotency-key': randomUUID() },
-    data: { reservePrice: { minorUnits: '150000', currency: 'AUD' } },
+    data: { reservePrice: { minorUnits: '150000', currency: 'USD' } },
   });
   const liquidationId = ((await scheduled.json()) as { id: string }).id;
   await request.post(`${apiBase}/liquidations/${liquidationId}/open`, {
@@ -326,7 +326,7 @@ test('the runbook can settle a sale that is already taking bids', async ({ brows
   await signInApi(request, bidderEmail, password);
   await request.post(`${apiBase}/liquidations/${liquidationId}/bids`, {
     headers: { 'idempotency-key': randomUUID() },
-    data: { amount: { minorUnits: '300000', currency: 'AUD' } },
+    data: { amount: { minorUnits: '300000', currency: 'USD' } },
   });
 
   const adminPage = await openApp(browser, adminBase, '/login');

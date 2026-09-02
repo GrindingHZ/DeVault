@@ -72,7 +72,7 @@ on mount, not on submit, so a double-click sends the same key twice and the serv
 Two primitives, used everywhere, never bypassed.
 
 ```tsx
-<Money value={loan.principal} />                  // AUD 2,500.00
+<Money value={loan.principal} />                  // USD 2,500.00
 <Rate basisPoints={loan.annualPercentageRateBasisPoints} />   // 18.00% p.a.
 ```
 

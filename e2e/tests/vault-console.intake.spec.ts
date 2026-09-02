@@ -55,7 +55,7 @@ test('an item goes from intake to a receipt the borrower can see', async ({
   await page.getByTestId('appraise-value').fill('5000.00');
   await page.getByTestId('appraise-method').fill('spot price times weight');
   await page.getByTestId('appraise-save').click();
-  await expect(page.getByTestId('appraisal-list')).toContainText('AUD 5,000.00');
+  await expect(page.getByTestId('appraisal-list')).toContainText('USD 5,000.00');
   await page.getByTestId('appraise-continue').click();
 
   await page.getByTestId('seal-number').fill('SEAL-777');
@@ -82,7 +82,7 @@ test('an item goes from intake to a receipt the borrower can see', async ({
   // What belongs here is that issuing through the console moved the figure
   // the operator reads by at least the item just taken in.
   expect(afterMinorUnits).toBeGreaterThanOrEqual(beforeMinorUnits + 500_000n);
-  await expect(page.getByTestId('exposure-current')).toContainText('AUD');
+  await expect(page.getByTestId('exposure-current')).toContainText('USD');
 
   const borrowerContext = await browser.newContext();
   const borrowerPage = await borrowerContext.newPage();

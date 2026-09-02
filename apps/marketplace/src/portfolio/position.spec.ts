@@ -13,7 +13,7 @@ const now = Date.parse('2026-08-23T12:00:00.000Z');
 const oneDay = 24 * 60 * 60 * 1000;
 
 function money(minorUnits: string) {
-  return { minorUnits, currency: 'AUD' as const };
+  return { minorUnits, currency: 'USD' as const };
 }
 
 function listing(overrides: Partial<MyListingResponse> = {}): MyListingResponse {
@@ -157,7 +157,7 @@ describe('an offer as a position', () => {
     const position = offerPosition(offer({ status }));
     expect(position.action?.kind).toBe('reclaim');
     expect(position.needsAttention).toBe(true);
-    expect(position.figure).toEqual({ label: 'Held', value: 'AUD 4,000.00' });
+    expect(position.figure).toEqual({ label: 'Held', value: 'USD 4,000.00' });
   });
 
   it('leaves an accepted offer to the loan it became', () => {
@@ -187,7 +187,7 @@ describe('a loan the reader owes', () => {
   it('shows what settling today would cost', () => {
     const position = positionOfBorrowedLoan(loan(), now);
     expect(position.stage).toBe('Running');
-    expect(position.figure).toEqual({ label: 'Owed today', value: 'AUD 4,059.17' });
+    expect(position.figure).toEqual({ label: 'Owed today', value: 'USD 4,059.17' });
     expect(position.action?.kind).toBe('repay');
   });
 
@@ -267,11 +267,11 @@ describe('what a loan is worth', () => {
   });
 
   /* Bare figures. The loan tables name the currency once in the column
-     header, because twenty repetitions of "AUD" down a column pushed every
+     header, because twenty repetitions of "USD" down a column pushed every
      amount onto two lines. */
   it('splits interest into what has accrued and what is still to come', () => {
     const metrics = positionOfBorrowedLoan(sixtyDays, now).metrics;
-    expect(metrics?.currency).toBe('AUD');
+    expect(metrics?.currency).toBe('USD');
     expect(metrics?.interestSoFar).toBe('59.17');
     expect(metrics?.interestToCome).toBe('59.18');
   });
@@ -281,11 +281,11 @@ describe('what a loan is worth', () => {
   it('settles a borrower at today and a lender at maturity', () => {
     expect(positionOfBorrowedLoan(sixtyDays, now).metrics?.settlement).toEqual({
       label: 'Owed today',
-      value: 'AUD 4,059.17',
+      value: 'USD 4,059.17',
     });
     expect(positionOfLentLoan(sixtyDays, now).metrics?.settlement).toEqual({
       label: 'Value at maturity',
-      value: 'AUD 4,118.35',
+      value: 'USD 4,118.35',
     });
   });
 
@@ -391,7 +391,7 @@ describe('a loan the reader is owed', () => {
   it('shows what it has earned so far', () => {
     const position = positionOfLentLoan(loan(), now);
     expect(position.stage).toBe('Earning');
-    expect(position.figure).toEqual({ label: 'Earned so far', value: 'AUD 59.17' });
+    expect(position.figure).toEqual({ label: 'Earned so far', value: 'USD 59.17' });
     expect(position.needsAttention).toBe(false);
   });
 

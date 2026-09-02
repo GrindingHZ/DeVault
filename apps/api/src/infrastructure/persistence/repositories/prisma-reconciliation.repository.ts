@@ -12,7 +12,7 @@ import type { ReceiptId, VaultId } from '../../../domain/shared/identifiers';
 import { Money, currencyOf } from '../../../domain/shared/money';
 import { transactionOf } from '../prisma-unit-of-work';
 
-const aud = currencyOf('AUD');
+const aud = currencyOf('USD');
 
 @Injectable()
 export class PrismaReconciliationRepository implements ReconciliationRepository {

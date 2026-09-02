@@ -41,7 +41,7 @@ exists.
   "error": {
     "code": "LOAN_TO_VALUE_EXCEEDED",
     "message": "Requested principal exceeds the maximum for this item category.",
-    "details": { "maxPrincipal": { "minorUnits": "300000", "currency": "AUD" } }
+    "details": { "maxPrincipal": { "minorUnits": "300000", "currency": "USD" } }
   }
 }
 ```
@@ -186,7 +186,7 @@ Idempotency-Key: 4f1a...
 Content-Type: application/json
 
 {
-  "principal": { "minorUnits": "250000", "currency": "AUD" },
+  "principal": { "minorUnits": "250000", "currency": "USD" },
   "annualPercentageRateBasisPoints": 1800,
   "durationMs": 2592000000,
   "expiresAt": "2026-09-01T00:00:00.000Z"
@@ -198,7 +198,7 @@ Content-Type: application/json
   "id": "01HY...",
   "listingId": "01HX...",
   "status": "PENDING",
-  "principal": { "minorUnits": "250000", "currency": "AUD" },
+  "principal": { "minorUnits": "250000", "currency": "USD" },
   "annualPercentageRateBasisPoints": 1800,
   "durationMs": 2592000000,
   "fundsHold": {
@@ -217,14 +217,14 @@ Accepting an offer:
   "loan": {
     "id": "01J1...",
     "status": "ACTIVE",
-    "principal": { "minorUnits": "250000", "currency": "AUD" },
+    "principal": { "minorUnits": "250000", "currency": "USD" },
     "annualPercentageRateBasisPoints": 1800,
     "startedAt": "2026-08-14T...",
     "maturesAt": "2026-09-13T...",
     "graceEndsAt": "2026-09-20T..."
   },
-  "disbursement": { "minorUnits": "245000", "currency": "AUD" },
-  "originationFee": { "minorUnits": "5000", "currency": "AUD" },
+  "disbursement": { "minorUnits": "245000", "currency": "USD" },
+  "originationFee": { "minorUnits": "5000", "currency": "USD" },
   "settlementRef": { "kind": "ledger", "reference": "01J2...", "settledAt": "2026-08-14T..." }
 }
 ```

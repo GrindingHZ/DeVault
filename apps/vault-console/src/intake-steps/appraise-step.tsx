@@ -25,7 +25,7 @@ export function AppraiseStep({ intake, onAdvance }: IntakeStepProps): ReactEleme
     mutationFn: (minorUnits: string) =>
       recordAppraisal(
         intake.id,
-        { value: { minorUnits, currency: 'AUD' }, method, comparableReferences },
+        { value: { minorUnits, currency: 'USD' }, method, comparableReferences },
         { idempotencyKey },
       ),
     onSuccess: async () => {
@@ -51,7 +51,7 @@ export function AppraiseStep({ intake, onAdvance }: IntakeStepProps): ReactEleme
         }}
       >
         <Field
-          label="Appraised value (AUD)"
+          label="Appraised value (USD)"
           data-testid="appraise-value"
           value={valueInput}
           onChange={(event) => setValueInput(event.target.value)}

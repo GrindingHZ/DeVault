@@ -10,9 +10,9 @@ import { expectLedgerBalances } from './ledger-assertions';
 const vaultId = 'VAULT-ORACE-1';
 const password = 'a-long-enough-password';
 const raceRounds = 20;
-const amount = (minorUnits: string): { minorUnits: string; currency: 'AUD' } => ({
+const amount = (minorUnits: string): { minorUnits: string; currency: 'USD' } => ({
   minorUnits,
-  currency: 'AUD',
+  currency: 'USD',
 });
 
 describe('origination race and idempotency', () => {
@@ -75,7 +75,7 @@ describe('origination race and idempotency', () => {
         holderAccountId: borrowerAccountId,
         intakeRecordHash: `hash-orace-${round}`,
         appraisedValueMinorUnits: 500_000n,
-        currency: 'AUD',
+        currency: 'USD',
         appraisedAt: new Date(0),
         appraiserId: 'S1',
         itemCategory: 'BULLION',
@@ -91,7 +91,7 @@ describe('origination race and idempotency', () => {
         borrowerAccountId,
         receiptId,
         requestedPrincipalMinorUnits: 250_000n,
-        currency: 'AUD',
+        currency: 'USD',
         maxAnnualPercentageRateBasisPoints: 2400,
         requestedDurationMs: 2_592_000_000n,
         expiresAt: new Date(Date.now() + 86_400_000),
@@ -127,9 +127,9 @@ describe('origination race and idempotency', () => {
         data: {
           id: vaultId,
           name: 'Race vault',
-          city: 'Sydney',
+          city: 'New York',
           insuredLimitMinorUnits: 100_000_000n,
-          currency: 'AUD',
+          currency: 'USD',
         },
       });
       const borrower = await loginAs('borrower@orace.test', 'MEMBER');
@@ -170,9 +170,9 @@ describe('origination race and idempotency', () => {
       data: {
         id: vaultId,
         name: 'Race vault',
-        city: 'Sydney',
+        city: 'New York',
         insuredLimitMinorUnits: 100_000_000n,
-        currency: 'AUD',
+        currency: 'USD',
       },
     });
     const borrower = await loginAs('borrower@replay.test', 'MEMBER');

@@ -46,7 +46,7 @@ describe('wallet', () => {
 
   const amount = (minorUnits: string): { minorUnits: string; currency: string } => ({
     minorUnits,
-    currency: 'AUD',
+    currency: 'USD',
   });
 
   it('deposits into a named account and the member sees the balance', async () => {

@@ -14,7 +14,7 @@ import { Offer, allowedOfferTransitions } from './offer';
 import type { OfferEvent, OfferStatus } from './offer';
 import type { ProtocolParameters } from './protocol-parameters';
 
-const aud = currencyOf('AUD');
+const aud = currencyOf('USD');
 const now = Instant.fromEpochMilliseconds(1_700_000_000_000n);
 const later = now.plusMilliseconds(3_600_000n);
 

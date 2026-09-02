@@ -70,7 +70,7 @@ describe('parameter storage', () => {
     const original = {
       ...demoParameters,
       minimumOfferLifetimeMs: 900_000n,
-      dualAppraisalThreshold: Money.of(12_345_678n, currencyOf('AUD')),
+      dualAppraisalThreshold: Money.of(12_345_678n, currencyOf('USD')),
     };
     const restored = fromStoredParameters(toStoredParameters(original));
     expect(restored.minimumOfferLifetimeMs).toBe(900_000n);

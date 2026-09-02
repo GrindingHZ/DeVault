@@ -7,9 +7,9 @@ import { expectLedgerBalances } from './ledger-assertions';
 
 const vaultId = 'VAULT-MKT-1';
 const password = 'a-long-enough-password';
-const amount = (minorUnits: string): { minorUnits: string; currency: 'AUD' } => ({
+const amount = (minorUnits: string): { minorUnits: string; currency: 'USD' } => ({
   minorUnits,
-  currency: 'AUD',
+  currency: 'USD',
 });
 
 describe('marketplace', () => {
@@ -29,9 +29,9 @@ describe('marketplace', () => {
       data: {
         id: vaultId,
         name: 'Marketplace vault',
-        city: 'Sydney',
+        city: 'New York',
         insuredLimitMinorUnits: 100_000_000n,
-        currency: 'AUD',
+        currency: 'USD',
       },
     });
   });
@@ -81,7 +81,7 @@ describe('marketplace', () => {
         holderAccountId: account.id,
         intakeRecordHash: `hash-${suffix}`,
         appraisedValueMinorUnits: 500_000n,
-        currency: 'AUD',
+        currency: 'USD',
         appraisedAt: new Date(0),
         appraiserId: 'S1',
         itemCategory: 'BULLION',

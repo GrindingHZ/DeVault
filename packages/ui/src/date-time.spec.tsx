@@ -6,15 +6,15 @@ const iso = '2026-10-14T08:20:03.000Z';
 
 describe('formatInstant', () => {
   it('never shows the wire format', () => {
-    const formatted = formatInstant(iso, 'second', 'en-AU');
+    const formatted = formatInstant(iso, 'second', 'en-US');
     expect(formatted).not.toContain('T');
     expect(formatted).not.toContain(iso);
   });
 
   it('says more the finer the precision', () => {
-    const date = formatInstant(iso, 'date', 'en-AU');
-    const minute = formatInstant(iso, 'minute', 'en-AU');
-    const second = formatInstant(iso, 'second', 'en-AU');
+    const date = formatInstant(iso, 'date', 'en-US');
+    const minute = formatInstant(iso, 'minute', 'en-US');
+    const second = formatInstant(iso, 'second', 'en-US');
     expect(minute.length).toBeGreaterThan(date.length);
     expect(second.length).toBeGreaterThan(minute.length);
   });
@@ -33,13 +33,13 @@ describe('formatInstant', () => {
 
 describe('DateTime', () => {
   it('keeps the machine readable value in the attribute', () => {
-    const { container } = render(<DateTime iso={iso} locale="en-AU" />);
+    const { container } = render(<DateTime iso={iso} locale="en-US" />);
     expect(container.querySelector('time')?.getAttribute('dateTime')).toBe(iso);
   });
 
   it('shows the reader a formatted moment', () => {
-    render(<DateTime iso={iso} precision="date" locale="en-AU" />);
-    expect(screen.getByText(formatInstant(iso, 'date', 'en-AU'))).toBeTruthy();
+    render(<DateTime iso={iso} precision="date" locale="en-US" />);
+    expect(screen.getByText(formatInstant(iso, 'date', 'en-US'))).toBeTruthy();
   });
 
   it('renders nothing at all for an unreadable value', () => {

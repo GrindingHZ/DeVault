@@ -50,7 +50,7 @@ async function issueReceiptFor(request: APIRequestContext, borrowerEmail: string
   await request.post(`${apiBase}/intakes/${intakeId}/appraisals`, {
     headers: { 'idempotency-key': randomUUID() },
     data: {
-      value: { minorUnits: '500000', currency: 'AUD' },
+      value: { minorUnits: '500000', currency: 'USD' },
       method: 'spot times weight',
       comparableReferences: 'LBMA',
     },
@@ -75,7 +75,7 @@ async function fundAccount(
   await signInApi(request, 'ops@demo.test', 'demo-password-123');
   const deposit = await request.post(`${apiBase}/me/deposits`, {
     headers: { 'idempotency-key': randomUUID() },
-    data: { email, amount: { minorUnits, currency: 'AUD' } },
+    data: { email, amount: { minorUnits, currency: 'USD' } },
   });
   expect(deposit.status()).toBe(201);
 }
@@ -100,7 +100,7 @@ test('operations run a defaulted loan through to settlement', async ({ page, req
     headers: { 'idempotency-key': randomUUID() },
     data: {
       receiptId,
-      requestedPrincipal: { minorUnits: '250000', currency: 'AUD' },
+      requestedPrincipal: { minorUnits: '250000', currency: 'USD' },
       maxAnnualPercentageRateBasisPoints: 2400,
       requestedDurationMs: 30 * oneDay,
       requestedLifetimeMs: 3_600_000,
@@ -115,7 +115,7 @@ test('operations run a defaulted loan through to settlement', async ({ page, req
   const offer = await request.post(`${apiBase}/listings/${listingId}/offers`, {
     headers: { 'idempotency-key': randomUUID() },
     data: {
-      principal: { minorUnits: '250000', currency: 'AUD' },
+      principal: { minorUnits: '250000', currency: 'USD' },
       annualPercentageRateBasisPoints: 1800,
       durationMs: 30 * oneDay,
       expiresAt,
@@ -144,7 +144,7 @@ test('operations run a defaulted loan through to settlement', async ({ page, req
   await signInApi(request, 'ops@demo.test', 'demo-password-123');
   const scheduled = await request.post(`${apiBase}/loans/${loanId}/liquidations`, {
     headers: { 'idempotency-key': randomUUID() },
-    data: { reservePrice: { minorUnits: '200000', currency: 'AUD' } },
+    data: { reservePrice: { minorUnits: '200000', currency: 'USD' } },
   });
   expect(scheduled.status()).toBe(201);
   const liquidationId = ((await scheduled.json()) as { id: string }).id;
@@ -166,12 +166,12 @@ test('operations run a defaulted loan through to settlement', async ({ page, req
   await signInApi(request, bidderEmail, password);
   const bid = await request.post(`${apiBase}/liquidations/${liquidationId}/bids`, {
     headers: { 'idempotency-key': randomUUID() },
-    data: { amount: { minorUnits: '300000', currency: 'AUD' } },
+    data: { amount: { minorUnits: '300000', currency: 'USD' } },
   });
   expect(bid.status()).toBe(201);
 
   await page.reload();
-  await expect(page.getByTestId('liquidations-table')).toContainText('AUD 3,000.00');
+  await expect(page.getByTestId('liquidations-table')).toContainText('USD 3,000.00');
   await page.getByTestId(`close-${liquidationId}`).click();
   await expect(page.getByTestId('liquidations-table')).toContainText('Settled');
 
@@ -180,7 +180,7 @@ test('operations run a defaulted loan through to settlement', async ({ page, req
   const lenderBalance = await request.get(`${apiBase}/me/balance`);
   // 300000 funded less the 250000 lent, plus 253698 recovered from the sale.
   expect(((await lenderBalance.json()) as { available: { minorUnits: string } }).available).toEqual(
-    { minorUnits: '303698', currency: 'AUD' },
+    { minorUnits: '303698', currency: 'USD' },
   );
 
   await signInApi(request, borrowerEmail, password);
@@ -188,5 +188,5 @@ test('operations run a defaulted loan through to settlement', async ({ page, req
   // 245000 disbursed at origination, plus the surplus after the fee.
   expect(
     ((await borrowerBalance.json()) as { available: { minorUnits: string } }).available,
-  ).toEqual({ minorUnits: '290376', currency: 'AUD' });
+  ).toEqual({ minorUnits: '290376', currency: 'USD' });
 });

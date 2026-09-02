@@ -3,7 +3,7 @@ import { receiptIdOf, vaultIdOf } from '../shared/identifiers';
 import { Money, currencyOf } from '../shared/money';
 import { detectInventoryDrift, detectLedgerDrift } from './reconciliation-run';
 
-const aud = currencyOf('AUD');
+const aud = currencyOf('USD');
 const vaultId = vaultIdOf('VAULT-1');
 
 describe('detectInventoryDrift', () => {

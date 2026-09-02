@@ -6,7 +6,7 @@ import { Money, currencyOf } from '../shared/money';
 import type { Distribution } from '../shared/settlement-ref';
 import { distributeLiquidationProceeds } from './liquidation-waterfall';
 
-const aud = currencyOf('AUD');
+const aud = currencyOf('USD');
 const recipients = {
   noteHolder: accountIdOf('LENDER-1'),
   borrower: accountIdOf('BORROWER-1'),

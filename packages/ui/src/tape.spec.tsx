@@ -10,7 +10,7 @@ const items: TapeItem[] = [
     listingId: 'L1',
     itemDescription: 'Rolex Submariner 116610LN',
     rateBasisPoints: 1120,
-    amount: { minorUnits: '800000', currency: 'AUD' },
+    amount: { minorUnits: '800000', currency: 'USD' },
   },
   {
     at: '2026-08-19T11:51:03.000Z',
@@ -18,7 +18,7 @@ const items: TapeItem[] = [
     listingId: 'L2',
     itemDescription: 'Gold bar, 100g, PAMP Suisse',
     rateBasisPoints: 840,
-    amount: { minorUnits: '550000', currency: 'AUD' },
+    amount: { minorUnits: '550000', currency: 'USD' },
   },
 ];
 

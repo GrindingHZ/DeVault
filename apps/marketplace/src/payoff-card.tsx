@@ -82,7 +82,7 @@ export function PayoffCard({ loan }: { readonly loan: LoanResponse }): ReactElem
       return repayLoan(
         loan.id,
         {
-          amount: { minorUnits: quote.total.minorUnits, currency: 'AUD' },
+          amount: { minorUnits: quote.total.minorUnits, currency: 'USD' },
           quotedAt: quote.quotedAt,
         },
         { idempotencyKey },

@@ -17,7 +17,7 @@ const now = Date.parse('2026-08-23T12:00:00.000Z');
 const oneDay = 24 * 60 * 60 * 1000;
 
 function money(minorUnits: string) {
-  return { minorUnits, currency: 'AUD' as const };
+  return { minorUnits, currency: 'USD' as const };
 }
 
 function listing(overrides: Partial<MyListingResponse> = {}): MyListingResponse {

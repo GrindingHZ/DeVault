@@ -26,9 +26,9 @@ describe('receipt photographs', () => {
       data: {
         id: vaultId,
         name: 'Photograph vault',
-        city: 'Sydney',
+        city: 'New York',
         insuredLimitMinorUnits: 1_000_000_000n,
-        currency: 'AUD',
+        currency: 'USD',
       },
     });
   });
@@ -88,7 +88,7 @@ describe('receipt photographs', () => {
       .set('Cookie', staff.cookies)
       .set('Idempotency-Key', randomUUID())
       .send({
-        value: { minorUnits: '900000', currency: 'AUD' },
+        value: { minorUnits: '900000', currency: 'USD' },
         method: 'comparable sales',
         comparableReferences: 'register',
       })
@@ -115,7 +115,7 @@ describe('receipt photographs', () => {
       .set('Idempotency-Key', randomUUID())
       .send({
         receiptId,
-        requestedPrincipal: { minorUnits: '200000', currency: 'AUD' },
+        requestedPrincipal: { minorUnits: '200000', currency: 'USD' },
         maxAnnualPercentageRateBasisPoints: 2400,
         requestedDurationMs: 30 * oneDay,
         requestedLifetimeMs: 14 * oneDay,

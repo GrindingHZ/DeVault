@@ -8,9 +8,9 @@ import { expectLedgerBalances } from './ledger-assertions';
 const vaultId = 'VAULT-REPAY-1';
 const password = 'a-long-enough-password';
 const oneDay = 24n * 60n * 60n * 1000n;
-const amount = (minorUnits: string): { minorUnits: string; currency: 'AUD' } => ({
+const amount = (minorUnits: string): { minorUnits: string; currency: 'USD' } => ({
   minorUnits,
-  currency: 'AUD',
+  currency: 'USD',
 });
 
 describe('repayment', () => {
@@ -30,9 +30,9 @@ describe('repayment', () => {
       data: {
         id: vaultId,
         name: 'Repayment vault',
-        city: 'Sydney',
+        city: 'New York',
         insuredLimitMinorUnits: 100_000_000n,
-        currency: 'AUD',
+        currency: 'USD',
       },
     });
   });
@@ -111,7 +111,7 @@ describe('repayment', () => {
         holderAccountId: borrower.accountId,
         intakeRecordHash: `hash-${suffix}`,
         appraisedValueMinorUnits: 500_000n,
-        currency: 'AUD',
+        currency: 'USD',
         appraisedAt: new Date(0),
         appraiserId: 'S1',
         itemCategory: 'BULLION',
@@ -127,7 +127,7 @@ describe('repayment', () => {
         borrowerAccountId: borrower.accountId,
         receiptId,
         requestedPrincipalMinorUnits: 250_000n,
-        currency: 'AUD',
+        currency: 'USD',
         maxAnnualPercentageRateBasisPoints: 2400,
         requestedDurationMs: 30n * oneDay,
         expiresAt: new Date(Number(harness.clock.now().epochMilliseconds) + 86_400_000),
@@ -273,7 +273,9 @@ describe('repayment', () => {
       .set('Cookie', loan.borrower.cookies)
       .set('Idempotency-Key', randomUUID())
       .send({
-        amount: { minorUnits: '250000', currency: 'USD' },
+        /* Any currency the loan is not in. Deliberately not the product
+           currency, or this asserts nothing. */
+        amount: { minorUnits: '250000', currency: 'EUR' },
         quotedAt: new Date(Number(harness.clock.now().epochMilliseconds)).toISOString(),
       })
       .expect(400);

@@ -7,9 +7,9 @@ import type { TestApplication } from './create-test-application';
 const vaultId = 'VAULT-PAUSE-1';
 const password = 'a-long-enough-password';
 const oneDay = 24n * 60n * 60n * 1000n;
-const amount = (minorUnits: string): { minorUnits: string; currency: 'AUD' } => ({
+const amount = (minorUnits: string): { minorUnits: string; currency: 'USD' } => ({
   minorUnits,
-  currency: 'AUD',
+  currency: 'USD',
 });
 
 /* Rule S2 is the reason this file exists. A pause that traps a borrower's
@@ -33,9 +33,9 @@ describe('pause', () => {
       data: {
         id: vaultId,
         name: 'Pause vault',
-        city: 'Sydney',
+        city: 'New York',
         insuredLimitMinorUnits: 1_000_000_000n,
-        currency: 'AUD',
+        currency: 'USD',
       },
     });
   });
@@ -104,7 +104,7 @@ describe('pause', () => {
         holderAccountId,
         intakeRecordHash: `hash-${suffix}`,
         appraisedValueMinorUnits: 500_000n,
-        currency: 'AUD',
+        currency: 'USD',
         appraisedAt: new Date(0),
         appraiserId: 'S1',
         itemCategory: 'BULLION',
@@ -124,7 +124,7 @@ describe('pause', () => {
         borrowerAccountId,
         receiptId,
         requestedPrincipalMinorUnits: 250_000n,
-        currency: 'AUD',
+        currency: 'USD',
         maxAnnualPercentageRateBasisPoints: 2400,
         requestedDurationMs: 30n * oneDay,
         expiresAt: new Date(Number(harness.clock.now().epochMilliseconds) + 86_400_000),

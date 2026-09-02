@@ -19,7 +19,7 @@ import { IssueReceiptUseCase } from '../src/modules/custody/application/issue-re
 import { createTestApplication } from './create-test-application';
 import type { TestApplication } from './create-test-application';
 
-const aud = currencyOf('AUD');
+const aud = currencyOf('USD');
 const vaultId = vaultIdOf('RACE-VAULT');
 const raceRounds = 20;
 
@@ -97,7 +97,7 @@ describe('issue receipt race', () => {
           Vault.create({
             id: vaultId,
             name: 'Race vault',
-            city: 'Sydney',
+            city: 'New York',
             insuredLimit: Money.of(1000n, aud),
           }),
           context,
@@ -139,7 +139,7 @@ describe('issue receipt race', () => {
           Vault.create({
             id: vaultId,
             name: 'Race vault',
-            city: 'Sydney',
+            city: 'New York',
             insuredLimit: Money.of(1000n, aud),
           }),
           context,

@@ -16,7 +16,7 @@ export interface CustodyReading {
    (docs/10-flows.md flow 6), so the receipt turns `RELEASED` the instant a
    borrower asks for their item back. `RELEASED` means the token is spent,
    which is the correct word for the state machine, and the screen rendered it
-   as "Collected" while the watch was still on a shelf in Sydney. It said so
+   as "Collected" while the watch was still on a shelf in New York. It said so
    for the whole verification window, which is exactly when a borrower is
    anxious and checking. On a finished redemption it then said "Collected"
    and "Handed over" side by side: one event, stated twice.

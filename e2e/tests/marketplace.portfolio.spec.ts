@@ -40,7 +40,7 @@ async function issueReceiptFor(
   await request.post(`${apiBase}/intakes/${intakeId}/appraisals`, {
     headers: { 'idempotency-key': randomUUID() },
     data: {
-      value: { minorUnits: '500000', currency: 'AUD' },
+      value: { minorUnits: '500000', currency: 'USD' },
       method: 'spot times weight',
       comparableReferences: 'LBMA',
     },
@@ -68,7 +68,7 @@ async function fundAccount(
   });
   const deposit = await request.post(`${apiBase}/me/deposits`, {
     headers: { 'idempotency-key': randomUUID() },
-    data: { email, amount: { minorUnits, currency: 'AUD' } },
+    data: { email, amount: { minorUnits, currency: 'USD' } },
   });
   expect(deposit.status()).toBe(201);
   await request.post(`${apiBase}/auth/logout`);
@@ -84,7 +84,7 @@ async function publishListing(
     headers: { 'idempotency-key': randomUUID() },
     data: {
       receiptId,
-      requestedPrincipal: { minorUnits: '250000', currency: 'AUD' },
+      requestedPrincipal: { minorUnits: '250000', currency: 'USD' },
       maxAnnualPercentageRateBasisPoints: 2400,
       requestedDurationMs: 30 * oneDay,
       requestedLifetimeMs: 3_600_000,
@@ -110,7 +110,7 @@ async function offerOn(
   const offer = await request.post(`${apiBase}/listings/${listingId}/offers`, {
     headers: { 'idempotency-key': randomUUID() },
     data: {
-      principal: { minorUnits: '250000', currency: 'AUD' },
+      principal: { minorUnits: '250000', currency: 'USD' },
       annualPercentageRateBasisPoints: basisPoints,
       durationMs: 30 * oneDay,
       expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
@@ -184,7 +184,7 @@ test('a lender reclaims an outbid hold from the attention band', async ({ page, 
   const panel = page.getByTestId('attention-bell-panel');
   await expect(panel).toContainText('One kilogram gold bar');
   await expect(panel).toContainText('Outbid');
-  await expect(panel).toContainText('AUD 2,500.00');
+  await expect(panel).toContainText('USD 2,500.00');
 
   await panel.getByRole('button', { name: 'Reclaim funds' }).click();
   /* The bell goes quiet. A count that is zero shows no badge at all rather
@@ -193,7 +193,7 @@ test('a lender reclaims an outbid hold from the attention band', async ({ page, 
   await expect(page.getByTestId('attention-count')).toHaveCount(0);
 
   await page.getByRole('link', { name: 'Wallet' }).click();
-  await expect(page.getByTestId('available-balance')).toHaveText('AUD 3,000.00');
+  await expect(page.getByTestId('available-balance')).toHaveText('USD 3,000.00');
 });
 
 test('the two sides ask different questions and answer them in their own columns', async ({

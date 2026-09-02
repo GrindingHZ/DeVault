@@ -36,9 +36,9 @@ describe('the market index and tape', () => {
       data: {
         id: vaultId,
         name: 'Market vault',
-        city: 'Sydney',
+        city: 'New York',
         insuredLimitMinorUnits: 100_000_000_000n,
-        currency: 'AUD',
+        currency: 'USD',
       },
     });
     const email = `member-${randomUUID().slice(0, 8)}@market.test`;
@@ -71,7 +71,7 @@ describe('the market index and tape', () => {
         holderAccountId: accountId,
         intakeRecordHash: `hash-market-${suffix}`,
         appraisedValueMinorUnits: 1_000_000n,
-        currency: 'AUD',
+        currency: 'USD',
         appraisedAt: new Date(0),
         appraiserId: 'S1',
         itemCategory: seed.category,
@@ -87,7 +87,7 @@ describe('the market index and tape', () => {
         borrowerAccountId: accountId,
         receiptId,
         requestedPrincipalMinorUnits: 500_000n,
-        currency: 'AUD',
+        currency: 'USD',
         maxAnnualPercentageRateBasisPoints: 2400,
         requestedDurationMs: 30n * BigInt(oneDay),
         expiresAt: new Date(nowMs() + 5 * oneDay),
@@ -106,7 +106,7 @@ describe('the market index and tape', () => {
         listingId,
         lenderAccountId: accountId,
         principalMinorUnits: 400_000n,
-        currency: 'AUD',
+        currency: 'USD',
         annualPercentageRateBasisPoints: basisPoints,
         durationMs: 30n * BigInt(oneDay),
         fundsHoldId: `H-MARKET-${suffix}`,

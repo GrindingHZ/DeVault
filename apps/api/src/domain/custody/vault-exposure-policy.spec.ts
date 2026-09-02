@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Money, currencyOf } from '../shared/money';
 import { assertWithinInsuredLimit } from './vault-exposure-policy';
 
-const aud = currencyOf('AUD');
+const aud = currencyOf('USD');
 const limit = Money.of(1_000_000n, aud);
 
 describe('assertWithinInsuredLimit', () => {

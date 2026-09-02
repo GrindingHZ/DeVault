@@ -7,7 +7,7 @@ import type { ReceiptEvent, ReceiptStatus } from './custody-receipt';
 import type { Result } from '../shared/result';
 import type { DomainError } from '../shared/domain-error';
 
-const aud = currencyOf('AUD');
+const aud = currencyOf('USD');
 
 function receiptIn(status: ReceiptStatus): CustodyReceipt {
   return CustodyReceipt.restore({

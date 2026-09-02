@@ -3,7 +3,7 @@ import { Instant } from '../shared/instant';
 import { Money, currencyOf } from '../shared/money';
 import { MILLISECONDS_PER_YEAR, calculateAccruedInterest } from './interest-calculator';
 
-const aud = currencyOf('AUD');
+const aud = currencyOf('USD');
 const startedAt = Instant.fromEpochMilliseconds(1_700_000_000_000n);
 const oneDay = 24n * 60n * 60n * 1000n;
 const maturesAt = startedAt.plusMilliseconds(30n * oneDay);

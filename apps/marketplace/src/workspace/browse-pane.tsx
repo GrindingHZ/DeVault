@@ -68,7 +68,7 @@ export function closesOn(expiresAt: string, nowEpochMs: number): ClosingTime {
   if (remaining <= 0) {
     return { lead: '', value: 'closed' };
   }
-  const locale = typeof navigator === 'undefined' ? 'en-AU' : navigator.language;
+  const locale = typeof navigator === 'undefined' ? 'en-US' : navigator.language;
   if (remaining < 24 * 60 * 60 * 1000) {
     const time = new Intl.DateTimeFormat(locale, {
       hour: 'numeric',

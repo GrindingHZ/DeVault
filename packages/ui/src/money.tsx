@@ -51,7 +51,7 @@ function groupingFor(locale: string): Intl.NumberFormat {
 }
 
 function readerLocale(): string {
-  return typeof navigator === 'undefined' ? 'en-AU' : navigator.language;
+  return typeof navigator === 'undefined' ? 'en-US' : navigator.language;
 }
 
 /* Formats straight from the API wire shape. The split into major and minor

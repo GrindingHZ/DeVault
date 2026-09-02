@@ -5,7 +5,7 @@ import { Inject } from '@nestjs/common';
 import { Money, currencyOf } from '../../../domain/shared/money';
 import { PrismaService } from '../../../infrastructure/persistence/prisma.service';
 
-const aud = currencyOf('AUD');
+const aud = currencyOf('USD');
 
 export interface LoanBook {
   readonly outstandingCount: number;

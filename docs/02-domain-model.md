@@ -205,8 +205,37 @@ class LenderNote {
 ```
 
 Thin by design. `transferable` defaults to `false` behind the `notesTransferable` feature flag;
-see the securities-law note in `docs/00-product-overview.md`. Build the transfer endpoint, ship it
-disabled.
+see the securities-law note in `docs/00-product-overview.md`. The demo parameters turn the flag on
+so the secondary market has something to show; production keeps it off until counsel answers Q-002.
+The bare transfer endpoint this section once asked for was subsumed by the note sale, which is a
+transfer with the payment leg that makes it an exit.
+
+### NoteSale
+
+The fixed price sale of a lender note: the secondary market the note indirection was built to buy.
+
+```
+OPEN ──purchase──▶ SOLD
+  │
+  ├──withdraw───▶ WITHDRAWN
+  │
+  └──void───────▶ VOIDED
+```
+
+Fields: `id`, `lenderNoteId`, `loanId`, `sellerAccountId`, `askPrice: Money`, `createdAt`,
+`status`, `version`.
+
+The ask is capped at `loan.calculateAmountDue(now)` at listing time: the seller keeps what the
+position has earned and forfeits the rest of the term's interest, which is the buyer's whole
+reason to buy. The cap only grows, so a sale never falls out of compliance and the purchase
+revalidates nothing about the price. Only ACTIVE loans may be listed; repayment and default void
+any open sale inside their own transaction, the way accepting an offer supersedes the losers.
+Neither the seller nor the borrower may buy (Q-030), and every note sale write locks the loan row,
+so a purchase racing a repayment serialises on the same lock repayment already takes.
+
+Purchase is one transaction: one balance checked transfer of the ask (ledger kind `SELL_NOTE`),
+one holder reassignment on the note, one status move on the sale. That is what makes it one Move
+transaction in Phase 3.
 
 ### Liquidation
 

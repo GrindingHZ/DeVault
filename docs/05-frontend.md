@@ -84,6 +84,7 @@ Two primitives, used everywhere, never bypassed.
 ```
 /                              landing, live listings
 /listings                      the workspace: browse, detail, offer book, spine, tape
+/listings/positions            the secondary market: open note sales, each with a value chart
 /listings/:listingId           redirects into /listings?listing=:listingId
 /portfolio                     every position on both sides, filtered by ?side=
 /borrow/receipts               my receipts, list one
@@ -111,6 +112,15 @@ than silently retrying; the amount changed and the user must see it.
 
 **Reclaim funds.** A persistent banner when the account has superseded or expired holds. This is
 money the user cannot spend and does not know about. It should be impossible to miss.
+
+**Positions for sale.** The second face of Browse, reached from a link beside the workspace's scope
+tabs rather than a fifth rail destination (Q-028). One card per open sale, and the centre of each
+card is a `ValueChart`: the solid line runs from the principal at origination to the full payoff at
+maturity, a marker pins today, and the dashed reference line is the ask. Every figure on the chart
+is priced by the server; the client draws and never computes money. Buying opens a dialog naming
+what is paid now and what the loan pays at maturity. Selling and withdrawing live on the
+portfolio's lending rows, where an active position offers `Sell position` and a listed one shows
+its ask beside `Withdraw sale`.
 
 ## The portfolio
 

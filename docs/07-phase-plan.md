@@ -214,6 +214,21 @@ the full Playwright cross-app test passes; the demo runbook executes without dev
 
 ---
 
+## P8h: secondary market
+
+**Goal:** a lender can leave early by selling the note, which is what the note indirection was for.
+
+Specced in `docs/superpowers/specs/2026-08-24-secondary-market-design.md` after the market shipped
+without it. One vertical slice: the `NoteSale` entity and purchase policy, the `SELL_NOTE` ledger
+kind and the transfer reason on the settlement port, five endpoints, the `/listings/positions`
+page with the value chart, sell and withdraw on the portfolio, and the demo seed listing one
+position for sale.
+
+**Exit criteria:** the note sale integration suite is green, the Playwright trade passes without
+moving the clock, and the demo runbook's early exit beat executes without deviation.
+
+---
+
 ## P9: chain readiness
 
 **Goal:** prove the seam holds before writing any Move.

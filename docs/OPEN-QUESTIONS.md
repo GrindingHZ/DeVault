@@ -25,8 +25,11 @@ and prescribed record-keeping. The intake record schema may need mandated fields
 
 ## Q-002: is the lender note a financial product
 **Blocks:** whether note transfer ships enabled, and whether retail lenders can participate at all
-**Currently implemented:** notes are minted, the transfer endpoint exists, the `notesTransferable`
-feature flag is off
+**Currently implemented:** notes are minted and the P8h secondary market sells them: listing and
+purchase are both gated on the `notesTransferable` parameter and the note's own minted field. The
+demo parameters turn the switch on so the market has something to show; production defaults stay
+off. An earlier revision of this entry claimed a bare transfer endpoint existed; it never did, and
+the sale endpoints subsumed it (docs/04-api-contract.md)
 **Needs:** securities counsel
 **Notes:** A transferable, yield-bearing claim on a loan is close to the definition of a security in
 most regimes. This is the single largest legal question in the design.
@@ -313,3 +316,14 @@ listing stands, which closes the path a person can actually take, but a rule enf
 button is not enforced. The fix is a check in the use case, either refusing the redemption or
 cancelling the listing in the same transaction. Cancelling is the friendlier reading and is one
 transaction either way, since holds are released on cancellation already.
+
+## Q-030: may a borrower buy the note on their own loan
+**Blocks:** nothing today; the purchase policy refuses it with CANNOT_BUY_OWN_POSITION
+**Currently implemented:** no. Neither the seller nor the borrower may buy a listed position
+**Needs:** founder
+**Notes:** A borrower buying their own debt at a discount is a real instrument, a buyback, and it
+would let a borrower settle for less than the amount due whenever a lender wants out badly enough.
+That changes the economics every lender priced their offer against, so it is a product decision
+rather than an edge case. Mechanically it would work today: repayment pays the holder, and a
+borrower holding their own note would pay themselves. The narrowest reading keeps the two sides of
+a loan distinct until somebody decides otherwise.

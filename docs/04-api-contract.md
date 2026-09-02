@@ -143,8 +143,26 @@ GET    /loans/:id/payoff-quote                    amount due as of now
 POST   /loans/:id/repay
 POST   /loans/:id/default                         note holder marks default after grace
 POST   /loans/:id/claim-receipt                   note holder takes the receipt
-POST   /notes/:id/transfer                        feature-flagged off by default
 ```
+
+### Secondary market
+
+The sale endpoints subsume the bare `POST /notes/:id/transfer` this contract once specced: a
+transfer without a payment leg is an assignment, not an exit, and it was never built. The whole
+group answers `NOTE_TRANSFER_DISABLED` while the `notesTransferable` parameter is off.
+
+```
+POST   /notes/:id/sales                           list the lender note at an ask
+POST   /sales/:id/withdraw                        seller withdraws an open sale
+POST   /sales/:id/purchase                        instant buy at the ask
+GET    /market/note-sales                         open sales with item, loan, and priced figures
+GET    /me/note-sales                             the caller's sales, open and settled
+```
+
+The ask is capped at the loan's current value, principal plus interest accrued so far, checked at
+listing time. A refused ask answers `ASK_EXCEEDS_CURRENT_VALUE` with `details.currentValue`, the
+way a stale payoff quote answers with the figure now due. The browse response prices every figure
+the value chart draws (current value, maturity value) so no client computes money.
 
 `payoff-quote` returns `{ principal, accruedInterest, total, quotedAt, validUntil }`. The client must
 send `quotedAt` back with the repayment so the server can detect a stale quote. Interest moves with
@@ -248,6 +266,7 @@ LOAN_TO_VALUE_EXCEEDED  RATE_ABOVE_MAXIMUM
 LOAN_NOT_ACTIVE  LOAN_NOT_MATURED  GRACE_PERIOD_ACTIVE
 REPAYMENT_AMOUNT_INSUFFICIENT  PAYOFF_QUOTE_STALE
 HOLDING_PERIOD_ACTIVE  LIQUIDATION_NOT_OPEN  BID_BELOW_RESERVE
-NOTE_TRANSFER_DISABLED
+NOTE_TRANSFER_DISABLED  NOTE_SALE_NOT_OPEN  NOTE_ALREADY_LISTED
+ASK_EXCEEDS_CURRENT_VALUE  CANNOT_BUY_OWN_POSITION
 SYSTEM_PAUSED
 ```

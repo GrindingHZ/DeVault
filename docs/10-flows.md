@@ -692,3 +692,58 @@ The read models behind the strip and the tape come from the indexer projection i
 Postgres. The panes do not change, because they already read a flat DTO from a query service rather
 than a hydrated aggregate.
 
+
+---
+
+## Flow 18: selling a position on the secondary market
+
+**Actor:** the lender note holder (seller), then any other member (buyer)
+**Precondition:** loan `ACTIVE`, `notesTransferable` on, the note minted transferable
+
+### Steps
+
+1. `POST /notes/:id/sales` with the ask.
+   > **─── transaction boundary ───**
+   > Resolve the loan through the note and lock the loan row. Assert the caller holds the note,
+   > the loan is `ACTIVE`, no other sale is `OPEN` on it, and the ask is at most
+   > `calculateAmountDue(now)`: the seller keeps what has accrued and forfeits the rest of the
+   > term, which is the buyer's reason to exist. Create the `NoteSale` `OPEN`. Emit
+   > `NoteListedForSale`.
+
+2. The positions page shows the sale with its priced figures: current value, maturity value, ask.
+   The browse response carries `asOf`, and the client draws without computing a single amount.
+
+3. `POST /sales/:id/purchase` from the buyer.
+   > **─── transaction boundary ───**
+   > Lock the loan row, the same lock repayment takes, so a purchase racing a repayment
+   > serialises. Re-read the sale, the loan, and the note. Assert the sale is `OPEN`, the loan
+   > `ACTIVE`, the holder still the seller, and the buyer neither the seller nor the borrower.
+   > `SettlementPort.transfer(buyer → seller, askPrice, 'SELL_NOTE')`. Mark the sale `SOLD`.
+   > Reassign the note holder to the buyer. Emit `NoteSold`.
+
+4. From here the loan behaves as if the buyer had funded it: repayment resolves the holder inside
+   its own transaction (flow 5) and pays the buyer; on default the claim is the buyer's (flow 7).
+
+`POST /sales/:id/withdraw` moves an `OPEN` sale to `WITHDRAWN`, seller only. Repayment and default
+marking void any `OPEN` sale on their loan inside their own transaction, so browse never shows a
+sale whose loan has closed.
+
+### Failures
+
+| Condition | Result |
+|---|---|
+| Transfers off, or the note minted non transferable | 422 `NOTE_TRANSFER_DISABLED` |
+| Ask above the current value | 422 `ASK_EXCEEDS_CURRENT_VALUE`, with the cap in `details` |
+| A sale already open on the note | 409 `NOTE_ALREADY_LISTED` |
+| Lister does not hold the note | 403 `FORBIDDEN` |
+| Sale withdrawn, sold, or voided before the purchase | 409 `NOTE_SALE_NOT_OPEN` |
+| Loan closed before the purchase | 409 `LOAN_NOT_ACTIVE` |
+| Buyer is the seller or the borrower | 422 `CANNOT_BUY_OWN_POSITION` |
+| Buyer cannot cover the ask | 422 `INSUFFICIENT_FUNDS` |
+
+### Phase 3
+
+`note_sale::purchase(sale, coin, &config, ctx)`: one PTB moves the coin to the seller and the
+`LenderNote` object to the buyer, and the cap check lives in the Move module. The note lacks
+public `store`, so the sale function inside the package is the only path that moves it, which is
+the on chain form of the same gate.

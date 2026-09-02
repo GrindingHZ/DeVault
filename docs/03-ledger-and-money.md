@@ -148,6 +148,18 @@ CREDIT  noteHolder USER_AVAILABLE     principal + accruedInterest
 Note the credit goes to the *current note holder*, resolved at repayment time, not to a lender id
 stored on the loan.
 
+### `SELL_NOTE`: a lender exits early on the secondary market
+
+```
+DEBIT   buyer USER_AVAILABLE          askPrice
+CREDIT  seller USER_AVAILABLE         askPrice
+```
+
+The second user to user transfer in the system, which is why `TransferCommand` carries an explicit
+`reason` the ledger writes as the kind: with two such movements the adapter can no longer derive
+the kind from the participants, the same argument that gave `releaseHold` its reason (Q-010). The
+note holder change rides in the same transaction; the ledger only sees the money.
+
 ### `SETTLE_LIQUIDATION`
 
 ```

@@ -117,7 +117,8 @@ GET    /market/note-sales      browse open sales, with loan, item, and current v
 GET    /me/note-sales          the caller's sales, open and settled
 ```
 
-New error codes: `NOTE_SALE_NOT_OPEN`, `ASK_EXCEEDS_CURRENT_VALUE`, `CANNOT_BUY_OWN_POSITION`.
+New error codes: `NOTE_SALE_NOT_OPEN`, `NOTE_ALREADY_LISTED`, `ASK_EXCEEDS_CURRENT_VALUE`,
+`CANNOT_BUY_OWN_POSITION`.
 Reused: `NOTE_TRANSFER_DISABLED` when the gate is off, `LOAN_NOT_ACTIVE`, `INSUFFICIENT_FUNDS`,
 `FORBIDDEN`, `VALIDATION_FAILED`.
 

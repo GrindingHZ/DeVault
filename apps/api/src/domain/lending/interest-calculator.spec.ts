@@ -13,11 +13,9 @@ function interestAt(now: Instant, principal = Money.of(250_000n, usd), rate = 1_
   return calculateAccruedInterest(principal, rate, startedAt, maturesAt, now);
 }
 
+/* The value cases live in packages/test-support/src/fixtures/interest.json and
+   run below; what stays here is what a fixture cannot say. */
 describe('calculateAccruedInterest', () => {
-  it('returns zero at the moment of origination', () => {
-    expect(interestAt(startedAt).minorUnits).toBe(0n);
-  });
-
   it('accrues linearly through the term', () => {
     const tenDays = interestAt(startedAt.plusMilliseconds(10n * oneDay)).minorUnits;
     const twentyDays = interestAt(startedAt.plusMilliseconds(20n * oneDay)).minorUnits;
@@ -27,52 +25,11 @@ describe('calculateAccruedInterest', () => {
     expect(twentyDays - tenDays * 2n).toBeGreaterThanOrEqual(-1n);
   });
 
-  it('matches the closed form over a full year', () => {
-    const yearStart = Instant.fromEpochMilliseconds(0n);
-    const yearEnd = yearStart.plusMilliseconds(MILLISECONDS_PER_YEAR);
-    const interest = calculateAccruedInterest(
-      Money.of(1_000_000n, usd),
-      1_800,
-      yearStart,
-      yearEnd,
-      yearEnd,
-    );
-    expect(interest.minorUnits).toBe(180_000n);
-  });
-
-  it('stops accruing at maturity', () => {
-    const atMaturity = interestAt(maturesAt).minorUnits;
-    const wellPast = interestAt(maturesAt.plusMilliseconds(90n * oneDay)).minorUnits;
-    expect(wellPast).toBe(atMaturity);
-  });
-
-  it('accrues nothing before origination', () => {
-    expect(interestAt(startedAt.plusMilliseconds(-oneDay)).minorUnits).toBe(0n);
-  });
-
-  it('truncates in the borrower favour', () => {
-    // One minor unit for one hour at one basis point cannot reach a whole
-    // minor unit, so the exact figure is a fraction and the result is zero.
-    const oneHour = 60n * 60n * 1000n;
-    const interest = calculateAccruedInterest(
-      Money.of(1n, usd),
-      1,
-      startedAt,
-      maturesAt,
-      startedAt.plusMilliseconds(oneHour),
-    );
-    expect(interest.minorUnits).toBe(0n);
-  });
-
-  it('does not overflow on a large principal held for a full term', () => {
-    const largePrincipal = Money.of(10_000_000_000n, usd);
-    const yearStart = Instant.fromEpochMilliseconds(0n);
-    const yearEnd = yearStart.plusMilliseconds(MILLISECONDS_PER_YEAR);
-    const interest = calculateAccruedInterest(largePrincipal, 2_400, yearStart, yearEnd, yearEnd);
-    expect(interest.minorUnits).toBe(2_400_000_000n);
-    // The intermediate product passes far beyond a 64 bit integer, which is
-    // why every step stays in bigint.
-    expect(largePrincipal.minorUnits * 2_400n * MILLISECONDS_PER_YEAR).toBeGreaterThan(2n ** 64n);
+  it('needs a wider integer than sixty four bits for a realistic term', () => {
+    // Ten billion minor units at 2400 basis points for a year: the product
+    // the fixture case divides passes far beyond a 64 bit integer, which is
+    // why every step stays in bigint here and in u128 on chain.
+    expect(10_000_000_000n * 2_400n * MILLISECONDS_PER_YEAR).toBeGreaterThan(2n ** 64n);
   });
 
   it('rejects a negative rate', () => {

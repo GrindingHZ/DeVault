@@ -25,51 +25,9 @@ function amountFor(distributions: readonly Distribution[], accountId: string): b
     .reduce((total, distribution) => total + distribution.amount.minorUnits, 0n);
 }
 
+/* The value cases live in packages/test-support/src/fixtures/waterfall.json and
+   run below; what stays here is the shape and the property. */
 describe('distributeLiquidationProceeds', () => {
-  it('pays the lender, takes a fee, and returns the surplus when the sale beats the debt', () => {
-    const distributions = distributeLiquidationProceeds(
-      Money.of(300_000n, usd),
-      Money.of(250_000n, usd),
-      recipients,
-      liquidationFeeBasisPoints,
-    );
-
-    expect(amountFor(distributions, 'LENDER-1')).toBe(250_000n);
-    // 500 basis points of the 50000 remainder.
-    expect(amountFor(distributions, platformAccountIds.feeRevenue)).toBe(2_500n);
-    expect(amountFor(distributions, 'BORROWER-1')).toBe(47_500n);
-    expect(sumOf(distributions)).toBe(300_000n);
-  });
-
-  it('gives the lender everything and nobody else anything when the sale falls short', () => {
-    const distributions = distributeLiquidationProceeds(
-      Money.of(200_000n, usd),
-      Money.of(250_000n, usd),
-      recipients,
-      liquidationFeeBasisPoints,
-    );
-
-    expect(amountFor(distributions, 'LENDER-1')).toBe(200_000n);
-    // No remainder means no fee on nothing and no surplus to return.
-    expect(amountFor(distributions, platformAccountIds.feeRevenue)).toBe(0n);
-    expect(amountFor(distributions, 'BORROWER-1')).toBe(0n);
-    expect(sumOf(distributions)).toBe(200_000n);
-  });
-
-  it('leaves nothing over when the sale matches the debt exactly', () => {
-    const distributions = distributeLiquidationProceeds(
-      Money.of(250_000n, usd),
-      Money.of(250_000n, usd),
-      recipients,
-      liquidationFeeBasisPoints,
-    );
-
-    expect(amountFor(distributions, 'LENDER-1')).toBe(250_000n);
-    expect(amountFor(distributions, platformAccountIds.feeRevenue)).toBe(0n);
-    expect(amountFor(distributions, 'BORROWER-1')).toBe(0n);
-    expect(sumOf(distributions)).toBe(250_000n);
-  });
-
   it('always carries the rounding line, even at zero', () => {
     const distributions = distributeLiquidationProceeds(
       Money.of(300_000n, usd),
@@ -82,19 +40,6 @@ describe('distributeLiquidationProceeds', () => {
     );
     expect(rounding).toHaveLength(1);
     expect(rounding[0]?.amount.minorUnits).toBe(0n);
-  });
-
-  it('routes a truncated minor unit to rounding rather than losing it', () => {
-    // A remainder of 1 at 500 basis points truncates the fee to zero, so the
-    // surplus takes the whole unit and rounding stays empty. The property
-    // test below is what proves no arrangement can leak one.
-    const distributions = distributeLiquidationProceeds(
-      Money.of(250_001n, usd),
-      Money.of(250_000n, usd),
-      recipients,
-      liquidationFeeBasisPoints,
-    );
-    expect(sumOf(distributions)).toBe(250_001n);
   });
 
   /* The sum holding is nearly free, because the rounding line is computed as

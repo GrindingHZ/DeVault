@@ -137,7 +137,7 @@ single on chain transaction later.
 
 Sign in as `bruno@demo.test`, or any member who is not a side of the six week loan.
 
-1. On **Browse**, open the **Secondary Market** tab. The seed left one position still listed: a
+1. Open **Secondary Market** in the navigation rail. The seed left one position still listed: a
    lender on the six week loan asking three percent under what the position is worth.
 2. Read the chart out loud. The solid line is what the position is worth as interest accrues, from
    the principal at origination to the full payoff at maturity. The marker is today. The dashed

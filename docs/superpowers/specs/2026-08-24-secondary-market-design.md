@@ -127,9 +127,10 @@ gets amended to say so, and Q-002's implementation note is corrected to match re
 
 ## The interface
 
-Marketplace app only. No new rail destination; Q-028 settled that argument. The secondary market
-is a dedicated page at `/listings/positions`, which keeps Browse lit in the rail, with the browse
-workspace and the positions page linking to each other as two faces of one Browse destination.
+Marketplace app only. The Secondary Market is a dedicated page at `/secondary-market` with its own
+rail destination beside Browse, chosen during review: it is a different market rather than a
+different view of the reader's own things, so the Q-028 consolidation, which was about role
+splits, does not apply to it.
 
 **The positions page.** One card per open sale: the item, principal, rate, maturity, interest
 accrued so far, current value, the ask, and the discount between them, because the discount is the

@@ -1,16 +1,8 @@
 import { browseNoteSales } from '@depawn/contracts';
 import type { NoteSaleSummary } from '@depawn/contracts';
-import {
-  EmptyState,
-  Page,
-  PageHeader,
-  Skeleton,
-  TabItem,
-  TabStrip,
-  tabLinkClasses,
-} from '@depawn/ui';
+import { EmptyState, Page, PageHeader, Skeleton } from '@depawn/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Link, Navigate, createFileRoute } from '@tanstack/react-router';
+import { Navigate, createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import type { ReactElement } from 'react';
 import { useCurrentAccount } from '../current-account';
@@ -19,11 +11,11 @@ import { MarketShell } from '../market-shell';
 import { PositionSaleCard } from '../positions/position-sale-card';
 import { PurchaseDialog } from '../positions/purchase-dialog';
 
-export const Route = createFileRoute('/listings/positions')({
-  component: PositionsPage,
+export const Route = createFileRoute('/secondary-market')({
+  component: SecondaryMarketPage,
 });
 
-function PositionsPage(): ReactElement {
+function SecondaryMarketPage(): ReactElement {
   const currentAccount = useCurrentAccount();
   if (currentAccount.isPending) {
     return (
@@ -35,13 +27,14 @@ function PositionsPage(): ReactElement {
   if (currentAccount.data === null || currentAccount.data === undefined) {
     return <Navigate to="/login" />;
   }
-  return <Positions viewerAccountId={currentAccount.data.id} />;
+  return <SecondaryMarket viewerAccountId={currentAccount.data.id} />;
 }
 
-/* The second face of Browse: the workspace sells loans that need funding,
-   this page sells positions already funded. The tabs carry a reader between
-   the two without a new rail destination (Q-028). */
-function Positions({ viewerAccountId }: { readonly viewerAccountId: string }): ReactElement {
+/* The other market on the rail: Browse sells loans that need funding, this
+   sells positions already funded. Its own destination, at the user's
+   direction, because it is a different market rather than a different view
+   of the reader's own things. */
+function SecondaryMarket({ viewerAccountId }: { readonly viewerAccountId: string }): ReactElement {
   const [buying, setBuying] = useState<NoteSaleSummary | null>(null);
 
   const salesQuery = useQuery({
@@ -65,19 +58,6 @@ function Positions({ viewerAccountId }: { readonly viewerAccountId: string }): R
           title="Secondary Market"
           description="Lenders exiting early. The gap between the ask and the value is what a buyer earns on top of the remaining interest."
         />
-        <TabStrip label="Which market">
-          <Link to="/listings" data-testid="market-browse-link" className={tabLinkClasses}>
-            <TabItem label="Browse items" isActive={false} />
-          </Link>
-          <Link
-            to="/listings/positions"
-            aria-current="page"
-            data-testid="market-positions-link"
-            className={tabLinkClasses}
-          >
-            <TabItem label="Secondary Market" isActive />
-          </Link>
-        </TabStrip>
 
         {salesQuery.isPending ? (
           <Skeleton lineCount={6} />

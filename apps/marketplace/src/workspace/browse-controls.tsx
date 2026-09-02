@@ -11,13 +11,10 @@ import {
   JewelleryIcon,
   RowsIcon,
   Tab,
-  TabItem,
   TabStrip,
   WatchIcon,
   focusRing,
-  tabLinkClasses,
 } from '@depawn/ui';
-import { Link } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactElement, ReactNode } from 'react';
 
@@ -113,18 +110,6 @@ export function BrowseControls(props: BrowseControlsProps): ReactElement {
               onSelect={() => props.onScope(tab.value)}
             />
           ))}
-          {/* Set apart from the scope toggles by the divider, because it is
-              not a fourth scope: it is the other face of Browse, a
-              destination, so it is a link rather than a Tab
-              (docs/superpowers/specs/2026-08-24-secondary-market-design.md). */}
-          <span aria-hidden="true" className="mx-1 h-4 w-px shrink-0 self-center bg-edge" />
-          <Link
-            to="/listings/positions"
-            data-testid="secondary-market-link"
-            className={tabLinkClasses}
-          >
-            <TabItem label="Secondary Market" isActive={false} />
-          </Link>
         </TabStrip>
       </div>
 

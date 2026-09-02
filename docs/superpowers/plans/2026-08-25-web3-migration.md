@@ -526,6 +526,56 @@ attestation of the market's transitions.
 
 ---
 
+## Slice p11b-wallet-sign-in
+
+Added after the first two slices, when the ask arrived: sign in with a Sui wallet, and settle in
+USDC rather than a made up coin. The USDC half lands in the earlier slices (the `usdc` module in
+p10a, the `10^4` scale in the codec and the coin type on the deployment in p10b and p10c). This
+slice is the sign in.
+
+### Task 1: `feat(domain): let a wallet address be an authenticated subject`
+
+`AuthenticatedSubject` gains `{ kind: 'wallet'; address: string }` and `ControlProof` keeps its
+`signed-challenge` variant. `Account` gains an optional `walletAddress` and `AccountRepository`
+gains `findByWalletAddress`. Migration: `account.wallet_address` nullable unique. Unit tests on
+the account.
+
+### Task 2: `feat(accounts): sign in with a signed challenge`
+
+`WalletChallengeStore` (a table `wallet_challenge` with nonce, address, expiry, used flag),
+`BeginWalletSignInUseCase` (issues a nonce for an address, five minute lifetime),
+`CompleteWalletSignInUseCase` (verifies the personal message signature with the SDK's
+`verifyPersonalMessageSignature`, marks the nonce used, finds or creates the member account for
+the address, records the address in `chain_account_address`, opens a session the way login
+does). `IdentityPort.verifyControl` accepts the `signed-challenge` proof by the same check.
+Endpoints `POST /auth/wallet/challenge` and `POST /auth/wallet/verify`, public, and the contract
+schemas and client functions. Integration test: a keypair signs the challenge, the cookie
+resolves to an account carrying the address, a reused nonce is refused, a wrong signature is
+refused.
+
+### Task 3: `feat(marketplace-ui): connect a wallet and sign in with it`
+
+`@mysten/dapp-kit` providers in `main.tsx` (Sui client provider on the network the health
+endpoint reports, wallet provider with autoconnect), a "Sign in with wallet" control on the sign
+in screen that connects, requests the challenge, signs it with `useSignPersonalMessage`, verifies,
+and lands on the portfolio. The account menu shows the linked address. A test wallet behind
+`VITE_TEST_WALLET=1` signs with a fixture key so Playwright never drives an extension
+(docs/06-testing.md).
+
+### Task 4: `feat(marketplace-ui): deposit usdc from the connected wallet`
+
+The wallet screen gains "Deposit from wallet" for a linked account: it reads the deployment and
+the member's wallet object id from `GET /me/chain-wallet`, builds `escrow::deposit` with
+`coinWithBalance` for the USDC type, signs with `useSignAndExecuteTransaction`, and then asks the
+api to observe the deposit (`POST /me/chain-wallet/deposits` with the digest, which records the
+mirror ledger entry after reading the `FundsDeposited` event from the transaction). Withdrawals
+already land on the linked address.
+
+### Task 5: `test(e2e): sign in with a wallet and see the linked address`
+
+Playwright with the test wallet: connect, sign, portfolio loads, the account menu shows the
+address tail.
+
 ## Self review
 
 Spec coverage: every module, the execution model, all five adapters, identity, deployment,

@@ -173,11 +173,17 @@ division truncates in the borrower's favour, all three matching `interest-calcul
 line. Its tests are generated from the fixture file the TypeScript tests read, so the two cannot
 disagree quietly.
 
-### usd
+### usdc
 
-A two decimal test coin, `Coin<USD>`, whose `TreasuryCap` is the platform float. The escrow module
-is generic over `T`; the deployment names which coin type stands for the api's `USD`. On a public
-network this is a real stablecoin type and the mint path is an on ramp.
+The settlement coin is USDC. On testnet and mainnet that is Circle's own
+`usdc::USDC` type; the escrow module is generic over `T` and the deployment row names the type.
+On a local network no USDC exists, so this module publishes a six decimal stand in,
+`depawn::usdc::USDC`, whose `TreasuryCap` lets the operator mint what the demo needs.
+
+The api keeps its books in `USD` at cent precision. One cent is exactly ten thousand USDC base
+units, so every chain amount is the minor units scaled by `10^4` with no rounding in either
+direction. The scale lives in one place, the codec, and the deployment records the coin's decimals
+beside its type so a coin with a different scale is a configuration rather than a code change.
 
 ## The execution model
 
@@ -227,10 +233,29 @@ effective instant at or before now. A future dated version is recorded as an ope
 
 **`SuiDomainEventPublisher`** writes the outbox as today and appends one `attest` per event.
 
-**Identity.** `AccountId` maps to an address through `chain_account_address`, derived from a
-master seed and the account id on first use. Members do not sign in this phase; the address is
-where a withdrawal lands and what a wallet names as its owner. The platform sentinels in
-`platform-accounts.ts` map to the operator's address.
+**Identity.** `AccountId` maps to an address through `chain_account_address`. An account that
+signed in with a wallet is linked to the address that signed; an account that never did gets an
+address derived from a master seed and the account id on first use, so the settlement rail works
+for every account either way. The address is where a withdrawal lands and what a wallet object
+names as its owner. The platform sentinels in `platform-accounts.ts` map to the operator's
+address.
+
+**Wallet sign in.** The marketplace app connects a Sui wallet (Slush, or any wallet standard
+wallet) through `@mysten/dapp-kit`. Signing in is a challenge: `POST /auth/wallet/challenge`
+returns a nonce the wallet signs as a personal message, `POST /auth/wallet/verify` checks the
+signature against the address with the SDK's verifier, links the address to an account (creating
+a member account for a new address, with the address as its identity), and issues the same session
+cookie password sign in issues. `IdentityPort` gains the `wallet` subject variant docs/01 reserved
+for it, and `verifyControl` accepts the `signed-challenge` proof. Every route, guard, and screen
+downstream of the cookie is unchanged.
+
+**Deposits and withdrawals with a wallet.** A member with a linked wallet deposits by signing a
+transaction their own wallet builds: the app fetches the deployment and the member's wallet object
+id from the api and calls `escrow::deposit` with a USDC coin from the connected wallet. On testnet
+the USDC comes from Circle's faucet into Slush first. A withdrawal is the operator sending USDC
+from the wallet object to the linked address, which is the `withdraw` function and nothing new.
+The operator's own deposit tool keeps working for accounts with no wallet, minting on localnet and
+paying from the operator's stock on a public network.
 
 ## Deployment and drivers
 
@@ -296,11 +321,14 @@ Nothing else in the three applications changes, which is the promise `docs/08` m
 6. `p10e-config-events-lifecycle`: pause, parameters, attestation, the wiring, the lifecycle tests.
 7. `p10f-indexer`: the indexer and reconciliation.
 8. `p11a-chain-demo`: the settlement reference component, health, compose, CI, documentation.
+9. `p11b-wallet-sign-in`: the challenge and verify endpoints, the wallet subject, the dapp-kit
+   connection in the marketplace, and deposits signed by the member's own wallet.
 
 ## Open questions raised
 
 - Whether the market's state machines should become Move objects, which needs a market port.
-- Whether members should sign their own settlement transactions, and how gas is paid if so.
+- Whether members should sign the market's own transactions (offers, repayments) rather than only
+  deposits, and how gas is paid if so.
 - One custodian capability per vault, versus one for the operator.
 - Future dated parameter versions and the chain mirror.
 - Which explorer to link for each network.

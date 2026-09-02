@@ -1,8 +1,9 @@
 /* A read against the node that occasionally stalls is worse than one that
    fails, because a stalled request holds a database transaction open for
    as long as the socket does. Every read the adapters make goes through
-   here: bounded, and retried once, since the second attempt on a fresh
-   request is what a stalled keep alive connection needs. */
+   here: bounded, and retried on a stall or on a node side error alike,
+   since the second attempt on a fresh request is what a stalled keep alive
+   connection or an index that is a moment behind needs. */
 export class ChainReadTimedOut extends Error {
   constructor(label: string, attempts: number, detail: string) {
     super(`${label} did not answer within the time allowed after ${attempts} attempts${detail}`);
@@ -24,12 +25,13 @@ export async function boundedChainRead<T>(
     try {
       return await read(controller.signal);
     } catch (error: unknown) {
-      if (!controller.signal.aborted || attempt === attempts) {
+      if (attempt === attempts) {
         if (controller.signal.aborted) {
           throw new ChainReadTimedOut(label, attempts, '');
         }
         throw error;
       }
+      await new Promise((resolve) => setTimeout(resolve, 300));
     } finally {
       clearTimeout(timer);
     }

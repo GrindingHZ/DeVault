@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as BorrowListingsRouteImport } from './routes/borrow.listings'
 import { Route as BorrowLoansRouteImport } from './routes/borrow.loans'
@@ -34,6 +35,11 @@ const GalleryRoute = GalleryRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortfolioRoute = PortfolioRouteImport.update({
+  id: '/portfolio',
+  path: '/portfolio',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WalletRoute = WalletRouteImport.update({
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/gallery': typeof GalleryRoute
   '/login': typeof LoginRoute
+  '/portfolio': typeof PortfolioRoute
   '/wallet': typeof WalletRoute
   '/borrow/listings': typeof BorrowListingsRoute
   '/borrow/loans': typeof BorrowLoansRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/gallery': typeof GalleryRoute
   '/login': typeof LoginRoute
+  '/portfolio': typeof PortfolioRoute
   '/wallet': typeof WalletRoute
   '/borrow/listings': typeof BorrowListingsRoute
   '/borrow/loans': typeof BorrowLoansRoute
@@ -108,6 +116,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/gallery': typeof GalleryRoute
   '/login': typeof LoginRoute
+  '/portfolio': typeof PortfolioRoute
   '/wallet': typeof WalletRoute
   '/borrow/listings': typeof BorrowListingsRoute
   '/borrow/loans': typeof BorrowLoansRoute
@@ -123,6 +132,7 @@ export interface FileRouteTypes {
     | '/'
     | '/gallery'
     | '/login'
+    | '/portfolio'
     | '/wallet'
     | '/borrow/listings'
     | '/borrow/loans'
@@ -136,6 +146,7 @@ export interface FileRouteTypes {
     | '/'
     | '/gallery'
     | '/login'
+    | '/portfolio'
     | '/wallet'
     | '/borrow/listings'
     | '/borrow/loans'
@@ -149,6 +160,7 @@ export interface FileRouteTypes {
     | '/'
     | '/gallery'
     | '/login'
+    | '/portfolio'
     | '/wallet'
     | '/borrow/listings'
     | '/borrow/loans'
@@ -163,6 +175,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   GalleryRoute: typeof GalleryRoute
   LoginRoute: typeof LoginRoute
+  PortfolioRoute: typeof PortfolioRoute
   WalletRoute: typeof WalletRoute
   BorrowListingsRoute: typeof BorrowListingsRoute
   BorrowLoansRoute: typeof BorrowLoansRoute
@@ -194,6 +207,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portfolio': {
+      id: '/portfolio'
+      path: '/portfolio'
+      fullPath: '/portfolio'
+      preLoaderRoute: typeof PortfolioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/wallet': {
@@ -259,6 +279,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   GalleryRoute: GalleryRoute,
   LoginRoute: LoginRoute,
+  PortfolioRoute: PortfolioRoute,
   WalletRoute: WalletRoute,
   BorrowListingsRoute: BorrowListingsRoute,
   BorrowLoansRoute: BorrowLoansRoute,

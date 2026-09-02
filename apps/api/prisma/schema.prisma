@@ -713,3 +713,14 @@ model ChainSettlement {
   @@index([digest])
   @@map("chain_settlement")
 }
+
+model ChainReceipt {
+  receiptId    String   @id @map("receipt_id")
+  objectId     String?  @unique @map("object_id")
+  issuedDigest String?  @map("issued_digest")
+  burnedDigest String?  @map("burned_digest")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("chain_receipt")
+}

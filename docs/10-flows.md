@@ -534,6 +534,35 @@ restarted; the shared object removes the question rather than answering it.
 
 ---
 
+## Flow 13a: sweeping what the clock decided
+
+**Actor:** the serving process, on a timer beside the outbox drain
+
+Listings and offers both carry a date, and until the sweep existed nothing wrote down that the date
+had passed. Every guard reads the clock, so nothing was ever accepted late; the cost was that EXPIRED
+was a status the database could hold and the product never wrote.
+
+1. Read the candidates: `ACTIVE` listings and `PENDING` offers with their `expiresAt` behind the
+   clock. Outside any write transaction, because they are candidates and not guarantees.
+2. Offers first, one transaction each. The offer goes `EXPIRED`, its own fate. The hold is untouched:
+   an offer that ran out is exactly as reclaimable as one that was beaten, and no more refunded.
+3. Listings second, one transaction each. The listing goes `EXPIRED` and supersedes whatever pending
+   offers remain, emitting one `OfferSuperseded` each. Their holds are untouched too.
+
+Each use case takes its own lock and re-reads against the clock, so a listing its borrower cancelled
+between step 1 and step 3 is refused rather than forced. Nothing about this flow moves money, which
+is why it carries no pause check: a listing does not stop having run out because the system is
+paused.
+
+### Failures
+
+| Condition | Result |
+|---|---|
+| The row stopped qualifying between the read and the write | refused, and the sweep counts it as untouched |
+| The whole sweep throws | logged, and the next tick tries again |
+
+---
+
 ## Flow 14: draining the outbox
 
 **Actor:** the api process, unattended

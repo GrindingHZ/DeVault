@@ -61,14 +61,20 @@ DRAFT ──publish──▶ ACTIVE ──acceptOffer──▶ MATCHED
 | `publish` | DRAFT to ACTIVE | caller is the borrower, not past its lifetime | `ListingPublished` | `publish-listing` |
 | `acceptOffer` | ACTIVE to MATCHED | not expired, offer PENDING and unexpired, inside the loan to value cap | supersedes every other offer, releases the winner's hold into a disbursement and a fee, encumbers the receipt, writes the loan and both notes, `LoanOriginated` and one `OfferSuperseded` per beaten offer | `accept-offer` |
 | `cancel` | DRAFT or ACTIVE to CANCELLED | caller is the borrower | supersedes every pending offer, whose holds stay held for their owners to pull, `ListingCancelled` and one `OfferSuperseded` each | `cancel-listing` |
-| `expire` | ACTIVE to EXPIRED | past `expiresAt` | supersedes every pending offer | **nothing today** |
+| `expire` | ACTIVE to EXPIRED | past `expiresAt` | supersedes every pending offer, one `OfferSuperseded` each | `expire-listing`, from the sweep |
 
-`expire` is never called. Nothing sweeps listings, and the only scheduled work in the process is the
-outbox drain. A listing past its date therefore sits ACTIVE with the date behind it. Functionally
-that is contained: browse filters on the clock and acceptance refuses with `LISTING_EXPIRED`. What it
-costs is that EXPIRED is a state the database can hold and the product never writes, and that any
-screen reading the status alone believes the listing is still taking offers. The portfolio now reads
-the date rather than the status for exactly this reason.
+`expire` was never called for most of the build. Nothing swept listings, and the only scheduled work
+in the process was the outbox drain, so a listing past its date sat ACTIVE with the date behind it.
+Functionally that was contained, because browse filters on the clock and acceptance refuses with
+`LISTING_EXPIRED`. What it cost was that EXPIRED was a state the database could hold and the product
+never wrote, and that any screen reading the status alone believed the listing was still taking
+offers.
+
+`MarketExpirySweep` now runs beside the outbox drain and writes it down. One transaction per listing,
+never one for the batch: forty expiries in one transaction is forty state changes the chain cannot
+express as a single call. It reads its candidates outside those transactions and each use case
+re-reads under its own lock, so a listing whose borrower cancelled it in between is refused rather
+than forced.
 
 `docs/10` flow 2 says cancellation asserts the listing is ACTIVE. The transition table in `docs/02`
 and the code both allow it from DRAFT. The code is the better reading, a draft nobody has published
@@ -89,7 +95,7 @@ PENDING ──accept─────▶ ACCEPTED
 | `accept` | PENDING to ACCEPTED | through `Listing.acceptOffer` | hold released into the origination | `accept-offer` |
 | `withdraw` | PENDING to WITHDRAWN | caller is the lender, past the minimum offer lifetime | hold refunded, `OfferWithdrawn` | `withdraw-offer` |
 | `supersede` | PENDING to SUPERSEDED | another offer was accepted, or the listing was cancelled | the hold stays held, `OfferSuperseded` | `accept-offer`, `cancel-listing` |
-| `expire` | PENDING to EXPIRED | past `expiresAt` | none | **nothing today** |
+| `expire` | PENDING to EXPIRED | past `expiresAt` | none. The hold stays held | `expire-offer`, from the sweep |
 
 The hold is a second dimension this graph does not show, and the pair is the whole of rule M8. A
 superseded offer keeps its status forever, because superseded is what happened to it, and the money
@@ -105,9 +111,13 @@ the offer status alone cannot answer whether there is money left to ask for, whi
 `GET /me/offers` now carries the hold state. Reading the status alone was a row that went on asking
 for money already home and a notification that could never be cleared.
 
-`expire` is dead here for the same reason as the listing, and the code says so out loud:
-`reclaim-hold` accepts an expired PENDING offer and its comment calls the lazy status harmless. It is
-harmless to the api. It was not harmless to the screen, which read PENDING as standing.
+`expire` was dead here for the same reason as the listing, and the code said so out loud:
+`reclaim-hold` accepts an expired PENDING offer and its comment called the lazy status harmless. It
+was harmless to the api. It was not harmless to the screen, which read PENDING as standing.
+
+The sweep does offers before listings, which decides which of the two words a beaten offer gets. An
+offer that ran out under a listing that has not is EXPIRED, its own fate. One still standing when its
+listing runs out is SUPERSEDED, the listing's. Both leave the money exactly where it was.
 
 ## Loan
 
@@ -228,12 +238,16 @@ was plainly unique, which forbade an item carrying a burned receipt and a live o
 is now partial on the live statuses: the invariant that matters is one live receipt per item, and a
 burned receipt is history rather than a competitor.
 
-**3. Three transitions were drawn and coded and never fired:** `Listing.expire`, `Offer.expire` and
-`Liquidation.cancel`. The first two are contained and stay lazy: every guard that matters reads the
-clock rather than the status, and the screens now do too. Sweeping them would buy a truer status
-column at the cost of scheduled work in a process that has none, which is a Phase 2 trade rather than
-this one. The third is fixed, above. `CustodyReceipt.transferHolder` is a fourth, deliberately: it is
-the seam a Phase 3 object transfer lands on and nothing in Phase 1 should be reaching it.
+**3. Three transitions were drawn and coded and never fired. Fixed.** `Listing.expire`,
+`Offer.expire` and `Liquidation.cancel`. The third gained an endpoint, above. The first two gained
+`MarketExpirySweep`, which runs beside the outbox drain and does nothing except write down what the
+clock already decided: no guard changes, because every guard already read the clock, and no money
+moves, because a hold on a beaten or expired offer is pull and not push either way.
+
+`CustodyReceipt.transferHolder` is a fourth and stays unfired on purpose. It is the seam a Phase 3
+object transfer lands on, it is covered by the custody port contract suite so any adapter has to
+implement it, and nothing in Phase 1 has a reason to call it. Unfired is the correct state for a seam;
+what made the other three defects was that the product needed them and could not reach them.
 
 **4. Five state changes emitted no event. Fixed, and it was six.** A cancelled listing, a superseded
 offer, a scheduled liquidation, an opened one, a cancelled one, and the receipt a sale now issues to

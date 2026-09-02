@@ -14,7 +14,7 @@ import { NotResourceOwner } from './not-resource-owner';
 import type { Offer } from './offer';
 import { OfferExpired } from './offer-expired';
 import { OfferNotFound } from './offer-not-found';
-import type { OfferNotPending } from './offer-not-pending';
+import { OfferNotPending } from './offer-not-pending';
 import { OfferWithdrawalTooEarly } from './offer-withdrawal-too-early';
 import type { ProtocolParameters } from './protocol-parameters';
 import { RateAboveMaximum } from './rate-above-maximum';
@@ -188,6 +188,29 @@ export class Listing {
       return withdrawn;
     }
     return ok({ listing: this.replaceOffer(withdrawn.value), offer: withdrawn.value });
+  }
+
+  /* An offer that ran out of time, written down as EXPIRED rather than left
+     PENDING with its date behind it.
+
+     Nobody asks for this: it is the sweep catching up with the clock. The
+     hold behind it is untouched, because an offer that ran out is exactly as
+     reclaimable as one that was beaten and refunds are pull, not push (rule
+     M8). The date is checked here rather than trusted from the caller, so a
+     sweep that read a stale row cannot expire a live offer. */
+  expireOffer(offerId: OfferId, now: Instant): Result<Listing, OfferNotFound | OfferNotPending> {
+    const offer = this.fields.offers.find((candidate) => candidate.id === offerId);
+    if (offer === undefined) {
+      return failure(new OfferNotFound());
+    }
+    if (!offer.isExpired(now)) {
+      return failure(new OfferNotPending());
+    }
+    const expired = offer.expire();
+    if (!expired.ok) {
+      return expired;
+    }
+    return ok(this.replaceOffer(expired.value));
   }
 
   acceptOffer(

@@ -2,8 +2,9 @@ import { Injectable } from '@nestjs/common';
 import type { Listing } from '../../../domain/marketplace/listing';
 import type { ListingRepository } from '../../../domain/marketplace/listing-repository';
 import type { UnitOfWorkContext } from '../../../domain/ports/unit-of-work';
-import { listingIdOf } from '../../../domain/shared/identifiers';
+import { listingIdOf, offerIdOf } from '../../../domain/shared/identifiers';
 import type { AccountId, ListingId, OfferId, ReceiptId } from '../../../domain/shared/identifiers';
+import type { Instant } from '../../../domain/shared/instant';
 import { toListing, toListingRow, toOfferRow } from '../mappers/marketplace.mapper';
 import { transactionOf } from '../prisma-unit-of-work';
 
@@ -53,6 +54,30 @@ export class PrismaListingRepository implements ListingRepository {
       orderBy: { id: 'desc' },
     });
     return rows.map(toListing);
+  }
+
+  async listExpiredActiveIds(
+    now: Instant,
+    context: UnitOfWorkContext,
+  ): Promise<readonly ListingId[]> {
+    const rows = await transactionOf(context).listing.findMany({
+      where: { status: 'ACTIVE', expiresAt: { lt: new Date(Number(now.epochMilliseconds)) } },
+      select: { id: true },
+      orderBy: { id: 'asc' },
+    });
+    return rows.map((row) => listingIdOf(row.id));
+  }
+
+  async listExpiredPendingOfferIds(
+    now: Instant,
+    context: UnitOfWorkContext,
+  ): Promise<readonly OfferId[]> {
+    const rows = await transactionOf(context).offer.findMany({
+      where: { status: 'PENDING', expiresAt: { lt: new Date(Number(now.epochMilliseconds)) } },
+      select: { id: true },
+      orderBy: { id: 'asc' },
+    });
+    return rows.map((row) => offerIdOf(row.id));
   }
 
   async lock(id: ListingId, context: UnitOfWorkContext): Promise<void> {

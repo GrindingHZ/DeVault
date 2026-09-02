@@ -92,6 +92,56 @@ describe('offer transitions', () => {
   });
 });
 
+/* The clock catching up with an offer, which for most of the build nothing
+   did: `expire` was coded, drawn, and never fired, so an offer past its date
+   sat PENDING and every screen reading the status alone called it standing
+   (docs/14-state-machines.md finding 3). */
+describe('expiring an offer', () => {
+  const wellPast = now.plusMilliseconds(172_800_000n);
+
+  it('expires one whose date has passed', () => {
+    const listing = listingIn('ACTIVE', [offerIn('PENDING')]);
+    const expired = listing.expireOffer(offerIdOf('OFF1'), wellPast);
+    expect(expired.ok).toBe(true);
+    if (expired.ok) {
+      expect(expired.value.offers[0]?.status).toBe('EXPIRED');
+    }
+  });
+
+  /* The date is checked here rather than trusted from the caller. A sweep
+     reads its candidates outside the lock, so by the time this runs the row
+     may have stopped qualifying, and forcing it would expire a live offer. */
+  it('refuses one that is still inside its own date', () => {
+    const listing = listingIn('ACTIVE', [offerIn('PENDING')]);
+    expect(listing.expireOffer(offerIdOf('OFF1'), now).ok).toBe(false);
+  });
+
+  it('refuses one that already reached a state of its own', () => {
+    for (const status of ['ACCEPTED', 'WITHDRAWN', 'SUPERSEDED', 'EXPIRED'] as const) {
+      const listing = listingIn('ACTIVE', [offerIn(status)]);
+      expect(listing.expireOffer(offerIdOf('OFF1'), wellPast).ok, status).toBe(false);
+    }
+  });
+
+  it('refuses an offer that is not on the listing', () => {
+    const listing = listingIn('ACTIVE', [offerIn('PENDING')]);
+    expect(listing.expireOffer(offerIdOf('NOPE'), wellPast).ok).toBe(false);
+  });
+
+  /* Expiring one leaves the others exactly as they were. The sweep takes
+     them one at a time and each is its own transaction. */
+  it('touches only the offer it was given', () => {
+    const listing = listingIn('ACTIVE', [offerIn('PENDING', 'OFF1'), offerIn('PENDING', 'OFF2')]);
+    const expired = listing.expireOffer(offerIdOf('OFF1'), wellPast);
+    expect(expired.ok).toBe(true);
+    if (expired.ok) {
+      const byId = new Map(expired.value.offers.map((one) => [one.id, one.status]));
+      expect(byId.get(offerIdOf('OFF1'))).toBe('EXPIRED');
+      expect(byId.get(offerIdOf('OFF2'))).toBe('PENDING');
+    }
+  });
+});
+
 describe('listing transitions', () => {
   it('publishes only a draft and never an expired one', () => {
     expect(listingIn('DRAFT').publish(now).ok).toBe(true);

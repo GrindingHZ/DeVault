@@ -24,6 +24,7 @@ export function toLoanResponse(readModel: LoanReadModel, now: Instant): LoanResp
     maturesAt: isoOf(loan.maturesAt),
     graceEndsAt: isoOf(loan.graceEndsAt),
     lenderNoteHolderAccountId: readModel.lenderNoteHolderAccountId,
+    lenderNoteId: loan.lenderNoteId,
     status: loan.status,
     /* The same function the payoff quote calls, not a second copy of the
        arithmetic. If these two ever answered differently the list would be

@@ -55,6 +55,10 @@ const copy: Record<ErrorCode, string> = {
   LIQUIDATION_ALREADY_SCHEDULED: 'A sale is already scheduled for this loan.',
   BID_BELOW_RESERVE: 'That bid is below the reserve.',
   NOTE_TRANSFER_DISABLED: 'Notes cannot be transferred.',
+  NOTE_SALE_NOT_OPEN: 'This sale is no longer open.',
+  NOTE_ALREADY_LISTED: 'This position is already listed for sale.',
+  ASK_EXCEEDS_CURRENT_VALUE: 'The ask cannot be more than the position is worth today.',
+  CANNOT_BUY_OWN_POSITION: 'You already hold a side of this loan.',
   SYSTEM_PAUSED: 'Trading is paused. Repayments and collections are unaffected.',
 };
 

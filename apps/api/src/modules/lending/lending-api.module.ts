@@ -5,12 +5,14 @@ import { LOAN_REPOSITORY } from '../../domain/lending/loan-repository';
 import { NOTE_SALE_REPOSITORY } from '../../domain/lending/note-sale-repository';
 import { LISTING_REPOSITORY } from '../../domain/marketplace/listing-repository';
 import { LOAN_QUERIES } from '../../domain/ports/loan-queries.port';
+import { NOTE_SALE_QUERIES } from '../../domain/ports/note-sale-queries.port';
 import { PrismaCustodyReceiptRepository } from '../../infrastructure/persistence/repositories/prisma-custody-receipt.repository';
 import { PrismaListingRepository } from '../../infrastructure/persistence/repositories/prisma-listing.repository';
 import { PrismaLiquidationRepository } from '../../infrastructure/persistence/repositories/prisma-liquidation.repository';
 import { PrismaLoanRepository } from '../../infrastructure/persistence/repositories/prisma-loan.repository';
 import { PrismaNoteSaleRepository } from '../../infrastructure/persistence/repositories/prisma-note-sale.repository';
 import { PrismaLoanQueries } from '../../infrastructure/persistence/queries/prisma-loan-queries';
+import { PrismaNoteSaleQueries } from '../../infrastructure/persistence/queries/prisma-note-sale-queries';
 import { AcceptOfferUseCase } from './application/accept-offer.use-case';
 import { ListNoteForSaleUseCase } from './application/list-note-for-sale.use-case';
 import { PurchaseNoteSaleUseCase } from './application/purchase-note-sale.use-case';
@@ -27,9 +29,10 @@ import { ReclaimBidUseCase } from './application/reclaim-bid.use-case';
 import { ScheduleLiquidationUseCase } from './application/schedule-liquidation.use-case';
 import { LendingController } from './http/lending.controller';
 import { LiquidationController } from './http/liquidation.controller';
+import { NoteSaleController } from './http/note-sale.controller';
 
 @Module({
-  controllers: [LendingController, LiquidationController],
+  controllers: [LendingController, LiquidationController, NoteSaleController],
   providers: [
     AcceptOfferUseCase,
     PayoffQuoteQuery,
@@ -51,6 +54,7 @@ import { LiquidationController } from './http/liquidation.controller';
     { provide: LOAN_REPOSITORY, useClass: PrismaLoanRepository },
     { provide: NOTE_SALE_REPOSITORY, useClass: PrismaNoteSaleRepository },
     { provide: LOAN_QUERIES, useClass: PrismaLoanQueries },
+    { provide: NOTE_SALE_QUERIES, useClass: PrismaNoteSaleQueries },
   ],
 })
 export class LendingApiModule {}

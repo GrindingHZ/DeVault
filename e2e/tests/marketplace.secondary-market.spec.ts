@@ -163,10 +163,18 @@ test('a lender exits early and another takes the position', async ({ page, reque
   await expect(page.getByTestId('portfolio-open')).toContainText('Listed for sale');
   await expect(page.getByTestId('portfolio-open')).toContainText('Withdraw sale');
 
-  // The buyer reads the chart and takes the position.
+  // The buyer scans the items first, and only the item they choose draws.
   await signIn(page, buyerEmail);
   await page.getByRole('link', { name: 'Secondary Market' }).click();
-  await expect(page.getByTestId('sale-grid')).toBeVisible();
+  await expect(page.getByTestId('sale-list')).toBeVisible();
+  await expect(page.getByTestId('figure-principal')).toHaveText('USD 2,500.00');
+  await expect(page.getByTestId('figure-current')).toHaveText('USD 2,500.00');
+  await expect(page.getByTestId('figure-maturity')).toHaveText('USD 2,536.98');
+  await expect(page.getByTestId('figure-ask')).toHaveText('USD 2,400.00');
+  await expect(page.getByTestId('sale-chart')).toHaveCount(0);
+
+  await page.getByTestId('sale-row').click();
+  await expect(page.getByTestId('sale-detail')).toBeVisible();
   await expect(page.getByTestId('sale-chart')).toBeVisible();
   await expect(page.getByText('Position value')).toBeVisible();
   await expect(page.getByText('Asking price')).toBeVisible();

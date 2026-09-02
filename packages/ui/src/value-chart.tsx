@@ -21,6 +21,12 @@ export interface ValueSeries {
      keeps the two apart where they hold the same value and one would
      otherwise sit invisibly underneath the other. */
   readonly role: 'subject' | 'reference';
+  /* How the line travels between two samples. `linear` claims the value slid
+     evenly from one to the next; `step` holds each sample until the next one
+     lands and jumps there. Use `step` when the samples are the readable unit
+     and the reader is meant to compare one to the next, which is what a daily
+     interest figure is. */
+  readonly shape?: 'linear' | 'step';
   readonly points: readonly ValuePoint[];
 }
 
@@ -156,12 +162,22 @@ export function ValueChart({
       : plotHeight - ((Number(minorUnits) - bounds.low) / span) * plotHeight;
   }
 
-  function pathOf(points: readonly ValuePoint[]): string {
+  function pathOf(points: readonly ValuePoint[], shape: ValueSeries['shape']): string {
     return points
-      .map(
-        (point, index) =>
-          `${index === 0 ? 'M' : 'L'}${xOf(point.atMs).toFixed(1)} ${yOf(point.minorUnits).toFixed(1)}`,
-      )
+      .map((point, index) => {
+        const x = xOf(point.atMs).toFixed(1);
+        const y = yOf(point.minorUnits).toFixed(1);
+        if (index === 0) {
+          return `M${x} ${y}`;
+        }
+        if (shape !== 'step') {
+          return `L${x} ${y}`;
+        }
+        // Along at the value it held, then up to the one it just reached.
+        const previous = points[index - 1];
+        const held = previous === undefined ? y : yOf(previous.minorUnits).toFixed(1);
+        return `L${x} ${held} L${x} ${y}`;
+      })
       .join(' ');
   }
 
@@ -253,14 +269,14 @@ export function ValueChart({
                 reference does not: two filled areas on one scale read as a
                 stack, which would say these add up, and they do not. */}
             <path
-              d={`${pathOf(subject.points)} L${String(width)} ${String(plotHeight)} L0 ${String(plotHeight)} Z`}
+              d={`${pathOf(subject.points, subject.shape)} L${String(width)} ${String(plotHeight)} L0 ${String(plotHeight)} Z`}
               className={`${fillByRole[subject.role]} opacity-10`}
             />
 
             {series.map((one) => (
               <path
                 key={one.id}
-                d={pathOf(one.points)}
+                d={pathOf(one.points, one.shape)}
                 fill="none"
                 strokeWidth={2}
                 strokeDasharray={one.role === 'reference' ? '4 3' : undefined}

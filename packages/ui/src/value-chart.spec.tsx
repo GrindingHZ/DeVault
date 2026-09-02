@@ -175,6 +175,37 @@ describe('ValueChart', () => {
     expect(container.querySelector('line[data-marked-line="true"]')).toBeTruthy();
   });
 
+  /* A sloped line between two samples invites reading a figure off a point
+     nobody quoted. A step says the value held, then changed. */
+  it('walks along and then up when a series asks for steps', () => {
+    const { container } = render(
+      <ValueChart
+        series={[{ ...total, shape: 'step' }]}
+        currency="USD"
+        label="Capital"
+        testId="capital"
+      />,
+    );
+    const line = container.querySelector('path[stroke-width="2"]');
+    const drawn = line?.getAttribute('d') ?? '';
+    // Two commands per step rather than one: along at the height it was
+    // already at, then up to the height it just reached.
+    const heights = [...drawn.matchAll(/[ML][\d.]+ ([\d.]+)/g)].map((match) => match[1]);
+    expect(heights).toHaveLength(5);
+    expect(heights[1]).toBe(heights[0]);
+    expect(heights[3]).toBe(heights[2]);
+    expect(heights[2]).not.toBe(heights[1]);
+  });
+
+  it('slides straight between samples by default', () => {
+    const { container } = render(
+      <ValueChart series={[total]} currency="USD" label="Capital" testId="capital" />,
+    );
+    expect(
+      container.querySelector('path[stroke-width="2"]')?.getAttribute('d')?.match(/L/g),
+    ).toHaveLength(2);
+  });
+
   /* A blank rectangle reads as something that failed to load. */
   it('says plainly when there is nothing to draw', () => {
     render(<ValueChart series={[]} currency="USD" label="Capital" />);

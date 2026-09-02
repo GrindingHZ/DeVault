@@ -2,16 +2,19 @@ import { browseNoteSales } from '@depawn/contracts';
 import type { NoteSaleSummary } from '@depawn/contracts';
 import { EmptyState, Page, PageHeader, Skeleton } from '@depawn/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Navigate, createFileRoute } from '@tanstack/react-router';
+import { Navigate, createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import type { ReactElement } from 'react';
 import { useCurrentAccount } from '../current-account';
 import { marketKeys } from '../market-keys';
 import { MarketShell } from '../market-shell';
-import { PositionSaleCard } from '../positions/position-sale-card';
+import { PositionSaleDetail } from '../positions/position-sale-detail';
+import { PositionSaleRow } from '../positions/position-sale-row';
 import { PurchaseDialog } from '../positions/purchase-dialog';
+import { parseSaleSelection } from '../positions/sale-selection';
 
 export const Route = createFileRoute('/secondary-market')({
+  validateSearch: parseSaleSelection,
   component: SecondaryMarketPage,
 });
 
@@ -31,10 +34,14 @@ function SecondaryMarketPage(): ReactElement {
 }
 
 /* The other market on the rail: Browse sells loans that need funding, this
-   sells positions already funded. Its own destination, at the user's
-   direction, because it is a different market rather than a different view
-   of the reader's own things. */
+   sells positions already funded.
+
+   Items first, chart second. A reader scanning the market is comparing four
+   figures down a column; the shape of how a position got to today is the
+   question after that one, so it opens on the position they choose. */
 function SecondaryMarket({ viewerAccountId }: { readonly viewerAccountId: string }): ReactElement {
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
   const [buying, setBuying] = useState<NoteSaleSummary | null>(null);
 
   const salesQuery = useQuery({
@@ -50,6 +57,14 @@ function SecondaryMarket({ viewerAccountId }: { readonly viewerAccountId: string
        the portfolio, where the withdraw action lives. */
     (sale) => sale.sellerAccountId !== viewerAccountId,
   );
+  /* A selection that no longer exists, because the position sold while the
+     reader was reading it, falls back to nothing selected rather than to an
+     empty panel insisting something is there. */
+  const selected = sales.find((sale) => sale.id === search.sale) ?? null;
+
+  function select(saleId: string): void {
+    void navigate({ search: { sale: saleId === search.sale ? undefined : saleId } });
+  }
 
   return (
     <MarketShell>
@@ -71,15 +86,34 @@ function SecondaryMarket({ viewerAccountId }: { readonly viewerAccountId: string
             description="A lender who wants an early exit lists their position here."
           />
         ) : (
-          <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3" data-testid="sale-grid">
-            {sales.map((sale) => (
-              <PositionSaleCard
-                key={sale.id}
-                sale={sale}
+          <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
+            <div className="flex flex-col gap-3" data-testid="sale-list">
+              {sales.map((sale) => (
+                <PositionSaleRow
+                  key={sale.id}
+                  sale={sale}
+                  isSelected={sale.id === selected?.id}
+                  onSelect={() => select(sale.id)}
+                />
+              ))}
+            </div>
+
+            {selected === null ? (
+              /* Not a spinner: nothing is loading, the reader simply has not
+                 chosen yet. */
+              <p
+                data-testid="sale-detail-prompt"
+                className="rounded-lg border border-dashed border-edge p-6 font-body text-sm text-ink-secondary"
+              >
+                Choose a position to see what it has earned so far and what is still to come.
+              </p>
+            ) : (
+              <PositionSaleDetail
+                sale={selected}
                 asOfMs={asOfMs}
-                onBuy={() => setBuying(sale)}
+                onBuy={() => setBuying(selected)}
               />
-            ))}
+            )}
           </div>
         )}
 

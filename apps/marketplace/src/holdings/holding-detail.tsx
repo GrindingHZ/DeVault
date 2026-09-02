@@ -106,6 +106,23 @@ export function HoldingDetail({ receipt, redemption, onClose }: HoldingDetailPro
               value={receipt.intakeRecordHash}
               short={`${receipt.intakeRecordHash.slice(0, 12)}...`}
             />
+            {/* What separates this one from another of the same model, so it
+                is shown whole rather than shortened: a borrower checking that
+                the watch coming back is the watch they left needs the digits,
+                not the first six of them. A watch has two, most art has
+                none. */}
+            {receipt.serialNumbers.length === 0 ? null : (
+              <div className="min-w-0 sm:col-span-2">
+                <dt className="font-body text-xs text-ink-secondary">
+                  {receipt.serialNumbers.length === 1 ? 'Serial number' : 'Serial numbers'}
+                </dt>
+                {receipt.serialNumbers.map((serial) => (
+                  <dd key={serial} className="mt-0.5 break-all font-mono text-sm text-ink-primary">
+                    {serial}
+                  </dd>
+                ))}
+              </div>
+            )}
           </dl>
         </section>
       </div>

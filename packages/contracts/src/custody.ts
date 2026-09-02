@@ -95,6 +95,9 @@ export const receiptResponseSchema = z.object({
   appraisedAt: z.string(),
   itemCategory: itemCategorySchema,
   itemDescription: z.string(),
+  /* What tells this one apart from another of the same model. Empty for
+     an item nobody recorded a serial against, which is most art. */
+  serialNumbers: z.array(z.string()),
   /* Whether a photograph can be fetched from
      `/receipts/{id}/photo`. The bytes have their own authorisation; this only
      says whether asking is worthwhile. */

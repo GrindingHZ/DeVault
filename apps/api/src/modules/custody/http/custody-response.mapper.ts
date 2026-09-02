@@ -63,6 +63,7 @@ export function toReceiptResponse(
     appraisedAt: new Date(Number(receipt.appraisedAt.epochMilliseconds)).toISOString(),
     itemCategory: receipt.itemCategory,
     itemDescription: receipt.itemDescription,
+    serialNumbers: [...receipt.serialNumbers],
     hasPhotograph,
     insurancePolicyReference: receipt.insurancePolicyReference,
     status: receipt.status,

@@ -94,6 +94,7 @@ export class IssueReceiptUseCase {
           appraiserId: appraisal.appraiserId,
           itemCategory: intake.itemCategory,
           itemDescription: intake.itemDescription,
+          serialNumbers: intake.serialNumbers,
           insurancePolicyReference: command.insurancePolicyReference,
         },
         context,

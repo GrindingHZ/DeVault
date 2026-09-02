@@ -87,6 +87,13 @@ function InventoryCard(): ReactElement {
                     <span className="block font-body text-xs text-ink-secondary">
                       {receipt.itemDescription}
                     </span>
+                    {/* Two of the same model sit on the shelf side by side.
+                        The serial is what says which row is which one. */}
+                    {receipt.serialNumbers.length === 0 ? null : (
+                      <span className="block font-mono text-xs text-ink-secondary">
+                        {receipt.serialNumbers.join(', ')}
+                      </span>
+                    )}
                   </span>
                 ),
               },

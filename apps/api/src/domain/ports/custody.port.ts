@@ -15,6 +15,7 @@ export interface IssueReceiptCommand {
   readonly appraiserId: StaffId;
   readonly itemCategory: ItemCategory;
   readonly itemDescription: string;
+  readonly serialNumbers: readonly string[];
   readonly insurancePolicyReference: string;
 }
 

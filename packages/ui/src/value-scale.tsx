@@ -10,10 +10,12 @@ export interface ValueScaleMark {
   /* Primary marks are the two figures the reader is deciding between. Muted
      marks explain where those two came from. */
   readonly emphasis: 'primary' | 'muted';
-  /* Writes this mark above the line with a leader down to its dot. Reserve
-     it for marks whose figure is not already stated elsewhere on the card: a
-     dot nobody can put a number to is a dot doing nothing. */
-  readonly annotate?: boolean;
+  /* Writes this mark beside the line with a leader to its dot, on the side
+     asked for. Reserve it for marks whose figure is not already stated
+     elsewhere on the card: a dot nobody can put a number to is a dot doing
+     nothing. Two marks that can land on the same value go on opposite sides,
+     which is the only arrangement that cannot collide. */
+  readonly annotate?: 'above' | 'below';
   /* A word or two for the annotation, since `label` is a full phrase written
      for a screen reader and two of those side by side would not fit. */
   readonly caption?: string;
@@ -42,26 +44,13 @@ const dotByEmphasis = {
   muted: 'h-2 w-2 border border-surface-raised',
 } as const;
 
-/* Where the line sits inside the box, leaving one row above it for the
-   annotations and the leaders down to their dots. */
-const annotationTop = 0;
-const leaderTop = 16;
-const trackTop = 28;
-
-/* Two figures closer together than this share of the line cannot be written
-   side by side without touching. Stacking them at different heights was the
-   first attempt and it failed on the case that matters most: a position
-   listed the day it was drawn has earned nothing yet, so the principal and
-   what it is worth today are the same number in the same place. Closer than
-   this they are written as one label instead. */
-const mergeWithin = 16;
-
-interface Annotation {
-  readonly share: number;
-  readonly id: string;
-  readonly captions: string[];
-  readonly amounts: bigint[];
-}
+/* Where the line sits inside the box, with a row for an annotation on each
+   side of it. Both rows are reserved whether or not anything is written in
+   them, so two lines of cards keep the same rhythm. */
+const aboveTop = 0;
+const trackTop = 22;
+const belowTop = 30;
+const leaderReach = 8;
 
 const trackByTone = {
   favourable: 'bg-market-favourable',
@@ -100,26 +89,7 @@ export function ValueScale({
     return formatAmount({ minorUnits: minorUnits.toString(), currency });
   }
 
-  /* Walked in the order they sit along the line, so anything that would be
-     written on top of its neighbour joins it instead. */
-  const annotations: Annotation[] = [];
-  for (const mark of marks
-    .filter((one) => one.annotate === true)
-    .toSorted((left, right) => Number(left.minorUnits - right.minorUnits))) {
-    const share = shareOf(mark.minorUnits);
-    const previous = annotations.at(-1);
-    if (previous !== undefined && share - previous.share <= mergeWithin) {
-      previous.captions.push(mark.caption ?? mark.label);
-      previous.amounts.push(mark.minorUnits);
-      continue;
-    }
-    annotations.push({
-      share,
-      id: mark.id,
-      captions: [mark.caption ?? mark.label],
-      amounts: [mark.minorUnits],
-    });
-  }
+  const annotated = marks.filter((one) => one.annotate !== undefined);
 
   return (
     <div className="flex flex-col gap-2" data-testid={testId}>
@@ -132,60 +102,39 @@ export function ValueScale({
           )
           .join(', ')}`}
         className="relative"
-        style={{ height: trackTop + 8 }}
+        style={{ height: belowTop + 14 }}
       >
-        {annotations.map((annotation) => {
+        {annotated.map((mark) => {
+          const share = shareOf(mark.minorUnits);
+          const isAbove = mark.annotate === 'above';
           /* Centred on its dot, except at the ends, where a centred label
              would hang off the card and get clipped. */
           const anchor =
-            annotation.share < 12
-              ? 'translateX(0)'
-              : annotation.share > 88
-                ? 'translateX(-100%)'
-                : 'translateX(-50%)';
-          /* Two names against one figure when the figures agree, which is
-             what a position listed on the day it was drawn looks like. */
-          const isOneFigure = annotation.amounts.every(
-            (amount) => amount === annotation.amounts[0],
-          );
+            share < 12 ? 'translateX(0)' : share > 88 ? 'translateX(-100%)' : 'translateX(-50%)';
           return (
-            <span key={annotation.id}>
+            <span key={`${mark.id}-annotation`}>
               <span
-                data-testid={testId === undefined ? undefined : `${testId}-value-${annotation.id}`}
+                data-testid={testId === undefined ? undefined : `${testId}-value-${mark.id}`}
                 style={{
-                  left: `${String(annotation.share)}%`,
-                  top: annotationTop,
+                  left: `${String(share)}%`,
+                  top: isAbove ? aboveTop : belowTop,
                   transform: anchor,
                 }}
-                className="absolute whitespace-nowrap font-body text-[11px] text-ink-secondary"
+                className="absolute whitespace-nowrap font-body text-[11px] font-semibold text-ink-secondary"
               >
-                {isOneFigure ? (
-                  <>
-                    {`${annotation.captions.join(' · ')} `}
-                    <span className="font-figure tabular-nums text-ink-primary">
-                      {money(annotation.amounts[0] ?? 0n)}
-                    </span>
-                  </>
-                ) : (
-                  annotation.amounts.map((amount, index) => (
-                    <span key={`${annotation.id}-${String(index)}`}>
-                      {index === 0 ? '' : ' · '}
-                      {`${annotation.captions[index] ?? ''} `}
-                      <span className="font-figure tabular-nums text-ink-primary">
-                        {money(amount)}
-                      </span>
-                    </span>
-                  ))
-                )}
+                {mark.caption === undefined ? null : `${mark.caption} `}
+                <span className="font-figure font-semibold tabular-nums text-ink-primary">
+                  {money(mark.minorUnits)}
+                </span>
               </span>
               {/* The leader ties the figure to its dot once the label has had
                   to move sideways to fit. */}
               <span
                 aria-hidden="true"
                 style={{
-                  left: `${String(annotation.share)}%`,
-                  top: leaderTop,
-                  height: trackTop - leaderTop,
+                  left: `${String(share)}%`,
+                  top: isAbove ? trackTop - leaderReach : trackTop,
+                  height: leaderReach,
                 }}
                 className="absolute w-px bg-edge"
               />

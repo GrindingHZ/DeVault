@@ -75,14 +75,20 @@ export function scaleOf(sale: NoteSaleSummary): {
       },
       /* Annotated because these two are the only figures on the card whose
          amount is not printed anywhere else: the price and the payoff are
-         already set in full above the line. */
+         already set in full above the line.
+
+         On opposite sides of it, because they are the same number on the day
+         a position is listed and would otherwise be written over each other.
+         Today goes above, with the two stretches it divides; the principal,
+         which is where the loan started rather than part of the trade, goes
+         underneath. */
       {
-        id: 'lent',
+        id: 'principal',
         minorUnits: BigInt(sale.principal.minorUnits),
         label: 'Originally lent',
-        caption: 'Lent',
+        caption: 'Principal',
         emphasis: 'muted',
-        annotate: true,
+        annotate: 'below',
       },
       {
         id: 'today',
@@ -90,7 +96,7 @@ export function scaleOf(sale: NoteSaleSummary): {
         label: 'Worth today',
         caption: 'Today',
         emphasis: 'muted',
-        annotate: true,
+        annotate: 'above',
       },
       {
         id: 'maturity',

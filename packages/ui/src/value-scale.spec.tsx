@@ -52,23 +52,32 @@ describe('ValueScale', () => {
     expect(screen.getByText('Still to earn')).toBeTruthy();
   });
 
-  /* Two amounts a few percent apart would print over each other, so they are
-     written as one label instead of two overlapping ones. */
-  it('joins annotations that would be written on top of each other', () => {
+  /* Two marks that can hold the same value go on opposite sides, which is
+     the one arrangement that cannot collide however close they land. */
+  it('writes each annotation on the side it asks for', () => {
     const { container } = render(
       <ValueScale
-        marks={marks.map((mark) =>
-          mark.emphasis === 'muted' ? { ...mark, annotate: true, caption: mark.label } : mark,
-        )}
+        marks={[
+          marks[0] as (typeof marks)[number],
+          { ...(marks[1] as (typeof marks)[number]), annotate: 'below', caption: 'Principal' },
+          { ...(marks[2] as (typeof marks)[number]), annotate: 'above', caption: 'Today' },
+          marks[3] as (typeof marks)[number],
+        ]}
         currency="USD"
         label="What this costs"
         testId="scale"
       />,
     );
-    const written = container.querySelector('[data-testid="scale-value-lent"]') as HTMLElement;
-    expect(written.textContent).toContain('2,500.00');
-    expect(written.textContent).toContain('2,512.32');
-    expect(container.querySelector('[data-testid="scale-value-today"]')).toBeNull();
+    const principal = container.querySelector('[data-testid="scale-value-lent"]') as HTMLElement;
+    const today = container.querySelector('[data-testid="scale-value-today"]') as HTMLElement;
+    expect(principal.textContent).toContain('Principal');
+    expect(principal.textContent).toContain('2,500.00');
+    expect(today.textContent).toContain('Today');
+    expect(today.textContent).toContain('2,512.32');
+    // Below the line is a larger offset from the top than above it.
+    expect(Number(principal.style.top.replace('px', ''))).toBeGreaterThan(
+      Number(today.style.top.replace('px', '')),
+    );
   });
 
   it('leaves an unannotated mark as a dot alone', () => {

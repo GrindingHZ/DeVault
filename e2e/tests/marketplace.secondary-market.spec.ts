@@ -176,9 +176,10 @@ test('a lender exits early and another takes the position', async ({ page, reque
   await expect(page.getByTestId('sale-scale-mark-ask')).toBeVisible();
   await expect(page.getByTestId('sale-scale-mark-maturity')).toBeVisible();
   // Listed the day it was drawn, so the principal and today's value are the
-  // same figure in the same place, and are written as one label.
-  await expect(page.getByTestId('sale-scale-value-lent')).toContainText('Lent');
-  await expect(page.getByTestId('sale-scale-value-lent')).toContainText('2,500.00');
+  // same figure in the same place, kept apart by sitting on opposite sides.
+  await expect(page.getByTestId('sale-scale-value-principal')).toContainText('Principal');
+  await expect(page.getByTestId('sale-scale-value-principal')).toContainText('2,500.00');
+  await expect(page.getByTestId('sale-scale-value-today')).toContainText('Today');
   await expect(page.getByTestId('sale-chart')).toHaveCount(0);
 
   await page.getByTestId('sale-row').click();

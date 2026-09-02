@@ -67,13 +67,19 @@ describe('PositionSaleRow', () => {
   /* The two figures that are not set in full above the line are written on
      it, against their own dots, so no amount on the card is a dot a reader
      cannot put a number to. */
-  it('writes the principal and today on the line itself', () => {
+  it('writes the principal under the line and today over it', () => {
     render(<PositionSaleRow sale={sale} isSelected={false} onSelect={() => undefined} />);
-    const written = screen.getByTestId('sale-scale-value-lent');
-    expect(written.textContent).toContain('Lent');
-    expect(written.textContent).toContain('2,500.00');
-    expect(written.textContent).toContain('Today');
-    expect(written.textContent).toContain('2,512.32');
+    const principal = screen.getByTestId('sale-scale-value-principal');
+    expect(principal.textContent).toContain('Principal');
+    expect(principal.textContent).toContain('2,500.00');
+    const today = screen.getByTestId('sale-scale-value-today');
+    expect(today.textContent).toContain('Today');
+    expect(today.textContent).toContain('2,512.32');
+    /* Opposite sides, which is what keeps them apart on the day a position
+       is listed and the two figures are the same number. */
+    expect(Number(principal.style.top.replace('px', ''))).toBeGreaterThan(
+      Number(today.style.top.replace('px', '')),
+    );
   });
 
   /* The one figure in colour, because it is the one the decision turns on:
@@ -93,7 +99,7 @@ describe('PositionSaleRow', () => {
     const { container } = render(
       <PositionSaleRow sale={sale} isSelected={false} onSelect={() => undefined} />,
     );
-    for (const id of ['ask', 'lent', 'today', 'maturity']) {
+    for (const id of ['ask', 'principal', 'today', 'maturity']) {
       expect(container.querySelector(`[data-testid="sale-scale-mark-${id}"]`)).toBeTruthy();
     }
     expect(container.querySelector('[data-testid="sale-scale-segment-ask"]')).toBeTruthy();

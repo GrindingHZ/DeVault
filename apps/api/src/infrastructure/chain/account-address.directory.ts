@@ -4,6 +4,7 @@ import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import type { ChainConfiguration } from '../../config/chain-configuration';
 import { platformPurposeOf } from '../../domain/ledger/platform-accounts';
 import type { UnitOfWorkContext } from '../../domain/ports/unit-of-work';
+import { accountIdOf } from '../../domain/shared/identifiers';
 import type { AccountId } from '../../domain/shared/identifiers';
 import { transactionOf } from '../persistence/prisma-unit-of-work';
 import { CHAIN_CONFIGURATION } from './chain.tokens';
@@ -62,6 +63,6 @@ export class AccountAddressDirectory {
     context: UnitOfWorkContext,
   ): Promise<AccountId | null> {
     const row = await transactionOf(context).chainAccountAddress.findUnique({ where: { address } });
-    return row === null ? null : (row.accountId as AccountId);
+    return row === null ? null : accountIdOf(row.accountId);
   }
 }

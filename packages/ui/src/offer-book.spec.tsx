@@ -35,11 +35,33 @@ describe('OfferBook', () => {
     expect(container.querySelectorAll('tbody tr[data-best="true"]')).toHaveLength(1);
   });
 
-  it('draws the depth bar from the cumulative share', () => {
+  /* Lenders compete on rate, not on amount, so every offer is for the sum
+     the borrower asked for and a depth column would be a row count. What a
+     reader decides on is the rate and what it costs to repay. */
+  it('shows what each offer costs to repay rather than a depth ladder', () => {
+    render(
+      <OfferBook
+        offers={[
+          {
+            ...offer('a', 1120, '800000'),
+            totalCostToBorrower: { minorUnits: '24600', currency: 'AUD' },
+          },
+        ]}
+        role="borrower"
+        currency="AUD"
+      />,
+    );
+    expect(screen.getByText('AUD 8,246.00')).toBeTruthy();
+  });
+
+  it('has no cumulative column', () => {
     const { container } = render(<OfferBook offers={book} role="lender" currency="AUD" />);
-    const bars = [...container.querySelectorAll('tbody tr span[aria-hidden="true"][style]')];
-    const last = bars[bars.length - 1];
-    expect(last?.getAttribute('style')).toContain('100%');
+    expect(container.textContent).not.toContain('Cumulative');
+  });
+
+  it('treats a missing interest figure as nothing rather than as broken', () => {
+    render(<OfferBook offers={[offer('a', 1120, '800000')]} role="borrower" currency="AUD" />);
+    expect(screen.getByText('AUD 8,000.00')).toBeTruthy();
   });
 
   it('tells the caller which offer was chosen', () => {

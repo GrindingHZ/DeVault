@@ -69,6 +69,7 @@ function VaultFloor({ viewerAccountId }: { readonly viewerAccountId: string }): 
   const maxLoanToValue = search.maxLoanToValue === undefined ? '' : String(search.maxLoanToValue);
   const sort = search.sort ?? defaultSort;
   const density = search.density ?? defaultDensity;
+  const scope = search.scope ?? 'all';
   const selectedListingId = search.listing ?? null;
 
   const browseQuery = useQuery({
@@ -130,6 +131,15 @@ function VaultFloor({ viewerAccountId }: { readonly viewerAccountId: string }): 
           hasFundedLoan: false,
         }).role;
 
+  /* Filtered here rather than at the api: the reader's own offers are
+     already loaded for the relationship markers, so asking the server again
+     would be a second round trip for something the client can already see. */
+  const allListings = browseQuery.data?.items ?? [];
+  const visibleListings =
+    scope === 'mine'
+      ? allListings.filter((listing) => livePendingListingIds.has(listing.id))
+      : allListings;
+
   const indexEntries = (indexQuery.data?.categories ?? []).map((entry) => ({
     category: entry.category,
     categoryName: nameForCategory(entry.category),
@@ -153,7 +163,7 @@ function VaultFloor({ viewerAccountId }: { readonly viewerAccountId: string }): 
         }
         browse={
           <BrowsePane
-            listings={browseQuery.data?.items ?? []}
+            listings={visibleListings}
             isPending={browseQuery.isPending}
             isError={browseQuery.isError}
             selectedListingId={selectedListingId}
@@ -168,6 +178,8 @@ function VaultFloor({ viewerAccountId }: { readonly viewerAccountId: string }): 
             onMaxLoanToValue={(value) =>
               update({ maxLoanToValue: value === '' ? undefined : Number(value) })
             }
+            scope={scope}
+            onScope={(value) => update({ scope: value === 'all' ? undefined : value })}
             sort={sort as BrowseSort}
             onSort={(value) => update({ sort: value })}
             density={density as BrowseDensity}

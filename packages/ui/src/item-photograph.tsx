@@ -4,12 +4,15 @@ import type { ReactElement } from 'react';
 export interface ItemPhotographProps {
   readonly src: string | null;
   readonly alt: string;
-  readonly size?: 'thumbnail' | 'detail';
+  readonly size?: 'thumbnail' | 'row' | 'detail';
   readonly testId?: string;
 }
 
 const boxBySize = {
   thumbnail: 'h-14 w-14 rounded-md',
+  /* The browse rail. A lender is deciding whether to lend against this
+     specific object, so the photograph is the largest thing in the row. */
+  row: 'h-16 w-16 rounded-md',
   detail: 'h-40 w-40 rounded-lg',
 } as const;
 

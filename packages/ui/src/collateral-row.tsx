@@ -1,7 +1,6 @@
 import type { ReactElement } from 'react';
 import { ItemPhotograph } from './item-photograph';
 import { LoanToValue } from './loan-to-value';
-import { formatMoney } from './money';
 import type { MoneyValue } from './money';
 import { formatRate } from './rate';
 
@@ -73,20 +72,22 @@ export function CollateralRow({ item, isSelected, onSelect }: CollateralProps): 
         isSelected === true ? 'border-l-status-active bg-surface-sunken' : 'border-l-transparent'
       }`}
     >
-      <ItemPhotograph src={item.photographSrc} alt={item.itemDescription} size="thumbnail" />
-      <span className="flex min-w-0 flex-1 flex-col gap-1">
+      <ItemPhotograph src={item.photographSrc} alt={item.itemDescription} size="row" />
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex items-baseline justify-between gap-2">
           {/* The description is the identity. It is the only thing that tells
               a lender what they would be lending against. */}
-          <span className="truncate font-body text-sm font-medium text-ink-primary">
+          <span className="truncate font-body text-sm font-semibold text-ink-primary">
             {item.itemDescription}
           </span>
           <AskingRate basisPoints={item.bestRateBasisPoints} />
         </span>
+        {/* Three facts, not six. The category, the share of the appraisal and
+            how long is left are what a lender sorts on; the amount is the
+            borrower's and is not something a lender competes on (rule M4). */}
         <span className="flex flex-wrap items-center gap-2 font-mono text-xs text-ink-secondary">
           <span>{item.categoryName}</span>
           <LoanToValue basisPoints={item.loanToValueBasisPoints} />
-          <span>{formatMoney(item.requestedPrincipal)}</span>
           <span>{item.closesIn}</span>
           <Relationship value={item.relationship} />
         </span>

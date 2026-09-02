@@ -1,11 +1,18 @@
-import { itemCategories, nameForCategory } from '@depawn/contracts';
+import { nameForCategory } from '@depawn/contracts';
 import type { ListingSummary } from '@depawn/contracts';
-import { CollateralCard, CollateralRow, EmptyState, Select, Skeleton } from '@depawn/ui';
+import { CollateralCard, CollateralRow, EmptyState, Skeleton } from '@depawn/ui';
 import type { CollateralItem, CollateralRelationship } from '@depawn/ui';
 import type { ReactElement } from 'react';
+import { BrowseFilters } from './browse-filters';
+import type { BrowseDensity, BrowseScope, BrowseSort } from './browse-filters';
 
-export type BrowseDensity = 'rows' | 'gallery';
-export type BrowseSort = 'newest' | 'rate' | 'closing';
+export type { BrowseDensity, BrowseScope, BrowseSort };
+
+/* What the icon shows a number for. Sort is deliberately not counted: there
+   is always a sort, so counting it would mean the badge never reads zero. */
+function activeFilterCount(props: BrowsePaneProps): number {
+  return (props.category === '' ? 0 : 1) + (props.maxLoanToValue === '' ? 0 : 1);
+}
 
 export interface BrowsePaneProps {
   readonly listings: readonly ListingSummary[];
@@ -21,6 +28,8 @@ export interface BrowsePaneProps {
   readonly onMaxLoanToValue: (value: string) => void;
   readonly sort: BrowseSort;
   readonly onSort: (value: BrowseSort) => void;
+  readonly scope: BrowseScope;
+  readonly onScope: (value: BrowseScope) => void;
   readonly density: BrowseDensity;
   readonly onDensity: (value: BrowseDensity) => void;
 }
@@ -72,7 +81,19 @@ export function BrowsePane(props: BrowsePaneProps): ReactElement {
 
   return (
     <div className="flex min-h-0 flex-col">
-      <BrowseControls {...props} />
+      <BrowseFilters
+        scope={props.scope}
+        onScope={props.onScope}
+        category={props.category}
+        onCategory={props.onCategory}
+        maxLoanToValue={props.maxLoanToValue}
+        onMaxLoanToValue={props.onMaxLoanToValue}
+        sort={props.sort}
+        onSort={props.onSort}
+        density={props.density}
+        onDensity={props.onDensity}
+        activeCount={activeFilterCount(props)}
+      />
       {isPending ? (
         <div className="p-3">
           <Skeleton lineCount={5} />
@@ -115,68 +136,6 @@ export function BrowsePane(props: BrowsePaneProps): ReactElement {
           })}
         </div>
       )}
-    </div>
-  );
-}
-
-function BrowseControls({
-  category,
-  onCategory,
-  maxLoanToValue,
-  onMaxLoanToValue,
-  sort,
-  onSort,
-  density,
-  onDensity,
-}: BrowsePaneProps): ReactElement {
-  return (
-    <div
-      data-testid="browse-controls"
-      className="flex flex-wrap items-end gap-3 border-b border-edge p-3"
-    >
-      <Select
-        label="Category"
-        data-testid="filter-category"
-        value={category}
-        onChange={(event) => onCategory(event.target.value)}
-      >
-        <option value="">Anything</option>
-        {itemCategories.map((value) => (
-          <option key={value} value={value}>
-            {nameForCategory(value)}
-          </option>
-        ))}
-      </Select>
-      <Select
-        label="Loan to value at most"
-        data-testid="filter-ltv"
-        value={maxLoanToValue}
-        onChange={(event) => onMaxLoanToValue(event.target.value)}
-      >
-        <option value="">Any</option>
-        <option value="3000">30% or less</option>
-        <option value="5000">50% or less</option>
-      </Select>
-      <Select
-        label="Sort by"
-        data-testid="sort-listings"
-        value={sort}
-        onChange={(event) => onSort(event.target.value as BrowseSort)}
-      >
-        <option value="newest">Newest first</option>
-        <option value="rate">Lowest rate ceiling</option>
-        <option value="closing">Closing soonest</option>
-      </Select>
-      {/* Rows to compare with, a gallery to hunt in. */}
-      <Select
-        label="Show as"
-        data-testid="browse-density"
-        value={density}
-        onChange={(event) => onDensity(event.target.value as BrowseDensity)}
-      >
-        <option value="rows">Rows</option>
-        <option value="gallery">Gallery</option>
-      </Select>
     </div>
   );
 }

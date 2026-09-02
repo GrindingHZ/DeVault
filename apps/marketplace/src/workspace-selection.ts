@@ -14,6 +14,10 @@ export const workspaceSearchSchema = z.object({
   maxLoanToValue: z.coerce.number().int().positive().optional(),
   sort: z.enum(['newest', 'rate', 'closing']).optional(),
   density: z.enum(['rows', 'gallery']).optional(),
+  /* All live listings, or only the ones this reader has a standing offer on.
+     The two things a lender switches between constantly, so it lives in the
+     URL like every other part of the view. */
+  scope: z.enum(['all', 'mine']).optional(),
   stage: z.string().min(1).optional(),
   /* Which offer the reader clicked in the book. Selecting an offer is not
      selecting a listing, so it is a separate parameter and it is dropped

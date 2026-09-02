@@ -1,6 +1,6 @@
 import { ApiError, messageForError, placeOffer } from '@depawn/contracts';
 import type { ListingDetailResponse } from '@depawn/contracts';
-import { Button, Field, toMinorUnits } from '@depawn/ui';
+import { Button, Field, Money, toMinorUnits } from '@depawn/ui';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import type { ReactElement } from 'react';
@@ -33,25 +33,27 @@ export function PlaceOfferForm({
 }): ReactElement {
   const queryClient = useQueryClient();
   const feedback = useFeedback();
-  const [principalInput, setPrincipalInput] = useState(
-    (BigInt(detail.requestedPrincipal.minorUnits) / 100n).toString(),
-  );
   const [rateInput, setRateInput] = useState('18.00');
   const [inputError, setInputError] = useState<string | null>(null);
   // Generated on mount and rotated per success (docs/05-frontend.md).
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
 
-  const principalMinorUnits = toMinorUnits(principalInput);
-  const isAboveCeiling =
-    principalMinorUnits !== null &&
-    BigInt(principalMinorUnits) > BigInt(detail.maxPrincipal.minorUnits);
-
+  /* Rule M4: lenders compete by lowering the rate, not by raising the
+     principal. So the amount is the one the borrower asked for and is not a
+     field. A lender choosing their own amount would be competing on a second
+     axis the borrower never opened. */
   const offerMutation = useMutation({
-    mutationFn: (input: { minorUnits: string; rateBasisPoints: number }) =>
+    mutationFn: (input: { rateBasisPoints: number }) =>
       placeOffer(
         detail.id,
         {
-          principal: { minorUnits: input.minorUnits, currency: 'AUD' },
+          /* The borrower's own figure, echoed back. The request schema
+             narrows the currency, and the detail response does not, so it is
+             restated rather than cast. */
+          principal: {
+            minorUnits: detail.requestedPrincipal.minorUnits,
+            currency: 'AUD',
+          },
           annualPercentageRateBasisPoints: input.rateBasisPoints,
           durationMs: detail.requestedDurationMs,
           expiresAt: detail.expiresAt,
@@ -76,42 +78,27 @@ export function PlaceOfferForm({
         className="flex flex-col gap-3"
         onSubmit={(event) => {
           event.preventDefault();
-          if (principalMinorUnits === null) {
-            setInputError('Enter a principal like 2500 or 2500.00.');
-            return;
-          }
           const rateBasisPoints = toMinorUnits(rateInput);
           if (rateBasisPoints === null) {
             setInputError('Enter a rate like 18.00.');
             return;
           }
           setInputError(null);
-          offerMutation.mutate({
-            minorUnits: principalMinorUnits,
-            rateBasisPoints: Number(rateBasisPoints),
-          });
+          offerMutation.mutate({ rateBasisPoints: Number(rateBasisPoints) });
         }}
       >
-        <Field
-          label="Principal (AUD)"
-          data-testid="offer-principal"
-          value={principalInput}
-          onChange={(event) => setPrincipalInput(event.target.value)}
-          errorMessage={
-            inputError ?? (isAboveCeiling ? 'Above the lending ceiling for this item.' : undefined)
-          }
-        />
+        <p className="font-mono text-xs text-ink-secondary">
+          You would lend <Money value={detail.requestedPrincipal} />, which is what the borrower
+          asked for. The rate is the only thing you set.
+        </p>
         <Field
           label="Annual rate (% per year)"
           data-testid="offer-rate"
           value={rateInput}
           onChange={(event) => setRateInput(event.target.value)}
+          errorMessage={inputError ?? undefined}
         />
-        <Button
-          data-testid="offer-submit"
-          type="submit"
-          disabled={offerMutation.isPending || isAboveCeiling}
-        >
+        <Button data-testid="offer-submit" type="submit" disabled={offerMutation.isPending}>
           Place funded offer
         </Button>
         {offerMutation.isError ? (

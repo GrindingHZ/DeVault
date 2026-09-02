@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import { EmptyState } from './empty-state';
 import type { MarketRole } from './market-delta';
 import { formatMoney } from './money';
@@ -25,10 +25,20 @@ export interface OfferBookProps {
   readonly onSelectOffer?: (offerId: string) => void;
 }
 
-/* The one screen in the product that is genuinely an order book. Cheapest
-   first, depth accumulating downwards, and the winning row marked by weight
-   and a word rather than by colour, because a reader who cannot separate the
-   two greens still has to be able to see which offer wins. */
+/* Money is minor units in a string, so this is bigint and never a float. */
+function totalRepayable(principalMinorUnits: bigint, interest: MoneyValue | undefined): bigint {
+  return principalMinorUnits + BigInt(interest?.minorUnits ?? '0');
+}
+
+/* Lenders compete by lowering the rate, not by raising the principal
+   (docs/00-product-overview.md rule M4), and the interface now holds them to
+   it: an offer is for the amount the borrower asked for, and the only thing a
+   lender chooses is the rate.
+
+   That is why there is no depth column here any more. When every offer is for
+   the same amount, a cumulative total is a row count wearing a ladder's
+   clothes. The two figures that decide anything are the rate and what it
+   costs to repay. */
 export function OfferBook({
   offers,
   role,
@@ -64,10 +74,7 @@ export function OfferBook({
             Rate p.a.
           </th>
           <th scope="col" className="px-3 py-1 text-right font-medium">
-            Amount
-          </th>
-          <th scope="col" className="px-3 py-1 text-right font-medium">
-            Cumulative
+            To repay
           </th>
         </tr>
       </thead>
@@ -84,39 +91,35 @@ export function OfferBook({
                 isSelected ? 'bg-surface-sunken outline outline-1 outline-edge-strong' : ''
               }`}
             >
-              <td className="relative p-0">
+              <td className="p-0">
                 <button
                   type="button"
                   onClick={() => onSelectOffer?.(row.offerId)}
                   aria-pressed={isSelected}
-                  className="relative flex w-full items-center gap-2 px-3 py-1 text-left transition-colors duration-control ease-enter hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-status-active"
+                  className="flex w-full items-center gap-2 px-3 py-1 text-left transition-colors duration-control ease-enter hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-status-active"
                 >
-                  {/* The depth bar. A ratio arrives as a custom property so
-                      the width is data and the colour stays a token. */}
-                  <span
-                    aria-hidden="true"
-                    style={{ '--depth-share': `${row.cumulativeShare * 100}%` } as CSSProperties}
-                    className="pointer-events-none absolute inset-y-0 left-0 w-[var(--depth-share)] bg-accent opacity-10"
-                  />
-                  <span className="relative">
-                    {row.isBest ? (
-                      <span aria-hidden="true" className="mr-1 text-accent">
-                        {bestMarker}
-                      </span>
-                    ) : null}
+                  {row.isBest ? (
+                    <span aria-hidden="true" className="text-accent">
+                      {bestMarker}
+                    </span>
+                  ) : null}
+                  <span className={row.isBest ? 'font-semibold text-accent' : 'text-ink-primary'}>
                     {formatRate(row.annualPercentageRateBasisPoints).replace(' p.a.', '')}
                   </span>
-                  {row.isBest ? <span className="relative text-accent">best</span> : null}
+                  {row.isBest ? <span className="text-accent">best</span> : null}
                   {extra?.isMine === true ? (
-                    <span className="relative text-ink-secondary">yours</span>
+                    <span className="text-ink-secondary">yours</span>
                   ) : null}
                 </button>
               </td>
               <td className="px-3 py-1 text-right text-ink-primary">
-                {formatMoney({ minorUnits: row.principalMinorUnits.toString(), currency })}
-              </td>
-              <td className="px-3 py-1 text-right text-ink-secondary">
-                {formatMoney({ minorUnits: row.cumulativeMinorUnits.toString(), currency })}
+                {formatMoney({
+                  minorUnits: totalRepayable(
+                    row.principalMinorUnits,
+                    extra?.totalCostToBorrower,
+                  ).toString(),
+                  currency,
+                })}
               </td>
             </tr>
           );

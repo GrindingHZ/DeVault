@@ -99,3 +99,19 @@ export function WalletIcon(props: IconProps): ReactElement {
     </Icon>
   );
 }
+
+export function FilterIcon(props: IconProps): ReactElement {
+  return (
+    <Icon {...props}>
+      <path d="M4 7h16M7 12h10M10 17h4" />
+    </Icon>
+  );
+}
+
+export function CheckIcon(props: IconProps): ReactElement {
+  return (
+    <Icon {...props}>
+      <path d="M5 12.5l4.5 4.5L19 7.5" />
+    </Icon>
+  );
+}

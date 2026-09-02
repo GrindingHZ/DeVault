@@ -51,10 +51,30 @@ Every badge carries its state name as text; colour is never the only signal.
 
 | Level | Size | Use |
 |---|---|---|
-| `text-lg` semibold heading | 1.125rem | Dialog and page section titles |
-| `text-base` semibold heading | 1rem | Card titles, shell product name |
+| `text-lg` semibold heading | 1.125rem | Page titles, dialog titles |
+| `text-base` semibold heading | 1rem | Card and section titles, shell product name |
 | `text-sm` body | 0.875rem | Default UI copy, tables, forms |
-| `text-xs` medium uppercase | 0.75rem | Status badges only |
+| `text-xs` | 0.75rem | Status badges, dense numerals, column labels |
+
+## Weight, amended P8f
+
+The family is frozen. Weight and size never were, and the product was using
+one weight for everything, which is why a price and the word next to it read
+as equally important.
+
+| Role | Weight | Notes |
+|---|---|---|
+| The figure a decision turns on | 600 | A rate in a book, a balance, a loan count |
+| The name of a thing | 600 | An item description in a rail, a page title |
+| Its supporting facts | 400 | Category, loan to value, when it closes |
+| A label above a figure | 400, `text-xs` | Never bolder than the figure it names |
+
+Two rules that follow from it:
+
+- **One 600 per row.** If the item name and the rate are both bold, neither
+  leads. The rail bolds the name; the book bolds the rate.
+- **Numerals are always `tabular-nums`.** A column of figures that does not
+  align is a column nobody can compare down.
 
 ## Terminal density rules
 

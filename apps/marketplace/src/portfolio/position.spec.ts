@@ -298,7 +298,7 @@ describe('what a loan is worth', () => {
     const term = positionOfBorrowedLoan(sixtyDays, now).term;
     expect(term?.elapsedBasisPoints).toBe(3667);
     expect(term?.note).toBe('day 23 of 60');
-    expect(term?.caption).toBe('38 days left');
+    expect(term?.caption).toEqual({ value: '38 days', trail: 'left' });
   });
 
   /* Counted from one. The day a loan is drawn down is its first day. */
@@ -350,7 +350,7 @@ describe('what a loan is worth', () => {
     /* The term is spent, so the count sits at its end and grace is what is
        left to say. */
     expect(term?.note).toBe('day 60 of 60');
-    expect(term?.caption).toBe('4 days of grace left');
+    expect(term?.caption).toEqual({ value: '4 days', trail: 'of grace left' });
   });
 
   it('says so once grace has run out', () => {
@@ -407,6 +407,18 @@ describe('a loan the reader is owed', () => {
 
   it('leaves a loan inside its grace alone', () => {
     expect(positionOfLentLoan(loan(), now).action).toBeNull();
+  });
+
+  /* Claiming does not change the loan, which stays DEFAULTED for ever, so
+     the row kept offering a claim the server then refused with
+     `RECEIPT_NOT_ENCUMBERED`. The receipt is what knows: claiming moves it
+     into the claimant's own name. */
+  it('stops offering a claim once the collateral has been taken', () => {
+    const position = positionOfLentLoan(loan({ status: 'DEFAULTED' }), now, true);
+    expect(position.stage).toBe('Claimed');
+    expect(position.action).toBeNull();
+    expect(position.needsAttention).toBe(false);
+    expect(isOpen(position)).toBe(false);
   });
 
   it('offers the collateral to the lender on a default', () => {
@@ -507,7 +519,8 @@ describe('how long is left', () => {
   it('counts a live listing down to its closing date', () => {
     const closes = new Date(now + 20 * oneDay).toISOString();
     const term = listingPosition(listing({ expiresAt: closes })).term;
-    expect(term?.note).toBe('closes in 20 days');
+    expect(term?.note).toBe('closes in');
+    expect(term?.caption).toEqual({ value: '20 days', trail: '' });
     /* No bar. Neither a listing nor an offer records when it began, so a
        proportion would be drawn from a guess. */
     expect(term?.elapsedBasisPoints).toBeNull();
@@ -515,7 +528,7 @@ describe('how long is left', () => {
 
   it('says a listing closes today rather than in zero days', () => {
     const closes = new Date(now + 60 * 60 * 1000).toISOString();
-    expect(listingPosition(listing({ expiresAt: closes })).term?.note).toBe('closes today');
+    expect(listingPosition(listing({ expiresAt: closes })).term?.caption?.value).toBe('today');
   });
 
   /* Every other column on a closed row shows a dash. The term did not, and

@@ -2,6 +2,7 @@ import {
   fetchMyListings,
   fetchMyLoans,
   fetchMyOffers,
+  fetchMyReceipts,
   fetchMyRedemptionRequests,
 } from '@depawn/contracts';
 import type { LoanResponse, RedemptionStatusDto } from '@depawn/contracts';
@@ -70,6 +71,12 @@ export function usePositions(): Positions {
     queryKey: marketKeys.myRedemptions,
     queryFn: fetchMyRedemptionRequests,
   });
+  /* Whether the reader already took the collateral on a defaulted loan. The
+     loan stays DEFAULTED whatever happens next, so the claim shows up as the
+     receipt arriving in their own inventory rather than as anything on the
+     loan. Without it the row kept offering a claim the server then refused
+     with `RECEIPT_NOT_ENCUMBERED`. */
+  const receiptsQuery = useQuery({ queryKey: marketKeys.myReceipts, queryFn: fetchMyReceipts });
 
   const borrowedLoans = borrowedQuery.data?.items ?? [];
   const lentLoans = lentQuery.data?.items ?? [];
@@ -93,8 +100,9 @@ export function usePositions(): Positions {
       positionOfBorrowedLoan(loan, borrowedAsOf, redemptionByReceipt.get(loan.receiptId) ?? null),
     )
     .sort(byItem);
+  const heldReceiptIds = new Set((receiptsQuery.data?.items ?? []).map((receipt) => receipt.id));
   const lentLoanPositions = lentLoans
-    .map((loan) => positionOfLentLoan(loan, lentAsOf))
+    .map((loan) => positionOfLentLoan(loan, lentAsOf, heldReceiptIds.has(loan.receiptId)))
     .sort(byItem);
   const listingAsOf = Date.parse(listingsQuery.data?.asOf ?? '') || Date.now();
   const offerAsOf = Date.parse(offersQuery.data?.asOf ?? '') || Date.now();
@@ -124,7 +132,8 @@ export function usePositions(): Positions {
       offersQuery.isPending ||
       borrowedQuery.isPending ||
       lentQuery.isPending ||
-      redemptionsQuery.isPending,
+      redemptionsQuery.isPending ||
+      receiptsQuery.isPending,
     unavailable: [
       listingsQuery.isError ? 'your listings' : null,
       offersQuery.isError ? 'your offers' : null,

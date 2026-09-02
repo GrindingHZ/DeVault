@@ -105,6 +105,7 @@ const everyPosition: readonly Position[] = [
   positionOfLentLoan(loan(), now),
   positionOfLentLoan(loan(), wellPast),
   positionOfLentLoan(loan({ status: 'DEFAULTED' }), now),
+  positionOfLentLoan(loan({ status: 'DEFAULTED' }), now, true),
   positionOfLentLoan(loan({ status: 'REPAID' }), now),
   positionOfLentLoan(loan({ status: 'LIQUIDATED' }), now),
 ].filter((one): one is Position => one !== null);

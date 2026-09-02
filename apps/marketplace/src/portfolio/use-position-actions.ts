@@ -84,6 +84,11 @@ export function usePositionActions(handlers: PositionActionHandlers): {
       await queryClient.invalidateQueries({ queryKey: marketKeys.myLoans('borrower') });
       await queryClient.invalidateQueries({ queryKey: marketKeys.myLoans('lender') });
       await queryClient.invalidateQueries({ queryKey: walletKeys.all });
+      /* Claiming a defaulted loan moves the receipt into the claimant's own
+         name, which is the only thing that says the claim happened: the loan
+         stays DEFAULTED. Without this the row goes on offering it. */
+      await queryClient.invalidateQueries({ queryKey: marketKeys.myReceipts });
+      await queryClient.invalidateQueries({ queryKey: marketKeys.myRedemptions });
       await queryClient.invalidateQueries({ queryKey: marketKeys.browse });
     },
     onError: () => feedback.reportFailure('That could not be completed. Nothing has changed.'),

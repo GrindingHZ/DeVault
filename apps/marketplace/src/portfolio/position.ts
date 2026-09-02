@@ -47,9 +47,18 @@ export interface TermProgress {
   readonly note: string;
   /* What that leaves, when there is anything to leave. Two lines rather than
      one, because "day 21 of 30" and "9 days left" are different questions
-     and a reader should not have to subtract to answer the second. */
-  readonly caption: string | null;
+     and a reader should not have to subtract to answer the second.
+
+     Split, so the quantity carries the weight and the grammar around it does
+     not: "9 days" is the fact, "left" is the sentence it sits in. */
+  readonly caption: TermPhrase | null;
   readonly tone: StatusTone;
+}
+
+/* A quantity and the words around it, so only the quantity is emphasised. */
+export interface TermPhrase {
+  readonly value: string;
+  readonly trail: string;
 }
 
 /* The numbers a loan turns on. Only a loan has them: a listing has no term
@@ -154,7 +163,7 @@ function plural(count: number, noun: string): string {
 }
 
 /* Bare, because the loan tables name the currency once in the column header.
-   Twenty repetitions of "AUD" down a column is noise that pushed every
+   Twenty repetitions of "USD" down a column is noise that pushed every
    figure onto two lines. */
 function amount(minorUnits: bigint, currency: string): string {
   return formatAmount({ minorUnits: minorUnits.toString(), currency });
@@ -180,12 +189,17 @@ function closesIn(expiresAtIso: string, asOf: number): TermProgress {
   }
   const remaining = expiresAt - asOf;
   if (remaining < oneDay) {
-    return { elapsedBasisPoints: null, note: 'closes today', caption: null, tone: 'warning' };
+    return {
+      elapsedBasisPoints: null,
+      note: 'closes',
+      caption: { value: 'today', trail: '' },
+      tone: 'warning',
+    };
   }
   return {
     elapsedBasisPoints: null,
-    note: `closes in ${plural(daysBetween(asOf, expiresAt), 'day')}`,
-    caption: null,
+    note: 'closes in',
+    caption: { value: plural(daysBetween(asOf, expiresAt), 'day'), trail: '' },
     tone: 'active',
   };
 }
@@ -226,7 +240,7 @@ function termOf(loan: LoanResponse, asOf: number): TermProgress {
     return {
       elapsedBasisPoints: 10_000,
       note: `day ${String(termDays)} of ${String(termDays)}`,
-      caption: `${plural(daysBetween(asOf, graceEndsAt), 'day')} of grace left`,
+      caption: { value: plural(daysBetween(asOf, graceEndsAt), 'day'), trail: 'of grace left' },
       tone: 'warning',
     };
   }
@@ -235,7 +249,7 @@ function termOf(loan: LoanResponse, asOf: number): TermProgress {
     /* Short. The column is called Term, so "to maturity" was a phrase
        repeated on every row that pushed the action button off the side. */
     note: `day ${String(dayNow)} of ${String(termDays)}`,
-    caption: `${plural(daysBetween(asOf, maturesAt), 'day')} left`,
+    caption: { value: plural(daysBetween(asOf, maturesAt), 'day'), trail: 'left' },
     tone: 'active',
   };
 }
@@ -541,7 +555,11 @@ export function positionOfBorrowedLoan(
   };
 }
 
-export function positionOfLentLoan(loan: LoanResponse, asOf: number): Position {
+/* Whether the reader already took the collateral. A claim does not change
+   the loan, which stays DEFAULTED for ever, so the loan alone cannot say. The
+   receipt can: claiming moves it into the claimant's name, which puts it in
+   their own inventory. */
+export function positionOfLentLoan(loan: LoanResponse, asOf: number, hasClaimed = false): Position {
   const base = {
     id: `lent-${loan.id}`,
     side: 'lending' as const,
@@ -583,8 +601,23 @@ export function positionOfLentLoan(loan: LoanResponse, asOf: number): Position {
   }
 
   /* The lender's side of the same event the borrower reads as a disaster.
-     Here it is something to act on: the collateral can be claimed. */
+     Here it is something to act on: the collateral can be claimed.
+
+     Once. The server refuses a second claim with `RECEIPT_NOT_ENCUMBERED`,
+     which is correct and unreadable: the receipt is no longer securing
+     anything because the reader already took it. */
   if (loan.status === 'DEFAULTED') {
+    if (hasClaimed) {
+      return {
+        ...base,
+        ...staged('Claimed', 'lending'),
+        term: null,
+        caption: 'The item is in the vault under your name',
+        figure: null,
+        action: null,
+        needsAttention: false,
+      };
+    }
     return {
       ...base,
       ...staged('Defaulted', 'lending'),

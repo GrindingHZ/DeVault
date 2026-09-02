@@ -128,7 +128,14 @@ const lendingStages = {
   Defaulted: {
     tone: 'danger',
     isTerminal: true,
-    meaning: 'You hold the receipt. Claim the collateral and the item goes to sale on your behalf.',
+    meaning:
+      'The borrower did not repay and grace has run out. Claim the collateral to take the receipt into your own name.',
+  },
+  Claimed: {
+    tone: 'success',
+    isTerminal: true,
+    meaning:
+      'The receipt is in your name and the item is in the vault under it. It appears in My items, where you can collect it or leave it to be sold.',
   },
   Sold: {
     tone: 'neutral',

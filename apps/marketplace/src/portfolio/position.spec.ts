@@ -76,39 +76,63 @@ function loan(overrides: Partial<LoanResponse> = {}): LoanResponse {
    person. Nothing this model produces should be one. */
 const screamingSnakeCase = /^[A-Z][A-Z0-9_]*$/;
 
+/* The two mappers that can decline. Unwrapping here rather than at every
+   call keeps the assertions about the mapping rather than about null. */
+function listingPosition(input: MyListingResponse) {
+  const position = positionOfListing(input);
+  if (position === null) {
+    throw new Error('the listing produced no position');
+  }
+  return position;
+}
+
+function offerPosition(input: MyOfferResponse) {
+  const position = positionOfOffer(input);
+  if (position === null) {
+    throw new Error('the offer produced no position');
+  }
+  return position;
+}
+
 describe('a listing as a position', () => {
   it('offers to publish a draft', () => {
-    const position = positionOfListing(listing({ status: 'DRAFT' }));
+    const position = listingPosition(listing({ status: 'DRAFT' }));
     expect(position.stage).toBe('Draft');
     expect(position.action?.kind).toBe('publish');
     expect(position.needsAttention).toBe(false);
   });
 
   it('shows the best offer on a live listing', () => {
-    const position = positionOfListing(listing());
+    const position = listingPosition(listing());
     expect(position.stage).toBe('Taking offers');
     expect(position.figure).toEqual({ label: 'Best offer', value: '11.00%' });
     expect(position.action?.kind).toBe('accept');
   });
 
   it('says there is no offer yet rather than showing a rate of nothing', () => {
-    const position = positionOfListing(listing({ bestOfferRateBasisPoints: null, offerCount: 0 }));
+    const position = listingPosition(listing({ bestOfferRateBasisPoints: null, offerCount: 0 }));
     expect(position.figure?.value).toBe('none yet');
   });
 
   /* A button that opens an empty book is a button that wasted a click. */
   it('offers nothing to accept when nobody has offered', () => {
-    expect(positionOfListing(listing({ offerCount: 0 })).action).toBeNull();
+    expect(listingPosition(listing({ offerCount: 0 })).action).toBeNull();
   });
 
-  it('reads a matched listing as funded', () => {
-    const position = positionOfListing(listing({ status: 'MATCHED' }));
-    expect(position.stage).toBe('Funded');
-    expect(position.action).toBeNull();
+  /* The loan that came out of it is a row of its own and says everything
+     this one would, only currently. A matched listing still reading "Funded"
+     beside a loan since repaid was the screen contradicting itself. */
+  it('leaves a matched listing to the loan it produced', () => {
+    expect(positionOfListing(listing({ status: 'MATCHED' }))).toBeNull();
+  });
+
+  it('says how many lenders are competing rather than a bare count', () => {
+    expect(listingPosition(listing({ offerCount: 1 })).caption).toBe('1 lender competing');
+    expect(listingPosition(listing({ offerCount: 3 })).caption).toBe('3 lenders competing');
   });
 
   it.each(['CANCELLED', 'EXPIRED'] as const)('closes out a %s listing quietly', (status) => {
-    const position = positionOfListing(listing({ status }));
+    const position = listingPosition(listing({ status }));
     expect(position.action).toBeNull();
     expect(position.needsAttention).toBe(false);
   });
@@ -116,7 +140,7 @@ describe('a listing as a position', () => {
 
 describe('an offer as a position', () => {
   it('lets a standing offer be withdrawn', () => {
-    const position = positionOfOffer(offer());
+    const position = offerPosition(offer());
     expect(position.stage).toBe('Standing');
     expect(position.action?.kind).toBe('withdraw');
     expect(position.needsAttention).toBe(false);
@@ -125,26 +149,32 @@ describe('an offer as a position', () => {
   /* The position this whole screen exists for. Refunds are pull, not push
      (flow 9), so an outbid hold sits earning nothing until somebody asks. */
   it.each(['SUPERSEDED', 'EXPIRED'] as const)('asks for a %s hold back', (status) => {
-    const position = positionOfOffer(offer({ status }));
+    const position = offerPosition(offer({ status }));
     expect(position.action?.kind).toBe('reclaim');
     expect(position.needsAttention).toBe(true);
     expect(position.figure).toEqual({ label: 'Held', value: 'AUD 4,000.00' });
   });
 
-  it('leaves an accepted offer alone', () => {
-    const position = positionOfOffer(offer({ status: 'ACCEPTED' }));
-    expect(position.action).toBeNull();
-    expect(position.needsAttention).toBe(false);
+  it('leaves an accepted offer to the loan it became', () => {
+    expect(positionOfOffer(offer({ status: 'ACCEPTED' }))).toBeNull();
+  });
+
+  /* "You lent" is false here. The offer lost, and the caption has to be able
+     to say what actually happened rather than finish a fixed phrase. */
+  it('says the money is held rather than lent when the offer was outbid', () => {
+    expect(offerPosition(offer({ status: 'SUPERSEDED' })).caption).toBe(
+      'Your money is still held, and earning nothing',
+    );
   });
 
   it('names the item, not the listing it belongs to', () => {
-    expect(positionOfOffer(offer()).itemDescription).toBe('Omega Speedmaster');
+    expect(offerPosition(offer()).itemDescription).toBe('Omega Speedmaster');
   });
 });
 
 describe('a loan the reader owes', () => {
   it('says what rate it is running at', () => {
-    expect(positionOfBorrowedLoan(loan(), now).detail).toBe('at 18.00% p.a.');
+    expect(positionOfBorrowedLoan(loan(), now).caption).toBe('You borrowed at 18.00% p.a.');
   });
 
   it('shows what settling today would cost', () => {
@@ -221,13 +251,11 @@ describe('a loan the reader is owed', () => {
 /* The two failures this model exists to prevent. */
 describe('the model as a whole', () => {
   const everyPosition = [
-    positionOfListing(listing()),
-    positionOfListing(listing({ status: 'DRAFT' })),
-    positionOfListing(listing({ status: 'MATCHED' })),
-    positionOfListing(listing({ status: 'CANCELLED' })),
-    positionOfOffer(offer()),
-    positionOfOffer(offer({ status: 'SUPERSEDED' })),
-    positionOfOffer(offer({ status: 'ACCEPTED' })),
+    listingPosition(listing()),
+    listingPosition(listing({ status: 'DRAFT' })),
+    listingPosition(listing({ status: 'CANCELLED' })),
+    offerPosition(offer()),
+    offerPosition(offer({ status: 'SUPERSEDED' })),
     positionOfBorrowedLoan(loan(), now),
     positionOfBorrowedLoan(loan({ status: 'REPAID' }), now),
     positionOfBorrowedLoan(loan({ status: 'DEFAULTED' }), now),
@@ -266,6 +294,6 @@ describe('the model as a whole', () => {
 
   it('keeps a listing apart from an offer that shares its identifier', () => {
     const collidingOffer = offer({ id: 'L1' });
-    expect(positionOfListing(listing()).id).not.toBe(positionOfOffer(collidingOffer).id);
+    expect(listingPosition(listing()).id).not.toBe(offerPosition(collidingOffer).id);
   });
 });

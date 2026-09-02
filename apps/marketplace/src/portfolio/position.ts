@@ -37,10 +37,12 @@ export interface Position {
      person (packages/contracts/src/status-copy.ts). */
   readonly stage: string;
   readonly tone: StatusTone;
-  /* A phrase that finishes the sentence the side reading starts: "You
-     borrowed" plus "at 18.00%". Null when there is nothing to add and the
-     figure already carries the only number that matters. */
-  readonly detail: string | null;
+  /* The whole sub-line, not a fragment. An earlier version glued a phrase
+     onto a fixed "You borrowed" or "You lent", which produced "You lent
+     earning nothing until you ask for it back" on a losing offer: the reader
+     never lent anything, the offer was outbid. Each case writes its own
+     sentence. */
+  readonly caption: string;
   /* The one number this kind of position turns on. Which number that is
      differs per kind, which is why a shared table cannot simply print a
      column and call it done. */
@@ -58,7 +60,10 @@ function rateOf(basisPoints: number): string {
   return formatRate(basisPoints).replace(' p.a.', '');
 }
 
-export function positionOfListing(listing: MyListingResponse): Position {
+/* Null when the loan says the same thing better. A matched listing and an
+   accepted offer are both the prologue to a loan that is already a row of its
+   own, and showing all three was the duplication this screen exists to end. */
+export function positionOfListing(listing: MyListingResponse): Position | null {
   const base = {
     id: `listing-${listing.id}`,
     side: 'borrowing' as const,
@@ -73,7 +78,7 @@ export function positionOfListing(listing: MyListingResponse): Position {
       ...base,
       stage: 'Draft',
       tone: 'neutral',
-      detail: null,
+      caption: 'Nobody can see this until you publish it',
       figure: { label: 'Asking', value: formatMoney(listing.requestedPrincipal) },
       action: { label: 'Publish', kind: 'publish' },
       needsAttention: false,
@@ -85,7 +90,10 @@ export function positionOfListing(listing: MyListingResponse): Position {
       ...base,
       stage: 'Taking offers',
       tone: 'active',
-      detail: `${listing.offerCount} standing`,
+      caption:
+        listing.offerCount === 0
+          ? 'Waiting for a lender'
+          : `${listing.offerCount} lender${listing.offerCount === 1 ? '' : 's'} competing`,
       figure:
         listing.bestOfferRateBasisPoints === null
           ? { label: 'Best offer', value: 'none yet' }
@@ -97,30 +105,25 @@ export function positionOfListing(listing: MyListingResponse): Position {
     };
   }
 
+  /* The loan is a row of its own and says everything this one would, only
+     currently. A matched listing that still read "Funded" beside a loan that
+     had since been repaid was the screen contradicting itself. */
   if (listing.status === 'MATCHED') {
-    return {
-      ...base,
-      stage: 'Funded',
-      tone: 'success',
-      detail: null,
-      figure: { label: 'Borrowed', value: formatMoney(listing.requestedPrincipal) },
-      action: null,
-      needsAttention: false,
-    };
+    return null;
   }
 
   return {
     ...base,
     stage: listing.status === 'CANCELLED' ? 'Cancelled' : 'Expired',
     tone: 'neutral',
-    detail: null,
+    caption: listing.status === 'CANCELLED' ? 'You took it down' : 'It ran out of time',
     figure: null,
     action: null,
     needsAttention: false,
   };
 }
 
-export function positionOfOffer(offer: MyOfferResponse): Position {
+export function positionOfOffer(offer: MyOfferResponse): Position | null {
   const base = {
     id: `offer-${offer.id}`,
     side: 'lending' as const,
@@ -135,7 +138,7 @@ export function positionOfOffer(offer: MyOfferResponse): Position {
       ...base,
       stage: 'Standing',
       tone: 'active',
-      detail: null,
+      caption: 'Your money is held against this',
       figure: { label: 'Your rate', value: rateOf(offer.annualPercentageRateBasisPoints) },
       action: { label: 'Withdraw', kind: 'withdraw' },
       needsAttention: false,
@@ -150,30 +153,23 @@ export function positionOfOffer(offer: MyOfferResponse): Position {
       ...base,
       stage: offer.status === 'SUPERSEDED' ? 'Outbid' : 'Expired',
       tone: 'warning',
-      detail: 'earning nothing until you ask for it back',
+      caption: 'Your money is still held, and earning nothing',
       figure: { label: 'Held', value: formatMoney(offer.principal) },
       action: { label: 'Reclaim funds', kind: 'reclaim' },
       needsAttention: true,
     };
   }
 
+  /* The winning offer became a loan, and the loan is the live row. */
   if (offer.status === 'ACCEPTED') {
-    return {
-      ...base,
-      stage: 'Accepted',
-      tone: 'success',
-      detail: null,
-      figure: { label: 'Your rate', value: rateOf(offer.annualPercentageRateBasisPoints) },
-      action: null,
-      needsAttention: false,
-    };
+    return null;
   }
 
   return {
     ...base,
     stage: 'Withdrawn',
     tone: 'neutral',
-    detail: null,
+    caption: 'You pulled it before it was taken',
     figure: null,
     action: null,
     needsAttention: false,
@@ -207,7 +203,7 @@ export function positionOfBorrowedLoan(loan: LoanResponse, now: number): Positio
       ...base,
       stage: isPastMaturity ? 'In grace' : 'Running',
       tone: isDue ? 'warning' : 'active',
-      detail: `at ${rateOf(loan.annualPercentageRateBasisPoints)} p.a.`,
+      caption: `You borrowed at ${rateOf(loan.annualPercentageRateBasisPoints)} p.a.`,
       figure: { label: 'Owed today', value: owedToday(loan) },
       action: { label: 'Repay', kind: 'repay' },
       needsAttention: isDue,
@@ -222,7 +218,7 @@ export function positionOfBorrowedLoan(loan: LoanResponse, now: number): Positio
       ...base,
       stage: 'Repaid',
       tone: 'success',
-      detail: 'waiting in the vault under your name',
+      caption: 'Paid off, and the item is waiting in the vault under your name',
       figure: null,
       action: { label: 'Collect the item', kind: 'collect' },
       needsAttention: true,
@@ -234,7 +230,7 @@ export function positionOfBorrowedLoan(loan: LoanResponse, now: number): Positio
       ...base,
       stage: 'Defaulted',
       tone: 'danger',
-      detail: 'the lender may claim the collateral',
+      caption: 'You did not repay in time, and the lender may claim the item',
       figure: { label: 'Principal', value: formatMoney(loan.principal) },
       action: null,
       needsAttention: true,
@@ -245,7 +241,7 @@ export function positionOfBorrowedLoan(loan: LoanResponse, now: number): Positio
     ...base,
     stage: 'Sold',
     tone: 'danger',
-    detail: null,
+    caption: 'The item was sold to cover the loan',
     figure: { label: 'Principal', value: formatMoney(loan.principal) },
     action: null,
     needsAttention: false,
@@ -272,7 +268,7 @@ export function positionOfLentLoan(loan: LoanResponse, now: number): Position {
         ...base,
         stage: 'Past grace',
         tone: 'warning',
-        detail: 'the borrower did not repay',
+        caption: 'The borrower did not repay, and grace has run out',
         figure: { label: 'At risk', value: formatMoney(loan.principal) },
         action: { label: 'Mark defaulted', kind: 'default' },
         needsAttention: true,
@@ -282,7 +278,7 @@ export function positionOfLentLoan(loan: LoanResponse, now: number): Position {
       ...base,
       stage: 'Earning',
       tone: 'active',
-      detail: `at ${rateOf(loan.annualPercentageRateBasisPoints)} p.a.`,
+      caption: `You lent at ${rateOf(loan.annualPercentageRateBasisPoints)} p.a.`,
       figure: { label: 'Accrued', value: formatMoney(loan.accruedInterest) },
       action: null,
       needsAttention: false,
@@ -296,7 +292,7 @@ export function positionOfLentLoan(loan: LoanResponse, now: number): Position {
       ...base,
       stage: 'Defaulted',
       tone: 'danger',
-      detail: null,
+      caption: 'The item is yours to claim',
       figure: { label: 'At risk', value: formatMoney(loan.principal) },
       action: { label: 'Claim the collateral', kind: 'claim' },
       needsAttention: true,
@@ -308,7 +304,7 @@ export function positionOfLentLoan(loan: LoanResponse, now: number): Position {
       ...base,
       stage: 'Settled',
       tone: 'success',
-      detail: null,
+      caption: 'The borrower paid in full',
       figure: { label: 'Earned', value: formatMoney(loan.accruedInterest) },
       action: null,
       needsAttention: false,
@@ -319,7 +315,7 @@ export function positionOfLentLoan(loan: LoanResponse, now: number): Position {
     ...base,
     stage: 'Sold',
     tone: 'neutral',
-    detail: null,
+    caption: 'The item was sold and you were paid from the proceeds',
     figure: { label: 'Principal', value: formatMoney(loan.principal) },
     action: null,
     needsAttention: false,

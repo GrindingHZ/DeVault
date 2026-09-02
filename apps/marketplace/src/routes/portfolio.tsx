@@ -161,7 +161,19 @@ function PortfolioBody(): ReactElement {
     ...offers.map(positionOfOffer),
     ...borrowedLoans.map((loan) => positionOfBorrowedLoan(loan, now)),
     ...lentLoans.map((loan) => positionOfLentLoan(loan, now)),
-  ];
+  ]
+    .filter((one): one is Position => one !== null)
+    /* By item, so a listing and the loan that came out of it sit together and
+       a reader can see what belongs to what without hunting.
+
+       Deliberately not urgency first. The band above already leads with what
+       is urgent, and sorting the table the same way put the same rows in the
+       same order directly underneath it, which read as a rendering fault
+       rather than as two views of one list. */
+    .sort((left, right) => {
+      const byItem = left.itemDescription.localeCompare(right.itemDescription);
+      return byItem === 0 ? left.side.localeCompare(right.side) : byItem;
+    });
 
   const totals = totalsOf({ borrowedLoans, lentLoans, positions });
   const currency = totals.currency ?? 'AUD';
@@ -224,7 +236,7 @@ function PortfolioBody(): ReactElement {
         side={position.side}
         stage={position.stage}
         tone={position.tone}
-        detail={position.detail}
+        caption={position.caption}
         figure={position.figure}
         actionLabel={position.action?.label ?? null}
         onAct={() => actOn(position)}

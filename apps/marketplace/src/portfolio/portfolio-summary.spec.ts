@@ -36,7 +36,7 @@ function attentionPosition(): Position {
     offerId: null,
     stage: 'Outbid',
     tone: 'warning',
-    detail: null,
+    caption: 'Your money is still held, and earning nothing',
     figure: null,
     action: { label: 'Reclaim', kind: 'reclaim' },
     needsAttention: true,

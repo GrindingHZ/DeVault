@@ -7,9 +7,10 @@ export interface PositionRowProps {
   readonly side: 'borrowing' | 'lending';
   readonly stage: string;
   readonly tone: StatusTone;
-  /* Finishes the sentence the side reading starts. Optional: a row with
-     nothing to add says less rather than padding itself out. */
-  readonly detail?: string | null | undefined;
+  /* The whole sub-line. Not a fragment glued onto a fixed side reading:
+     "You lent" is false for an offer that was outbid, and the row has to be
+     able to say so. */
+  readonly caption: string;
   readonly figure: { readonly label: string; readonly value: string } | null;
   readonly actionLabel: string | null;
   readonly onAct?: (() => void) | undefined;
@@ -20,14 +21,6 @@ export interface PositionRowProps {
   readonly needsAttention?: boolean | undefined;
 }
 
-/* Said in words. A borrower and a lender can hold two positions against the
-   same item, and which side a row is read from changes what every other
-   column means. */
-const sideReadings: Record<PositionRowProps['side'], string> = {
-  borrowing: 'You borrowed',
-  lending: 'You lent',
-};
-
 /* One row of the portfolio table. The item leads, because that is the thing a
    person remembers; the identifiers they were shown before are how our
    systems refer to it, not what it is. */
@@ -36,7 +29,7 @@ export function PositionRow({
   side,
   stage,
   tone,
-  detail,
+  caption,
   figure,
   actionLabel,
   onAct,
@@ -49,11 +42,7 @@ export function PositionRow({
         <span className="truncate font-body text-sm font-semibold text-ink-primary">
           {itemDescription}
         </span>
-        <span className="truncate font-body text-xs text-ink-secondary">
-          {detail === null || detail === undefined
-            ? sideReadings[side]
-            : `${sideReadings[side]} ${detail}`}
-        </span>
+        <span className="truncate font-body text-xs text-ink-secondary">{caption}</span>
       </span>
       <StatusBadge tone={tone} label={stage} />
       {/* Fixed width so a column of figures lines up down the table even

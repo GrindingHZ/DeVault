@@ -9,6 +9,7 @@ function row(overrides: Partial<Parameters<typeof PositionRow>[0]> = {}) {
       side="borrowing"
       stage="Running"
       tone="active"
+      caption="You borrowed at 18.00% p.a."
       figure={{ label: 'Owed today', value: 'AUD 4,059.17' }}
       actionLabel="Repay"
       {...overrides}
@@ -27,14 +28,11 @@ describe('PositionRow', () => {
     expect(screen.getByText('Running')).toBeTruthy();
   });
 
-  it('says which side the reader is on', () => {
-    render(row({ side: 'lending' }));
-    expect(screen.getByText('You lent')).toBeTruthy();
-  });
-
-  it('finishes the side reading with the detail when there is one', () => {
-    render(row({ side: 'lending', detail: 'at 18.00% p.a.' }));
-    expect(screen.getByText('You lent at 18.00% p.a.')).toBeTruthy();
+  /* "You lent" is false for an offer that was outbid, so the row prints the
+     sentence it is given rather than deriving one from the side. */
+  it('prints the caption it is given rather than deriving one', () => {
+    render(row({ side: 'lending', caption: 'Your money is still held, and earning nothing' }));
+    expect(screen.getByText('Your money is still held, and earning nothing')).toBeTruthy();
   });
 
   it('shows no action when there is nothing to do', () => {

@@ -53,9 +53,12 @@ const apps = [
     routes: [
       { path: '/listings', proof: 'browse-table' },
       { path: '/borrow/receipts', proof: 'my-receipts' },
-      { path: '/borrow/listings', proof: 'my-listings' },
-      { path: '/borrow/loans', proof: 'my-loans' },
-      { path: '/lend/offers', proof: 'my-offers' },
+      /* The four role split screens redirect here. Scanning the old paths
+         would put the same page through axe four times and never reach the
+         tab states, which are the part that changes what is rendered. */
+      { path: '/portfolio', proof: 'my-listings' },
+      { path: '/portfolio?side=borrowing', proof: 'my-listings' },
+      { path: '/portfolio?side=lending', proof: 'my-listings' },
       { path: '/wallet', proof: 'available-balance' },
     ] as readonly Route[],
   },

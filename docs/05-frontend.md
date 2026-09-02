@@ -85,17 +85,18 @@ Two primitives, used everywhere, never bypassed.
 /                              landing, live listings
 /listings                      the workspace: browse, detail, offer book, spine, tape
 /listings/:listingId           redirects into /listings?listing=:listingId
-/borrow
-  /borrow/receipts             my receipts, list one
-  /borrow/listings             my listings and their offers
-  /borrow/loans                my loans, payoff, repay
-  /borrow/redemptions          redemption requests and their status
-/lend
-  /lend/offers                 my outstanding offers, reclaim superseded holds
-  /lend/loans                  my funded loans, mark default, claim receipt
+/portfolio                     every position on both sides, filtered by ?side=
+/borrow/receipts               my receipts, list one
+/borrow/redemptions            redemption requests and their status
+/borrow/listings               redirects into /portfolio?side=borrowing
+/borrow/loans                  redirects into /portfolio?side=borrowing
+/lend/offers                   redirects into /portfolio?side=lending
+/lend/loans                    redirects into /portfolio?side=lending
 /wallet                        balance, ledger history, deposit, withdraw
 /settings
 ```
+
+The navigation rail carries four destinations: Browse, Portfolio, My items, Wallet.
 
 Screens that need care:
 
@@ -110,6 +111,35 @@ than silently retrying; the amount changed and the user must see it.
 
 **Reclaim funds.** A persistent banner when the account has superseded or expired holds. This is
 money the user cannot spend and does not know about. It should be impossible to miss.
+
+## The portfolio
+
+`/portfolio` replaced four screens: my listings, my loans, my offers and funded loans. The four were
+the same question asked in four vocabularies, and they made one loan appear twice under two
+different names depending on which door the reader came through. A person who both borrows and
+lends had to navigate to assemble a picture they should have been handed.
+
+They are one table now. The unit is a **position**: something the reader holds, on one side of the
+market, at one stage, with at most one thing to do about it. Four mappers in
+`apps/marketplace/src/portfolio/position.ts` turn a listing, an offer, a borrowed loan and a lent
+loan into that one shape. Every mapper takes `now` as a parameter rather than reading a clock, so a
+test does not travel in time and the demo clock cannot leak in.
+
+Three rules hold the screen together:
+
+- **The stage is words, never a status enum.** `IN_VAULT` and `SUPERSEDED` are correct names for a
+  state machine and the wrong thing to say to a person.
+- **The attention band is empty most days.** A position needs attention only when its holder would
+  regret not acting today: a hold that lost and is sitting there, a loan at or past maturity, a
+  defaulted loan whose collateral can still be claimed, an item repaid for and waiting in a vault.
+  The rule is stated once, in `portfolio/attention.ts`, so it cannot drift into meaning "anything
+  interesting". When the band is empty it renders nothing at all rather than an empty box.
+- **The tab filters the table and never the strip.** A reader on the Lending tab still wants to know
+  what they owe. `side` lives in the URL like every other part of the view.
+
+The strip sums only outstanding loans. A repaid loan is history, and counting it would inflate both
+sides forever. Interest comes from the server as `accruedInterest` on the loan: the demo clock runs
+weeks ahead of the browser, so a figure computed here would be silently wrong.
 
 ## The marketplace workspace
 

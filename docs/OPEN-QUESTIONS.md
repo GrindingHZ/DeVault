@@ -271,3 +271,16 @@ be copying a pattern; giving every application the same button, the same field a
 boundary that meets WCAG 1.4.11 is fixing a defect that happened to be visible in three places at
 once. The marketplace going dark did not spread to them, which is the part the P0.6 amendment in
 docs/13-design-system.md holds to one scope.
+
+## Q-028: whether the borrow and lend split should survive as navigation
+**Blocks:** nothing today
+**Currently implemented:** no. The split is a filter on `/portfolio`, not a pair of sections. The
+navigation rail carries four destinations rather than seven, and the four role split routes redirect.
+**Needs:** whoever owns docs/05
+**Notes:** The split came from the domain, where borrowing and lending really are two roles with two
+sets of rules. It does not come from the person: in this product the same account does both, often
+against the same item. Four screens meant one loan was rendered twice under two different names, and
+a reader had to visit both to know where they stood. Keeping the distinction as a filter keeps the
+part that is true (a position is read from one side, and which side changes what every column means)
+and drops the part that was only an artefact of how the endpoints are grouped. If a future account
+type can only ever lend, the filter becomes a default rather than a new screen.

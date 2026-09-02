@@ -52,6 +52,33 @@ describe('ValueScale', () => {
     expect(screen.getByText('Still to earn')).toBeTruthy();
   });
 
+  /* Two amounts a few percent apart would print over each other on one row,
+     and the gap between them is exactly what this line exists to show. */
+  it('stacks annotated amounts at alternating heights so they cannot collide', () => {
+    const { container } = render(
+      <ValueScale
+        marks={marks.map((mark) =>
+          mark.emphasis === 'muted' ? { ...mark, annotate: true, caption: mark.label } : mark,
+        )}
+        currency="USD"
+        label="What this costs"
+        testId="scale"
+      />,
+    );
+    const lent = container.querySelector('[data-testid="scale-value-lent"]') as HTMLElement;
+    const today = container.querySelector('[data-testid="scale-value-today"]') as HTMLElement;
+    expect(lent.textContent).toContain('2,500.00');
+    expect(today.textContent).toContain('2,512.32');
+    expect(lent.style.top).not.toBe(today.style.top);
+  });
+
+  it('leaves an unannotated mark as a dot alone', () => {
+    const { container } = render(
+      <ValueScale marks={marks} currency="USD" label="What this costs" testId="scale" />,
+    );
+    expect(container.querySelector('[data-testid="scale-value-lent"]')).toBeNull();
+  });
+
   it('names every figure for a reader who cannot see the line', () => {
     render(<ValueScale marks={marks} currency="USD" label="What this costs" testId="scale" />);
     const described = screen.getByRole('img');

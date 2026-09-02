@@ -80,21 +80,6 @@ export function SaleTradeFigures({
           {trade.discountShare} below today's value
         </span>
       </div>
-
-      <p className="font-body text-xs text-ink-secondary">
-        Originally lent{' '}
-        <span data-testid="figure-lent" className="font-figure tabular-nums">
-          {trade.lent}
-        </span>
-        <span aria-hidden="true" className="mx-1.5 text-edge-strong">
-          |
-        </span>
-        worth{' '}
-        <span data-testid="figure-today" className="font-figure tabular-nums">
-          {trade.worthToday}
-        </span>{' '}
-        today
-      </p>
     </div>
   );
 }

@@ -62,8 +62,19 @@ describe('PositionSaleRow', () => {
     render(<PositionSaleRow sale={sale} isSelected={false} onSelect={() => undefined} />);
     expect(screen.getByTestId('figure-pay').textContent).toBe('USD 2,450.00');
     expect(screen.getByTestId('figure-receive').textContent).toBe('USD 2,536.98');
-    expect(screen.getByTestId('figure-lent').textContent).toBe('USD 2,500.00');
-    expect(screen.getByTestId('figure-today').textContent).toBe('USD 2,512.32');
+  });
+
+  /* The two figures that are not set in full above the line are written on
+     it, against their own dots, so no amount on the card is a dot a reader
+     cannot put a number to. */
+  it('writes the principal and today on the line itself', () => {
+    render(<PositionSaleRow sale={sale} isSelected={false} onSelect={() => undefined} />);
+    const lent = screen.getByTestId('sale-scale-value-lent');
+    expect(lent.textContent).toContain('Lent');
+    expect(lent.textContent).toContain('2,500.00');
+    const today = screen.getByTestId('sale-scale-value-today');
+    expect(today.textContent).toContain('Today');
+    expect(today.textContent).toContain('2,512.32');
   });
 
   /* The one figure in colour, because it is the one the decision turns on:

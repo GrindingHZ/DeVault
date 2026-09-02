@@ -73,17 +73,24 @@ export function scaleOf(sale: NoteSaleSummary): {
         label: 'You pay',
         emphasis: 'primary',
       },
+      /* Annotated because these two are the only figures on the card whose
+         amount is not printed anywhere else: the price and the payoff are
+         already set in full above the line. */
       {
         id: 'lent',
         minorUnits: BigInt(sale.principal.minorUnits),
         label: 'Originally lent',
+        caption: 'Lent',
         emphasis: 'muted',
+        annotate: true,
       },
       {
         id: 'today',
         minorUnits: BigInt(sale.currentValue.minorUnits),
         label: 'Worth today',
+        caption: 'Today',
         emphasis: 'muted',
+        annotate: true,
       },
       {
         id: 'maturity',

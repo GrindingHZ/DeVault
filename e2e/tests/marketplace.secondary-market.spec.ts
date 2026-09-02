@@ -169,12 +169,14 @@ test('a lender exits early and another takes the position', async ({ page, reque
   await expect(page.getByTestId('sale-list')).toBeVisible();
   await expect(page.getByTestId('figure-pay')).toHaveText('USD 2,400.00');
   await expect(page.getByTestId('figure-receive')).toHaveText('USD 2,536.98');
-  await expect(page.getByTestId('figure-lent')).toHaveText('USD 2,500.00');
   // 2536.98 back against 2400.00 paid.
   await expect(page.getByTestId('figure-profit')).toContainText('+USD 136.98');
-  // All four amounts on one line, at the distances they sit apart.
+  // All four amounts on one line, at the distances they sit apart, with the
+  // two that are not set above it written against their own dots.
   await expect(page.getByTestId('sale-scale-mark-ask')).toBeVisible();
   await expect(page.getByTestId('sale-scale-mark-maturity')).toBeVisible();
+  await expect(page.getByTestId('sale-scale-value-lent')).toContainText('2,500.00');
+  await expect(page.getByTestId('sale-scale-value-today')).toContainText('2,500.00');
   await expect(page.getByTestId('sale-chart')).toHaveCount(0);
 
   await page.getByTestId('sale-row').click();

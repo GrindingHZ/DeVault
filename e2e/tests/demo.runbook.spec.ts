@@ -115,10 +115,10 @@ test('the demo runbook walks end to end exactly as docs/DEMO.md describes', asyn
   await borrowerPage.getByRole('button', { name: 'List' }).click();
   await borrowerPage.getByTestId('list-principal').fill('1500.00');
   await borrowerPage.getByTestId('list-submit').click();
-  await expect(borrowerPage.getByTestId('my-listings')).toContainText('Taking offers');
+  await expect(borrowerPage.getByTestId('portfolio-open')).toContainText('Taking offers');
   /* The row opens the listing rather than printing its identifier. The test
      takes the same route a reader does and reads the id off the URL. */
-  await borrowerPage.getByTestId('my-listings').getByTestId('position-item').first().click();
+  await borrowerPage.getByTestId('portfolio-open').getByTestId('position-item').first().click();
   await borrowerPage.waitForURL(/listing=/);
   const listingId = new URL(borrowerPage.url()).searchParams.get('listing') ?? '';
 
@@ -144,7 +144,7 @@ test('the demo runbook walks end to end exactly as docs/DEMO.md describes', asyn
   await topRow.getByRole('button').first().click();
   await borrowerPage.getByRole('button', { name: 'Accept this offer' }).click();
   await borrowerPage.getByRole('link', { name: 'Portfolio' }).click();
-  await expect(borrowerPage.getByTestId('my-loans')).toContainText('Running');
+  await expect(borrowerPage.getByTestId('portfolio-open')).toContainText('Running');
 
   // Step 3. Operations pushes the clock past maturity from the admin screen.
   const adminPage = await openApp(browser, adminBase, '/login');
@@ -184,7 +184,7 @@ test('the demo runbook walks end to end exactly as docs/DEMO.md describes', asyn
   await expect(borrowerPage.getByTestId('payoff-total')).toContainText('AUD');
   await expect(borrowerPage.getByTestId('payoff-interest')).toContainText('AUD');
   await borrowerPage.getByRole('button', { name: 'Repay and release the item' }).click();
-  await expect(borrowerPage.getByTestId('my-loans')).toContainText('Repaid');
+  await expect(borrowerPage.getByTestId('portfolio-open')).toContainText('Repaid');
 
   await borrowerPage.getByRole('link', { name: 'My items' }).click();
   await borrowerPage.getByTestId(`redeem-${receiptId}`).click();

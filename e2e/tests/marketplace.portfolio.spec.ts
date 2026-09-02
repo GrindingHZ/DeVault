@@ -222,23 +222,31 @@ test('the two sides ask different questions and answer them in their own columns
   /* Borrowing is where a reader lands, because raising money against your own
      things is the first thing anybody does here. */
   await expect(page.getByTestId('side-borrowing')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByTestId('my-listings')).toContainText('Rolex Submariner 116610LN');
-  await expect(page.getByTestId('my-listings')).not.toContainText('One kilogram gold bar');
+  const table = page.getByTestId('portfolio-open');
+  await expect(table).toContainText('Rolex Submariner 116610LN');
+  await expect(table).not.toContainText('One kilogram gold bar');
   /* A borrower is asked what it costs. */
-  await expect(page.getByRole('columnheader', { name: 'Owed today' })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: /Owed today/ })).toBeVisible();
 
   await page.getByTestId('side-lending').click();
-  await expect(page.getByTestId('my-offers')).toContainText('One kilogram gold bar');
-  await expect(page.getByTestId('my-offers')).not.toContainText('Rolex Submariner 116610LN');
+  await expect(table).toContainText('One kilogram gold bar');
+  await expect(table).not.toContainText('Rolex Submariner 116610LN');
   /* A lender is asked what it returns. The same loan, the other question. */
-  await expect(page.getByRole('columnheader', { name: 'Value at maturity' })).toBeVisible();
-  await expect(page.getByRole('columnheader', { name: 'Owed today' })).toHaveCount(0);
+  await expect(page.getByRole('columnheader', { name: /At maturity/ })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: /Owed today/ })).toHaveCount(0);
 
   /* The side is in the URL, so a reload restores the same view and the link
      is something a person can send. */
   await page.reload();
   await expect(page.getByTestId('side-lending')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByTestId('my-offers')).toContainText('One kilogram gold bar');
+  await expect(page.getByTestId('portfolio-open')).toContainText('One kilogram gold bar');
+
+  /* The other axis. What is running and what is behind you are separate
+     views, not two tables competing for the same screen. */
+  await page.getByTestId('view-history').click();
+  await expect(page.getByTestId('portfolio-history')).toBeVisible();
+  await expect(page.getByTestId('portfolio-open')).toHaveCount(0);
+  await expect(page.getByTestId('portfolio-history')).toContainText('Nothing has closed yet');
 });
 
 test('the status column explains every status it can show', async ({ page, request }) => {

@@ -125,12 +125,12 @@ test('a borrower accepts an offer and both sides see the loan', async ({
   await page.getByRole('button', { name: 'List' }).click();
   await page.getByTestId('list-principal').fill('2500.00');
   await page.getByTestId('list-submit').click();
-  await expect(page.getByTestId('my-listings')).toContainText('Taking offers');
+  await expect(page.getByTestId('portfolio-open')).toContainText('Taking offers');
 
   /* The row opens the listing rather than printing its identifier. The id is
      how our systems refer to the thing, not what the thing is, so the test
      takes the same route a reader does and reads it off the URL. */
-  await page.getByTestId('my-listings').getByTestId('position-item').first().click();
+  await page.getByTestId('portfolio-open').getByTestId('position-item').first().click();
   await page.waitForURL(/listing=/);
   const listingId = new URL(page.url()).searchParams.get('listing') ?? '';
 
@@ -153,15 +153,15 @@ test('a borrower accepts an offer and both sides see the loan', async ({
   await page.getByRole('button', { name: 'Accept this offer' }).click();
 
   await page.getByRole('link', { name: 'Portfolio' }).click();
-  await expect(page.getByTestId('my-loans')).toContainText('Running');
-  await expect(page.getByTestId('my-loans')).toContainText('AUD 2,500.00');
-  await expect(page.getByTestId('my-loans')).toContainText('18.00% p.a.');
+  await expect(page.getByTestId('portfolio-open')).toContainText('Running');
+  await expect(page.getByTestId('portfolio-open')).toContainText('2,500.00');
+  await expect(page.getByTestId('portfolio-open')).toContainText('18.00% p.a.');
 
   // A full load rather than a client side hop, because this page has been
   // sitting on the listing while another context originated the loan.
   await winnerPage.goto('/portfolio?side=lending');
-  await expect(winnerPage.getByTestId('my-loans')).toContainText('Earning');
-  await expect(winnerPage.getByTestId('my-loans')).toContainText('18.00% p.a.');
+  await expect(winnerPage.getByTestId('portfolio-open')).toContainText('Earning');
+  await expect(winnerPage.getByTestId('portfolio-open')).toContainText('18.00% p.a.');
   /* The lender is asked what it returns, not what it costs. */
   await expect(winnerPage.getByRole('columnheader', { name: 'Still to earn' })).toBeVisible();
 

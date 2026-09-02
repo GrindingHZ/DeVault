@@ -165,10 +165,10 @@ test('a pause stops new lending without trapping a borrower', async ({
   await expect(borrowerPage.getByTestId('authenticated-home')).toBeVisible();
 
   await borrowerPage.getByRole('link', { name: 'Portfolio' }).click();
-  await expect(borrowerPage.getByTestId('my-loans')).toContainText('Running');
+  await expect(borrowerPage.getByTestId('portfolio-open')).toContainText('Running');
   await borrowerPage.getByRole('button', { name: 'Repay', exact: true }).click();
   await borrowerPage.getByRole('button', { name: 'Repay and release the item' }).click();
-  await expect(borrowerPage.getByTestId('my-loans')).toContainText('Repaid');
+  await expect(borrowerPage.getByTestId('portfolio-open')).toContainText('Repaid');
   await borrowerContext.close();
 
   await page.getByTestId('resume-trading').click();

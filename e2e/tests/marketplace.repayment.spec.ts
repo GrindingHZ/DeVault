@@ -160,8 +160,8 @@ test('a borrower repays a matured loan and the item comes back', async ({ page, 
 
   await signIn(page, borrowerEmail);
   await page.getByRole('link', { name: 'Portfolio' }).click();
-  await expect(page.getByTestId('my-loans')).toContainText('Running');
-  await expect(page.getByTestId('my-loans')).toContainText('at 18.00% p.a.');
+  await expect(page.getByTestId('portfolio-open')).toContainText('Running');
+  await expect(page.getByTestId('portfolio-open')).toContainText('at 18.00% p.a.');
 
   /* The quote opens under the table rather than on its own screen, so the
      borrower never loses sight of the rest of what they owe. */
@@ -171,7 +171,7 @@ test('a borrower repays a matured loan and the item comes back', async ({ page, 
   await expect(page.getByTestId('payoff-countdown')).toContainText('seconds');
 
   await page.getByRole('button', { name: 'Repay and release the item' }).click();
-  await expect(page.getByTestId('my-loans')).toContainText('Repaid');
+  await expect(page.getByTestId('portfolio-open')).toContainText('Repaid');
 
   await page.getByRole('link', { name: 'My items' }).click();
   await expect(page.getByTestId('my-receipts')).toContainText('In the vault');

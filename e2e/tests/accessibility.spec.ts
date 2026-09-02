@@ -55,11 +55,13 @@ const apps = [
       { path: '/borrow/receipts', proof: 'my-receipts' },
       /* The four role split screens redirect here. Scanning the old paths
          would put the same page through axe four times and never reach the
-         tab states, which are the part that changes what is rendered. */
-      /* Two screens rather than one with a filter: the columns differ, so
-         each side has to be scanned in its own right. */
-      { path: '/portfolio?side=borrowing', proof: 'my-listings' },
-      { path: '/portfolio?side=lending', proof: 'my-offers' },
+         states that change what is rendered.
+
+         Two axes, and every combination draws different columns, so each is
+         scanned in its own right. */
+      { path: '/portfolio?side=borrowing&view=open', proof: 'portfolio-open' },
+      { path: '/portfolio?side=lending&view=open', proof: 'portfolio-open' },
+      { path: '/portfolio?side=borrowing&view=history', proof: 'portfolio-history' },
       { path: '/wallet', proof: 'available-balance' },
     ] as readonly Route[],
   },

@@ -210,6 +210,15 @@ that binds them is a router search param, never React state:
 /listings?listing=&category=&maxLoanToValue=&sort=&density=&stage=&offer=
 ```
 
+The rail answers one question in three parts: **Browse items** is other people's, **My offers** is
+what the reader has money against, **My listings** is their own. "All items" mixed all three, which
+padded the lender's tab with rows nobody could act on and gave a borrower nowhere to look.
+
+How the rail is laid out is a pair of icon toggles on the bar beside the filter, not a menu item
+three clicks inside it: it changes what the reader is looking at rather than what is in the list.
+The gallery is two across at every width, and the rail cannot be dragged below the width two
+readable tiles need.
+
 Every pane reads the router. None of them is handed the selection by a parent and none of them
 tells another pane anything. That is what makes each one renderable on its own in a test, and it is
 also what gives the screen a working back button, a reload that restores the view, and a link

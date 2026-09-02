@@ -3,8 +3,8 @@ import type { ListingSummary } from '@depawn/contracts';
 import { CollateralCard, CollateralRow, EmptyState, Skeleton } from '@depawn/ui';
 import type { CollateralItem, CollateralRelationship } from '@depawn/ui';
 import type { ReactElement } from 'react';
-import { BrowseFilters } from './browse-filters';
-import type { BrowseDensity, BrowseScope, BrowseSort } from './browse-filters';
+import { BrowseControls } from './browse-controls';
+import type { BrowseDensity, BrowseScope, BrowseSort } from './browse-controls';
 
 export type { BrowseDensity, BrowseScope, BrowseSort };
 
@@ -33,6 +33,24 @@ export interface BrowsePaneProps {
   readonly density: BrowseDensity;
   readonly onDensity: (value: BrowseDensity) => void;
 }
+
+/* Three tabs, three reasons to be empty, and only one of them was ever
+   about the market having nothing in it. The other two are about the reader
+   not having done anything yet, and both name the next step. */
+const nothingHere: Record<BrowseScope, { readonly title: string; readonly description: string }> = {
+  browse: {
+    title: 'Nothing to lend against right now',
+    description: 'Borrowers list items after the vault has taken custody of them.',
+  },
+  offered: {
+    title: 'You have no offers standing',
+    description: 'Offer against something in Browse items to put your balance to work.',
+  },
+  listings: {
+    title: 'You have not listed anything',
+    description: 'List an item from My items to raise money against it.',
+  },
+};
 
 /* One unit, the largest that still says something true, and the word after
    it rather than a sentence before it.
@@ -86,7 +104,7 @@ export function BrowsePane(props: BrowsePaneProps): ReactElement {
 
   return (
     <div className="flex min-h-0 flex-col">
-      <BrowseFilters
+      <BrowseControls
         scope={props.scope}
         onScope={props.onScope}
         category={props.category}
@@ -110,16 +128,19 @@ export function BrowsePane(props: BrowsePaneProps): ReactElement {
       ) : listings.length === 0 ? (
         <div className="p-3">
           <EmptyState
-            title="No live listings right now"
-            description="Borrowers list items after the vault has taken custody of them."
+            title={nothingHere[props.scope].title}
+            description={nothingHere[props.scope].description}
           />
         </div>
       ) : (
         <div
           data-testid="browse-table"
-          className={
-            density === 'gallery' ? 'grid grid-cols-2 gap-2 p-2 xl:grid-cols-3' : 'flex flex-col'
-          }
+          /* Two across, at every width. It was two columns that became three
+             past a viewport breakpoint, which meant dragging the rail wider
+             never changed the layout while resizing the window did, and the
+             tiles at three across were too small to read the thing in the
+             photograph. The rail has a floor wide enough for two. */
+          className={density === 'gallery' ? 'grid grid-cols-2 gap-1.5 p-1.5' : 'flex flex-col'}
         >
           {listings.map((listing) => {
             const item = itemFrom(

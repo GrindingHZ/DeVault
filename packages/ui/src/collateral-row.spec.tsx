@@ -51,21 +51,21 @@ describe('CollateralRow', () => {
 
   it('names the reader relationship in words', () => {
     const { unmount } = render(<CollateralRow item={{ ...item, relationship: 'borrower' }} />);
-    expect(screen.getByText('yours')).toBeTruthy();
+    expect(screen.getByText('Your item')).toBeTruthy();
     unmount();
 
     const offered = render(<CollateralRow item={{ ...item, relationship: 'offered' }} />);
-    expect(offered.getByText('you offered')).toBeTruthy();
+    expect(offered.getByText('Your offer')).toBeTruthy();
     offered.unmount();
 
     render(<CollateralRow item={{ ...item, relationship: 'funded' }} />);
-    expect(screen.getByText('you funded')).toBeTruthy();
+    expect(screen.getByText('You funded')).toBeTruthy();
   });
 
   it('says nothing about a listing the reader has no stake in', () => {
     render(<CollateralRow item={item} />);
-    expect(screen.queryByText('yours')).toBeNull();
-    expect(screen.queryByText('you offered')).toBeNull();
+    expect(screen.queryByText('Your item')).toBeNull();
+    expect(screen.queryByText('Your offer')).toBeNull();
   });
 
   it('reports which listing was chosen', () => {
@@ -82,10 +82,12 @@ describe('CollateralRow', () => {
 });
 
 describe('CollateralCard', () => {
-  it('shows the same item with a larger photograph', () => {
+  /* The tile takes its width from the card and the card clips it, so the
+     photograph reads as the object rather than as a picture inside a box. */
+  it('shows the same item with the photograph running to the edges', () => {
     const { container } = render(<CollateralCard item={item} />);
     expect(screen.getByText('Rolex Submariner 116610LN')).toBeTruthy();
-    expect(container.querySelector('img')?.getAttribute('class')).toContain('h-40');
+    expect(container.querySelector('img')?.getAttribute('class')).toContain('w-full');
   });
 
   it('reports which listing was chosen', () => {

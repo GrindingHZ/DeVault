@@ -54,7 +54,7 @@ function VaultFloor({ viewerAccountId }: { readonly viewerAccountId: string }): 
   const maxLoanToValue = search.maxLoanToValue === undefined ? '' : String(search.maxLoanToValue);
   const sort = search.sort ?? defaultSort;
   const density = search.density ?? defaultDensity;
-  const scope = search.scope ?? 'all';
+  const scope = search.scope ?? 'browse';
   const selectedListingId = search.listing ?? null;
 
   const browseQuery = useQuery({
@@ -114,10 +114,17 @@ function VaultFloor({ viewerAccountId }: { readonly viewerAccountId: string }): 
      already loaded for the relationship markers, so asking the server again
      would be a second round trip for something the client can already see. */
   const allListings = browseQuery.data?.items ?? [];
+  const isMine = (listing: ListingSummary): boolean =>
+    listing.borrowerAccountId === viewerAccountId;
   const visibleListings =
-    scope === 'mine'
+    scope === 'offered'
       ? allListings.filter((listing) => livePendingListingIds.has(listing.id))
-      : allListings;
+      : scope === 'listings'
+        ? allListings.filter(isMine)
+        : /* Browsing is for other people's things. A borrower cannot lend
+             against their own item, so leaving them in the lender's tab was
+             padding it with rows nobody could act on. */
+          allListings.filter((listing) => !isMine(listing));
 
   return (
     <MarketShell fills>
@@ -140,7 +147,9 @@ function VaultFloor({ viewerAccountId }: { readonly viewerAccountId: string }): 
               update({ maxLoanToValue: value === '' ? undefined : Number(value) })
             }
             scope={scope}
-            onScope={(value) => update({ scope: value === 'all' ? undefined : value })}
+            onScope={(value) =>
+              update({ scope: value === 'browse' ? undefined : value, listing: undefined })
+            }
             sort={sort as BrowseSort}
             onSort={(value) => update({ sort: value })}
             density={density as BrowseDensity}

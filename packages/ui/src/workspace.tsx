@@ -13,9 +13,13 @@ export interface WorkspaceProps {
   readonly storageKey?: string;
 }
 
-const minimumWidth = 260;
+/* Wide enough for two gallery tiles that still show what the thing is. Below
+   this the rail was draggable down to a column of thumbnails with the
+   descriptions clipped to nothing, which is narrower than any reader wants
+   and narrower than the gallery can lay out. */
+const minimumWidth = 360;
 const maximumWidth = 720;
-const defaultWidth = 380;
+const defaultWidth = 440;
 
 function readStoredWidth(key: string): number {
   if (typeof localStorage === 'undefined') {
@@ -44,6 +48,12 @@ export function Workspace({
   storageKey = 'depawn.workspace.browseWidth',
 }: WorkspaceProps): ReactElement {
   const [width, setWidth] = useState(defaultWidth);
+  /* Dragging is followed frame by frame, so the width must not be animated
+     while it happens: a transition on a value that changes every pointer
+     move lags behind the cursor and reads as the pane fighting back. A step
+     from the keyboard or a restored width is animated, because those change
+     it all at once. */
+  const [isDragging, setDragging] = useState(false);
   const dragging = useRef(false);
   const frame = useRef<HTMLDivElement | null>(null);
 
@@ -71,6 +81,7 @@ export function Workspace({
     }
     function onUp(): void {
       dragging.current = false;
+      setDragging(false);
     }
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
@@ -87,7 +98,9 @@ export function Workspace({
         <section
           aria-label="Live listings"
           style={{ width: `${String(width)}px` }}
-          className="flex min-h-0 w-full shrink-0 flex-col overflow-y-auto border-edge max-lg:!w-full lg:border-r"
+          className={`flex min-h-0 w-full shrink-0 flex-col overflow-y-auto border-edge max-lg:!w-full lg:border-r ${
+            isDragging ? '' : 'lg:transition-[width] lg:duration-control lg:ease-enter'
+          }`}
         >
           {browse}
         </section>
@@ -104,6 +117,7 @@ export function Workspace({
           tabIndex={0}
           onPointerDown={(event) => {
             dragging.current = true;
+            setDragging(true);
             event.currentTarget.setPointerCapture(event.pointerId);
           }}
           onKeyDown={(event) => {

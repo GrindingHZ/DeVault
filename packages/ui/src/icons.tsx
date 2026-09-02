@@ -139,6 +139,29 @@ export function LogOutIcon(props: IconProps): ReactElement {
   );
 }
 
+/* A photograph beside a line of text, three times over. */
+export function RowsIcon(props: IconProps): ReactElement {
+  return (
+    <Icon {...props}>
+      <rect x="3" y="5" width="4" height="4" rx="1" />
+      <rect x="3" y="15" width="4" height="4" rx="1" />
+      <path d="M10 7h11M10 17h11" />
+    </Icon>
+  );
+}
+
+/* Two columns, which is what the gallery lays out. */
+export function GalleryIcon(props: IconProps): ReactElement {
+  return (
+    <Icon {...props}>
+      <rect x="3.5" y="4.5" width="7" height="7" rx="1" />
+      <rect x="13.5" y="4.5" width="7" height="7" rx="1" />
+      <rect x="3.5" y="14" width="7" height="5.5" rx="1" />
+      <rect x="13.5" y="14" width="7" height="5.5" rx="1" />
+    </Icon>
+  );
+}
+
 export function FilterIcon(props: IconProps): ReactElement {
   return (
     <Icon {...props}>

@@ -118,6 +118,17 @@ const auditActions: Record<string, string> = {
   withdraw_offer: 'withdrew an offer',
 };
 
+/* Which of the reader's two balances a movement touched. Without this the
+   wallet showed both legs of a hold as two rows with the same amount and no
+   way to tell them apart, which reads as the money moving twice. */
+const balancePurposes: Record<string, string> = {
+  USER_AVAILABLE: 'Available',
+  USER_HELD: 'Held',
+};
+
+export const nameForBalancePurpose = (purpose: string): string =>
+  nameFrom(balancePurposes, purpose);
+
 export const nameForLedgerKind = (kind: string): string => nameFrom(ledgerKinds, kind);
 export const nameForEntryDirection = (direction: string): string =>
   nameFrom(entryDirections, direction);

@@ -3,6 +3,7 @@ import {
   fetchBalance,
   fetchLedgerEntries,
   messageForError,
+  nameForBalancePurpose,
   nameForEntryDirection,
   nameForLedgerKind,
   withdraw,
@@ -211,6 +212,14 @@ function HistoryCard(): ReactElement {
               key: 'kind',
               header: 'What happened',
               render: (entry: LedgerEntryResponse) => nameForLedgerKind(entry.kind),
+            },
+            /* A hold moves money between the reader's own two balances, so
+               it is two entries with the same amount. Naming the balance is
+               what stops that reading as the money moving twice. */
+            {
+              key: 'purpose',
+              header: 'Balance',
+              render: (entry: LedgerEntryResponse) => nameForBalancePurpose(entry.purpose),
             },
             {
               key: 'direction',

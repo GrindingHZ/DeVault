@@ -6,7 +6,16 @@ import {
   fetchRequestMetrics,
   fetchSystemState,
 } from '@depawn/contracts';
-import { Card, DateTime, Money, Page, PageHeader, Rate, Skeleton, StatusBadge } from '@depawn/ui';
+import {
+  Card,
+  DateTime,
+  Money,
+  Page,
+  PageHeader,
+  Percentage,
+  Skeleton,
+  StatusBadge,
+} from '@depawn/ui';
 import type { StatusTone } from '@depawn/ui';
 import { useQuery } from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
@@ -115,10 +124,12 @@ function TradingPanel(): ReactElement {
     <Panel title="Trading" query={query} to="/operations" linkText="Pause or resume">
       {state === undefined ? null : (
         <div className="flex flex-col gap-2">
-          <StatusBadge
-            tone={state.isPaused ? 'danger' : 'success'}
-            label={state.isPaused ? 'Paused' : 'Running'}
-          />
+          <span className="self-start">
+            <StatusBadge
+              tone={state.isPaused ? 'danger' : 'success'}
+              label={state.isPaused ? 'Paused' : 'Running'}
+            />
+          </span>
           {/* The first question anybody asks after a pause is why. */}
           {state.isPaused ? (
             <p className="font-body text-sm text-ink-secondary">
@@ -174,7 +185,7 @@ function ExposurePanel(): ReactElement {
             <div key={row.vaultId} className="flex items-baseline justify-between gap-3">
               <span className="truncate font-mono text-sm text-ink-primary">{row.vaultId}</span>
               <span className="shrink-0 font-mono text-sm text-ink-secondary">
-                <Rate
+                <Percentage
                   basisPoints={shareOfLimit(row.exposure.minorUnits, row.insuredLimit.minorUnits)}
                 />
               </span>
@@ -211,10 +222,12 @@ function ReconciliationPanel(): ReactElement {
       ) : (
         <div className="flex flex-col gap-2">
           {/* Drift is an incident, not a report line (docs/10-flows.md). */}
-          <StatusBadge
-            tone={tone}
-            label={driftCount === 0 ? 'Clean' : `${String(driftCount)} disagreeing`}
-          />
+          <span className="self-start">
+            <StatusBadge
+              tone={tone}
+              label={driftCount === 0 ? 'Clean' : `${String(driftCount)} disagreeing`}
+            />
+          </span>
           <p className="font-body text-sm text-ink-secondary">
             Last run <DateTime iso={run.startedAt} />
           </p>

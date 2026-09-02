@@ -33,3 +33,4 @@ export * from './date-time';
 export * from './page';
 export * from './app-boundary';
 export * from './use-mutation-feedback';
+export * from './percentage';

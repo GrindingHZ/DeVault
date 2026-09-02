@@ -91,18 +91,27 @@ function failureOf(status: SuiClientTypes.ExecutionStatus): Error | DomainError 
   );
 }
 
-const simulatedAbort =
-  /MoveAbort in d+(?:st|nd|rd|th) command, abort code: (d+), in '[^']*::(w+)::(w+)'/;
-
 function simulationFailureOf(error: unknown): unknown {
   const message = error instanceof Error ? error.message : String(error);
-  const match = simulatedAbort.exec(message);
-  if (match === null) {
+  const abort = simulatedMoveAbortOf(message);
+  if (abort === null) {
     return error;
   }
-  const [, code = '0', module = null, functionName = null] = match;
-  const abort: MoveAbortDetail = { module, functionName, abortCode: BigInt(code) };
   return domainErrorForAbort(abort) ?? new ChainExecutionFailed(message, abort);
+}
+
+/* The SDK reports a build time abort as prose: `MoveAbort in 1st command,
+   abort code: 0, in '0x..::escrow::take' (instruction 19)`. */
+export function simulatedMoveAbortOf(message: string): MoveAbortDetail | null {
+  const match =
+    /MoveAbort in \d+(?:st|nd|rd|th) command, abort code: (\d+), in '[^']*::(\w+)::(\w+)'/.exec(
+      message,
+    );
+  if (match === null) {
+    return null;
+  }
+  const [, code = '0', module = null, functionName = null] = match;
+  return { module, functionName, abortCode: BigInt(code) };
 }
 
 function moveAbortOf(error: SuiClientTypes.ExecutionError): MoveAbortDetail | null {

@@ -56,20 +56,43 @@ describe('PositionSaleRow', () => {
     expect(separators).not.toContain('·');
   });
 
-  /* The four a buyer compares down a column, all on the row so nothing has to
-     be opened to compare two positions. */
-  it('states the principal, today, maturity and the price', () => {
+  /* The two ends of the trade, large; the two that explain them, small. All
+     four on the row so nothing has to be opened to compare two positions. */
+  it('leads with what is paid and what comes back', () => {
     render(<PositionSaleRow sale={sale} isSelected={false} onSelect={() => undefined} />);
-    expect(screen.getByTestId('figure-principal').textContent).toBe('USD 2,500.00');
-    expect(screen.getByTestId('figure-current').textContent).toBe('USD 2,512.32');
-    expect(screen.getByTestId('figure-maturity').textContent).toBe('USD 2,536.98');
-    expect(screen.getByTestId('figure-ask').textContent).toBe('USD 2,450.00');
+    expect(screen.getByTestId('figure-pay').textContent).toBe('USD 2,450.00');
+    expect(screen.getByTestId('figure-receive').textContent).toBe('USD 2,536.98');
+    expect(screen.getByTestId('figure-lent').textContent).toBe('USD 2,500.00');
+    expect(screen.getByTestId('figure-today').textContent).toBe('USD 2,512.32');
   });
 
-  it('states the discount, because the discount is the product', () => {
+  /* The one figure in colour, because it is the one the decision turns on:
+     2536.98 back for 2450.00 paid is 86.98, which is 355 basis points. */
+  it('states the profit in money and in share', () => {
     render(<PositionSaleRow sale={sale} isSelected={false} onSelect={() => undefined} />);
-    expect(screen.getByTestId('sale-discount').textContent).toContain('62.32');
-    expect(screen.getByTestId('sale-discount').textContent).toContain('2.4%');
+    const profit = screen.getByTestId('figure-profit');
+    expect(profit.textContent).toContain('+USD 86.98');
+    expect(profit.textContent).toContain('3.5%');
+    expect(profit.className).toContain('text-market-favourable');
+  });
+
+  it('states how far under today the price sits', () => {
+    render(<PositionSaleRow sale={sale} isSelected={false} onSelect={() => undefined} />);
+    expect(screen.getByTestId('figure-discount').textContent).toContain('2.4%');
+  });
+
+  /* The line is the part that makes four amounts comparable at a glance: the
+     price opens it, maturity closes it, and the two stretches between are
+     what the buyer gets now and what they get for waiting. */
+  it('puts all four figures on one line at the distances they sit apart', () => {
+    const { container } = render(
+      <PositionSaleRow sale={sale} isSelected={false} onSelect={() => undefined} />,
+    );
+    for (const id of ['ask', 'lent', 'today', 'maturity']) {
+      expect(container.querySelector(`[data-testid="sale-scale-mark-${id}"]`)).toBeTruthy();
+    }
+    expect(container.querySelector('[data-testid="sale-scale-segment-ask"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="sale-scale-segment-today"]')).toBeTruthy();
   });
 
   it('hands the press to the caller and says whether it is the chosen one', () => {

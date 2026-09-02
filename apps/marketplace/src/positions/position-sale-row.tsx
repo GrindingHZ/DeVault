@@ -1,8 +1,9 @@
 import type { NoteSaleSummary } from '@depawn/contracts';
 import { ItemPhotograph, focusRing } from '@depawn/ui';
 import type { ReactElement } from 'react';
-import { discountSentenceOf, figuresOf, photographOf } from './sale-figures';
+import { photographOf } from './sale-figures';
 import { SaleTermLine } from './sale-term-line';
+import { SaleTradeFigures } from './sale-trade-figures';
 
 export interface PositionSaleRowProps {
   readonly sale: NoteSaleSummary;
@@ -12,8 +13,8 @@ export interface PositionSaleRowProps {
 
 /* One position on the market, as an item rather than as a chart.
 
-   The four figures are on the row because they are what somebody scans down a
-   list to compare; the chart is one press away and answers the next question,
+   The figures are on the row because they are what somebody scans down a list
+   to compare; the chart is one press away and answers the next question,
    which is how the value got there. Leading with the chart made every row the
    same height as a graph and buried the numbers under it. */
 export function PositionSaleRow({
@@ -54,23 +55,7 @@ export function PositionSaleRow({
         </span>
       </span>
 
-      <span className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
-        {figuresOf(sale).map((figure) => (
-          <span key={figure.label} className="flex flex-col">
-            <span className="font-body text-xs text-ink-secondary">{figure.label}</span>
-            <span
-              data-testid={figure.testId}
-              className="font-figure text-sm font-semibold tabular-nums text-ink-primary"
-            >
-              {figure.value}
-            </span>
-          </span>
-        ))}
-      </span>
-
-      <span data-testid="sale-discount" className="font-body text-sm text-market-favourable">
-        {discountSentenceOf(sale)}
-      </span>
+      <SaleTradeFigures sale={sale} />
     </button>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { PointerEvent, ReactElement } from 'react';
 import { formatInstant } from './date-time';
 import { formatAmount } from './money';
@@ -43,6 +43,9 @@ export interface ValueChartProps {
      that sit exactly at the instant; the chart never interpolates a value,
      because a drawn figure nobody priced would be the chart pricing it. */
   readonly markedAtMs?: number | undefined;
+  /* Names the marked instant on the plot, so a line standing there does not
+     leave a reader guessing which instant it is standing for. */
+  readonly markedLabel?: string | undefined;
   /* Where the figures under the pointer are read. `tooltip` is this chart's
      own readout. `external` means the caller is showing them somewhere
      better, usually by updating figures it was already displaying, and two
@@ -50,7 +53,19 @@ export interface ValueChartProps {
   readonly readout?: 'tooltip' | 'external';
   /* The instant under the pointer, or null when it leaves. */
   readonly onHoverChange?: (atMs: number | null) => void;
+  /* Anything the caller wants read out beside the series values, worked out
+     for the instant under the pointer. The chart owns how a row looks; the
+     caller owns what the figure means, because only it knows. */
+  readonly extraReadoutFor?: (atMs: number) => readonly ValueReadoutRow[];
   readonly testId?: string | undefined;
+}
+
+export interface ValueReadoutRow {
+  readonly label: string;
+  readonly value: string;
+  /* Money the reader gains or loses, or neither. Tone is the only thing the
+     chart decides from this; the words are the caller's. */
+  readonly tone?: 'neutral' | 'favourable' | 'adverse';
 }
 
 const plotHeight = 160;
@@ -187,12 +202,30 @@ export function ValueChart({
   currency,
   label,
   markedAtMs,
+  markedLabel,
   readout = 'tooltip',
   onHoverChange,
+  extraReadoutFor,
   testId,
 }: ValueChartProps): ReactElement {
   const [plotRef, measuredWidth] = useMeasuredWidth();
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  /* The readout follows the pointer, so it has to know how wide it is to
+     stay inside the plot. Measured after it renders rather than guessed:
+     the figures in it change width as the reader moves along the line. */
+  const readoutRef = useRef<HTMLDivElement | null>(null);
+  const [readoutWidth, setReadoutWidth] = useState(0);
+
+  useLayoutEffect(() => {
+    const element = readoutRef.current;
+    if (element === null) {
+      return;
+    }
+    const measured = element.getBoundingClientRect().width;
+    if (measured !== readoutWidth) {
+      setReadoutWidth(measured);
+    }
+  });
 
   const width = measuredWidth > 0 ? measuredWidth : assumedWidth;
   const bounds = boundsOf(series);
@@ -268,12 +301,15 @@ export function ValueChart({
   const money = (minorUnits: bigint): string =>
     formatAmount({ minorUnits: minorUnits.toString(), currency });
 
-  /* Pinned to the far edge rather than centred on the point. Centring means
-     the readout hangs half its own width off whichever end the pointer is
-     near, and clamping that needs a width nobody has measured yet. Sending
-     it to the opposite side cannot overflow at any size, and it keeps the
-     readout away from the part of the line being read. */
-  const isPointerLeftOfCentre = active !== null && xOf(active.atMs) < width / 2;
+  /* The readout travels with the pointer, centred on the day being read, and
+     clamped to the plot so it cannot hang off either end. It was pinned to
+     the far edge before, which never overflowed but made a reader look away
+     from the line to find the figures for the point under their finger. */
+  const anchor = active === null ? 0 : xOf(active.atMs);
+  const readoutLeft = Math.min(
+    Math.max(anchor - readoutWidth / 2, 0),
+    Math.max(0, width - readoutWidth),
+  );
 
   return (
     <figure className="flex flex-col gap-3" data-testid={testId}>
@@ -363,18 +399,40 @@ export function ValueChart({
 
             {markedAtMs === undefined ? null : (
               <>
-                {/* Quieter than the hover crosshair on purpose: this one is
-                    always there, so it has to sit behind the reading rather
-                    than compete with it. */}
+                {/* Dashed, so it reads as an annotation rather than as a
+                    third series, and quieter than the hover crosshair: this
+                    one is always there. */}
                 <line
                   data-marked-line="true"
                   x1={xOf(markedAtMs)}
                   x2={xOf(markedAtMs)}
-                  y1={0}
+                  y1={markedLabel === undefined ? 0 : 12}
                   y2={plotHeight}
                   strokeWidth={1}
-                  className="stroke-edge"
+                  strokeDasharray="3 3"
+                  className="stroke-edge-strong"
                 />
+                {markedLabel === undefined ? null : (
+                  <text
+                    data-testid={testId === undefined ? undefined : `${testId}-marked-label`}
+                    x={xOf(markedAtMs)}
+                    y={8}
+                    /* Turned in at the ends so the word cannot hang off the
+                       plot on a position that opened or matures at the edge
+                       of the window being drawn. */
+                    textAnchor={
+                      xOf(markedAtMs) < 24
+                        ? 'start'
+                        : xOf(markedAtMs) > width - 24
+                          ? 'end'
+                          : 'middle'
+                    }
+                    fontSize={10}
+                    className="fill-ink-secondary font-body"
+                  >
+                    {markedLabel}
+                  </text>
+                )}
                 {series.map((one) => {
                   const point = one.points.find((candidate) => candidate.atMs === markedAtMs);
                   return point === undefined ? null : (
@@ -423,11 +481,10 @@ export function ValueChart({
 
           {active === null || readout === 'external' ? null : (
             <div
+              ref={readoutRef}
               data-testid={testId === undefined ? undefined : `${testId}-tooltip`}
-              data-side={isPointerLeftOfCentre ? 'right' : 'left'}
-              className={`pointer-events-none absolute top-1 max-w-full rounded-md border border-edge-strong bg-surface-raised px-2 py-1 shadow-overlay ${
-                isPointerLeftOfCentre ? 'right-0' : 'left-0'
-              }`}
+              style={{ left: readoutLeft }}
+              className="pointer-events-none absolute top-1 w-max max-w-full rounded-md border border-edge-strong bg-surface-raised px-2 py-1 shadow-overlay"
             >
               <p className="whitespace-nowrap font-body text-xs text-ink-secondary">
                 {formatInstant(new Date(active.atMs).toISOString(), 'date')}
@@ -443,6 +500,25 @@ export function ValueChart({
                   </p>
                 );
               })}
+              {(extraReadoutFor?.(active.atMs) ?? []).map((row) => (
+                <p
+                  key={row.label}
+                  className="flex items-baseline gap-3 whitespace-nowrap border-t border-edge pt-1 first-of-type:border-t-0"
+                >
+                  <span className="font-body text-xs text-ink-secondary">{row.label}</span>
+                  <span
+                    className={`ml-auto font-figure text-xs font-semibold tabular-nums ${
+                      row.tone === 'favourable'
+                        ? 'text-market-favourable'
+                        : row.tone === 'adverse'
+                          ? 'text-market-adverse'
+                          : 'text-ink-primary'
+                    }`}
+                  >
+                    {row.value}
+                  </span>
+                </p>
+              ))}
             </div>
           )}
         </div>

@@ -109,10 +109,9 @@ describe('ValueChart', () => {
     expect(tooltip.textContent).toContain('6,000.00');
   });
 
-  /* A readout centred on a point hangs half its own width off whichever end
-     the pointer is near, which is where the figures went missing on a narrow
-     screen. Pinning it to the opposite edge cannot overflow at any width. */
-  it('sends the readout to the side the pointer is not on', () => {
+  /* The readout travels with the pointer so the figures sit beside the part
+     of the line being read, and is clamped so it cannot hang off either end. */
+  it('follows the pointer and stays inside the plot', () => {
     const { container } = render(
       <ValueChart series={[total, cash]} currency="USD" label="Capital" testId="capital" />,
     );
@@ -120,10 +119,51 @@ describe('ValueChart', () => {
     surface.getBoundingClientRect = () => ({ left: 0, width: 600 }) as DOMRect;
 
     fireEvent.pointerMove(surface, { clientX: 0 });
-    expect(screen.getByTestId('capital-tooltip').getAttribute('data-side')).toBe('right');
-
+    const atStart = Number(screen.getByTestId('capital-tooltip').style.left.replace('px', ''));
+    fireEvent.pointerMove(surface, { clientX: 300 });
+    const atMiddle = Number(screen.getByTestId('capital-tooltip').style.left.replace('px', ''));
     fireEvent.pointerMove(surface, { clientX: 600 });
-    expect(screen.getByTestId('capital-tooltip').getAttribute('data-side')).toBe('left');
+    const atEnd = Number(screen.getByTestId('capital-tooltip').style.left.replace('px', ''));
+
+    expect(atStart).toBe(0);
+    expect(atMiddle).toBeGreaterThan(atStart);
+    expect(atEnd).toBeGreaterThan(atMiddle);
+    expect(atEnd).toBeLessThanOrEqual(600);
+  });
+
+  it('reads out what the caller works out for the day under the pointer', () => {
+    const { container } = render(
+      <ValueChart
+        series={[total]}
+        currency="USD"
+        label="Capital"
+        testId="capital"
+        extraReadoutFor={(atMs) => [
+          { label: 'Profit', value: atMs === start ? '+1.00' : '+2.00', tone: 'favourable' },
+        ]}
+      />,
+    );
+    const surface = container.querySelector('.relative') as HTMLElement;
+    surface.getBoundingClientRect = () => ({ left: 0, width: 600 }) as DOMRect;
+
+    fireEvent.pointerMove(surface, { clientX: 0 });
+    expect(screen.getByTestId('capital-tooltip').textContent).toContain('+1.00');
+    fireEvent.pointerMove(surface, { clientX: 600 });
+    expect(screen.getByTestId('capital-tooltip').textContent).toContain('+2.00');
+  });
+
+  it('names the marked instant when it is given a word for it', () => {
+    render(
+      <ValueChart
+        series={[total]}
+        currency="USD"
+        label="Capital"
+        markedAtMs={start + day}
+        markedLabel="Today"
+        testId="capital"
+      />,
+    );
+    expect(screen.getByTestId('capital-marked-label').textContent).toBe('Today');
   });
 
   /* A phone has no room for a gutter beside the plot, so the scale moves

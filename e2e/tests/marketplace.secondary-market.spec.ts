@@ -167,10 +167,14 @@ test('a lender exits early and another takes the position', async ({ page, reque
   await signIn(page, buyerEmail);
   await page.getByRole('link', { name: 'Secondary Market' }).click();
   await expect(page.getByTestId('sale-list')).toBeVisible();
-  await expect(page.getByTestId('figure-principal')).toHaveText('USD 2,500.00');
-  await expect(page.getByTestId('figure-current')).toHaveText('USD 2,500.00');
-  await expect(page.getByTestId('figure-maturity')).toHaveText('USD 2,536.98');
-  await expect(page.getByTestId('figure-ask')).toHaveText('USD 2,400.00');
+  await expect(page.getByTestId('figure-pay')).toHaveText('USD 2,400.00');
+  await expect(page.getByTestId('figure-receive')).toHaveText('USD 2,536.98');
+  await expect(page.getByTestId('figure-lent')).toHaveText('USD 2,500.00');
+  // 2536.98 back against 2400.00 paid.
+  await expect(page.getByTestId('figure-profit')).toContainText('+USD 136.98');
+  // All four amounts on one line, at the distances they sit apart.
+  await expect(page.getByTestId('sale-scale-mark-ask')).toBeVisible();
+  await expect(page.getByTestId('sale-scale-mark-maturity')).toBeVisible();
   await expect(page.getByTestId('sale-chart')).toHaveCount(0);
 
   await page.getByTestId('sale-row').click();
@@ -178,7 +182,7 @@ test('a lender exits early and another takes the position', async ({ page, reque
   await expect(page.getByTestId('sale-chart')).toBeVisible();
   await expect(page.getByText('Position value')).toBeVisible();
   await expect(page.getByText('Asking price')).toBeVisible();
-  await expect(page.getByTestId('sale-discount')).toContainText('below today');
+  await expect(page.getByTestId('sale-chart-marked-label')).toHaveText('Today');
   await page.getByTestId('buy-position').click();
   await page.getByTestId('confirm-purchase').click();
   await expect(page.getByText('The position is yours. Repayment now pays you.')).toBeVisible();

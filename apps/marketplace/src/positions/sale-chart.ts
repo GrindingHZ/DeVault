@@ -85,6 +85,39 @@ function nearestTick(ticks: readonly number[], atMs: number): number {
   );
 }
 
+export interface SaleReading {
+  readonly atMs: number;
+  readonly valueMinorUnits: bigint;
+  /* What the position is worth that day above what it costs, and that as a
+     share of the price. Null before today: nobody can buy into a past day, so
+     naming the gap a profit then would describe a trade that is not on offer. */
+  readonly profitMinorUnits: bigint | null;
+  readonly profitBasisPoints: number | null;
+}
+
+/* What the line is worth on one of its days, for a readout that follows the
+   pointer. Null for an instant the chart has no sample at, so a caller cannot
+   quote a figure the line never drew. */
+export function saleReadingOf(
+  sale: NoteSaleSummary,
+  chart: SaleChart,
+  atMs: number,
+): SaleReading | null {
+  const value = chart.series[0]?.points.find((point) => point.atMs === atMs);
+  if (value === undefined) {
+    return null;
+  }
+  const ask = BigInt(sale.askPrice.minorUnits);
+  const isBuyable = atMs >= chart.markedAtMs;
+  const profit = value.minorUnits - ask;
+  return {
+    atMs,
+    valueMinorUnits: value.minorUnits,
+    profitMinorUnits: isBuyable ? profit : null,
+    profitBasisPoints: isBuyable && ask > 0n ? Number((profit * 10_000n) / ask) : null,
+  };
+}
+
 export interface SaleDiscount {
   readonly minorUnits: bigint;
   readonly basisPoints: number;

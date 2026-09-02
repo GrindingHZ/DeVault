@@ -1,27 +1,7 @@
 import { nameForCategory } from '@depawn/contracts';
 import type { NoteSaleSummary } from '@depawn/contracts';
 import { formatInstant, formatMoney, formatRate } from '@depawn/ui';
-import { discountOf } from './sale-chart';
-
-export interface SaleFigure {
-  readonly label: string;
-  readonly value: string;
-  readonly testId: string;
-}
-
-/* The four numbers somebody buying a position is comparing, in the order they
-   ask them: what was lent, what that is worth now, what it pays if it runs to
-   term, and what they are being asked for it. Stated the same way on the row
-   and beside the chart, because a figure that changes wording between two
-   places reads as two different figures. */
-export function figuresOf(sale: NoteSaleSummary): readonly SaleFigure[] {
-  return [
-    { label: 'Principal', value: formatMoney(sale.principal), testId: 'figure-principal' },
-    { label: 'Worth today', value: formatMoney(sale.currentValue), testId: 'figure-current' },
-    { label: 'At maturity', value: formatMoney(sale.maturityValue), testId: 'figure-maturity' },
-    { label: 'You pay', value: formatMoney(sale.askPrice), testId: 'figure-ask' },
-  ];
-}
+import type { ValueScaleMark, ValueScaleSegment } from '@depawn/ui';
 
 export function shareOf(basisPoints: number): string {
   const whole = Math.trunc(basisPoints / 100);
@@ -29,14 +9,109 @@ export function shareOf(basisPoints: number): string {
   return `${whole}.${tenth}%`;
 }
 
-/* What the buyer keeps for taking it on, said once and used in both places. */
-export function discountSentenceOf(sale: NoteSaleSummary): string {
-  const discount = discountOf(sale);
-  const amount = formatMoney({
-    minorUnits: discount.minorUnits.toString(),
-    currency: sale.askPrice.currency,
-  });
-  return `${amount} (${shareOf(discount.basisPoints)}) below today's value`;
+function signed(minorUnits: bigint, currency: string): string {
+  const sign = minorUnits < 0n ? '' : '+';
+  return `${sign}${formatMoney({ minorUnits: minorUnits.toString(), currency })}`;
+}
+
+export interface SaleTrade {
+  /* The two figures the decision is between, and the gap that makes it one. */
+  readonly pay: string;
+  readonly receive: string;
+  readonly receiveOn: string;
+  readonly profit: string;
+  readonly profitShare: string;
+  readonly isProfitable: boolean;
+  /* Where the price sits against what the position is worth right now, which
+     is the part a buyer gets simply for taking it on today. */
+  readonly discount: string;
+  readonly discountShare: string;
+  /* What the two muted marks on the line are, said in full underneath it. */
+  readonly lent: string;
+  readonly worthToday: string;
+}
+
+/* One trade, read from the buyer's side: money out now against money back at
+   maturity. Every figure here is a subtraction of two the server priced; none
+   of them is a price this screen invented. */
+export function tradeOf(sale: NoteSaleSummary): SaleTrade {
+  const currency = sale.askPrice.currency;
+  const ask = BigInt(sale.askPrice.minorUnits);
+  const maturity = BigInt(sale.maturityValue.minorUnits);
+  const today = BigInt(sale.currentValue.minorUnits);
+  const profit = maturity - ask;
+  const discount = today - ask;
+
+  return {
+    pay: formatMoney(sale.askPrice),
+    receive: formatMoney(sale.maturityValue),
+    receiveOn: formatInstant(sale.maturesAt, 'date'),
+    profit: signed(profit, currency),
+    profitShare: ask === 0n ? '0.0%' : shareOf(Number((profit * 10_000n) / ask)),
+    isProfitable: profit >= 0n,
+    discount: signed(discount, currency),
+    discountShare: today === 0n ? '0.0%' : shareOf(Number((discount * 10_000n) / today)),
+    lent: formatMoney(sale.principal),
+    worthToday: formatMoney(sale.currentValue),
+  };
+}
+
+/* The four figures at the distances they sit apart, and the two stretches
+   between them that are the reason to buy: what the discount hands over the
+   moment the position changes hands, and what the rest of the term still has
+   to pay out. */
+export function scaleOf(sale: NoteSaleSummary): {
+  readonly marks: readonly ValueScaleMark[];
+  readonly segments: readonly ValueScaleSegment[];
+} {
+  const trade = tradeOf(sale);
+  return {
+    marks: [
+      {
+        id: 'ask',
+        minorUnits: BigInt(sale.askPrice.minorUnits),
+        label: 'You pay',
+        emphasis: 'primary',
+      },
+      {
+        id: 'lent',
+        minorUnits: BigInt(sale.principal.minorUnits),
+        label: 'Originally lent',
+        emphasis: 'muted',
+      },
+      {
+        id: 'today',
+        minorUnits: BigInt(sale.currentValue.minorUnits),
+        label: 'Worth today',
+        emphasis: 'muted',
+      },
+      {
+        id: 'maturity',
+        minorUnits: BigInt(sale.maturityValue.minorUnits),
+        label: 'You receive at maturity',
+        emphasis: 'primary',
+      },
+    ],
+    segments: [
+      {
+        fromId: 'ask',
+        toId: 'today',
+        label: `${trade.discount} yours at once`,
+        tone: 'favourable',
+      },
+      {
+        fromId: 'today',
+        toId: 'maturity',
+        label: `${signedInterest(sale)} still to earn`,
+        tone: 'neutral',
+      },
+    ],
+  };
+}
+
+function signedInterest(sale: NoteSaleSummary): string {
+  const remaining = BigInt(sale.maturityValue.minorUnits) - BigInt(sale.currentValue.minorUnits);
+  return signed(remaining, sale.askPrice.currency);
 }
 
 export interface TermParts {

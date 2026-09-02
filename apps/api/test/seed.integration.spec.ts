@@ -41,7 +41,9 @@ describe('the demo seed', () => {
   });
 
   it('fills the vault with inventory an operator can see', async () => {
-    expect(await prisma.custodyReceipt.count()).toBe(33);
+    // Thirty three items, plus the two receipts the settled sales issued to
+    // their buyers for the same items (docs/10-flows.md flow 8).
+    expect(await prisma.custodyReceipt.count()).toBe(35);
     const vault = await prisma.vault.findUnique({ where: { id: 'VAULT-DEMO-1' } });
     expect(vault?.city).toBe('New York');
   });
@@ -239,7 +241,7 @@ describe('the demo seed', () => {
 
   it('can be run again without stacking a second story on the first', async () => {
     runInApi('pnpm', ['run', 'db:seed'], container.getConnectionUri());
-    expect(await prisma.custodyReceipt.count()).toBe(33);
+    expect(await prisma.custodyReceipt.count()).toBe(35);
     expect(await prisma.noteSale.count({ where: { status: 'OPEN' } })).toBeGreaterThanOrEqual(1);
   }, 300_000);
 });

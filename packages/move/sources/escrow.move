@@ -27,7 +27,9 @@ public struct Wallet<phantom T> has key {
 }
 
 /// Money committed to an offer or a bid, out of the wallet until it wins,
-/// loses, or is pulled back. `hold_key` is the api's funds hold id.
+/// loses, or is pulled back. `hold_key` is the api's funds hold id. Every
+/// amount in this module is in the coin's own base units, as the deployment
+/// records them, and the api's codec scales its minor units to match.
 public struct FundsHold<phantom T> has key {
     id: UID,
     hold_key: vector<u8>,
@@ -185,6 +187,8 @@ public fun begin_release<T>(_: &OperatorCap, hold: FundsHold<T>, reason: u8): Pa
     Payout { hold_key, funds, reason }
 }
 
+/// A zero share is not a payment, so the caller drops the waterfall's empty
+/// lines before paying; the api's close use case already does (Q-019).
 public fun pay<T>(payout: &mut Payout<T>, wallet: &mut Wallet<T>, amount: u64) {
     assert!(amount > 0, EZeroAmount);
     assert!(payout.funds.value() >= amount, EInsufficientFunds);
@@ -242,7 +246,6 @@ public fun transfer_new<T>(
 ) {
     let funds = take(from, amount);
     let to = Wallet<T> { id: object::new(ctx), owner: to_owner, funds };
-    event::emit(WalletOpened { wallet_id: object::id(&to), owner: to_owner });
     event::emit(FundsTransferred { from: from.owner, to: to_owner, amount, reference, reason });
     share_wallet(to);
 }
@@ -260,6 +263,9 @@ public fun hold_amount<T>(hold: &FundsHold<T>): u64 { hold.funds.value() }
 public fun hold_reference<T>(hold: &FundsHold<T>): &vector<u8> { &hold.reference }
 
 public fun payout_remaining<T>(payout: &Payout<T>): u64 { payout.funds.value() }
+
+#[test_only]
+public fun opened_wallet_id(event: &WalletOpened): ID { event.wallet_id }
 
 fun share_wallet<T>(wallet: Wallet<T>) {
     event::emit(WalletOpened { wallet_id: object::id(&wallet), owner: wallet.owner });

@@ -20,7 +20,8 @@ const ENCUMBERED: u8 = 1;
 
 /// The item's twin. `receipt_key` is the api's receipt id, so every event
 /// names what the api names; the evidence stays off chain behind
-/// `intake_hash` (docs/10-flows.md flow 16).
+/// `intake_hash` (docs/10-flows.md flow 16). `appraised_value` is in the
+/// settlement coin's base units, scaled by the api's codec.
 public struct VaultReceipt has key {
     id: UID,
     receipt_key: vector<u8>,

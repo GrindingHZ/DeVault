@@ -25,11 +25,24 @@ export interface CapitalPoint {
      eventually, so the chart does not split them; the breakdown beside it
      does. */
   readonly cashMinorUnits: bigint;
-  /* Principal out on loans that had not come back yet at this moment. */
+  /* Principal out on loans that were still running at this moment. */
   readonly lentMinorUnits: bigint;
   /* What those loans had earned by this moment, and not a penny of what they
      will earn later. */
   readonly interestMinorUnits: bigint;
+  /* Principal and interest on loans the borrower did not repay.
+
+     Carried at what is owed rather than written down or marked to the
+     collateral. The waterfall pays the note holder first and caps them at
+     the debt (apps/api/src/domain/lending/liquidation-waterfall.ts), and the
+     loan was a minority of the appraisal to begin with, so the money is very
+     likely to come back in full. Marking it to the appraisal would be worse
+     than optimistic, it would be wrong: the surplus above the debt goes to
+     the borrower, so the appraisal bounds the sale and not this position.
+
+     It is separated rather than revalued, because what a reader cannot see
+     in the single figure is that part of their book has stopped paying. */
+  readonly defaultedMinorUnits: bigint;
   readonly totalMinorUnits: bigint;
 }
 
@@ -114,6 +127,7 @@ function closedAtByLoanId(entries: readonly LedgerEntryResponse[]): ReadonlyMap<
 interface NoteValue {
   readonly lentMinorUnits: bigint;
   readonly interestMinorUnits: bigint;
+  readonly defaultedMinorUnits: bigint;
 }
 
 function notesAt(
@@ -123,6 +137,7 @@ function notesAt(
 ): NoteValue {
   let lent = 0n;
   let interest = 0n;
+  let defaulted = 0n;
 
   for (const loan of loans) {
     const startedAt = Date.parse(loan.startedAt);
@@ -136,19 +151,29 @@ function notesAt(
       continue;
     }
 
-    lent += BigInt(loan.principal.minorUnits);
     /* Interest stops at maturity (rule L1), so the clock the accrual is
        measured against stops there too. */
     const maturesAt = Date.parse(loan.maturesAt);
     const until = Number.isFinite(maturesAt) ? Math.min(atMs, maturesAt) : atMs;
-    interest += interestOver(
+    const earned = interestOver(
       loan.principal.minorUnits,
       loan.annualPercentageRateBasisPoints,
       Math.max(0, until - startedAt),
     );
+
+    if (loan.status === 'DEFAULTED') {
+      defaulted += BigInt(loan.principal.minorUnits) + earned;
+      continue;
+    }
+    lent += BigInt(loan.principal.minorUnits);
+    interest += earned;
   }
 
-  return { lentMinorUnits: lent, interestMinorUnits: interest };
+  return {
+    lentMinorUnits: lent,
+    interestMinorUnits: interest,
+    defaultedMinorUnits: defaulted,
+  };
 }
 
 /* One point per day, plus the present moment.
@@ -188,7 +213,9 @@ export function buildCapitalSeries(input: CapitalSeriesInput): readonly CapitalP
       cashMinorUnits: cash,
       lentMinorUnits: notes.lentMinorUnits,
       interestMinorUnits: notes.interestMinorUnits,
-      totalMinorUnits: cash + notes.lentMinorUnits + notes.interestMinorUnits,
+      defaultedMinorUnits: notes.defaultedMinorUnits,
+      totalMinorUnits:
+        cash + notes.lentMinorUnits + notes.interestMinorUnits + notes.defaultedMinorUnits,
     };
   });
 }

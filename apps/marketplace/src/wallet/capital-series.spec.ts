@@ -201,6 +201,55 @@ describe('what a lender is worth', () => {
     expect(closing?.totalMinorUnits).toBe(1000000n - 400000n + 403945n);
   });
 
+  /* A loan the borrower did not repay is still owed, and the note holder is
+     paid first out of the sale and capped at the debt
+     (apps/api/src/domain/lending/liquidation-waterfall.ts). So it keeps its
+     value and moves to its own band rather than being written down. */
+  it('carries a defaulted loan at what is owed, in its own band', () => {
+    const points = buildCapitalSeries({
+      entries: [funded, originated],
+      loans: [loan({ status: 'DEFAULTED' })],
+      asOfMs: day0 + 40 * oneDay,
+      windowMs: null,
+    });
+    const closing = points[points.length - 1];
+    expect(closing?.lentMinorUnits).toBe(0n);
+    expect(closing?.interestMinorUnits).toBe(0n);
+    expect(closing?.defaultedMinorUnits).toBeGreaterThan(400000n);
+  });
+
+  /* The bands are a partition of the total. If they stop adding up, the
+     breakdown beside the chart starts contradicting the headline. */
+  it('keeps the bands adding up to the total', () => {
+    const points = buildCapitalSeries({
+      entries: [funded, originated],
+      loans: [loan(), loan({ id: 'loan-2', status: 'DEFAULTED' })],
+      asOfMs: day0 + 20 * oneDay,
+      windowMs: null,
+    });
+    for (const point of points) {
+      expect(
+        point.cashMinorUnits +
+          point.lentMinorUnits +
+          point.interestMinorUnits +
+          point.defaultedMinorUnits,
+      ).toBe(point.totalMinorUnits);
+    }
+  });
+
+  it('keeps a defaulted loan out of the performing figures', () => {
+    const points = buildCapitalSeries({
+      entries: [funded, originated],
+      loans: [loan(), loan({ id: 'loan-2', status: 'DEFAULTED' })],
+      asOfMs: day0 + 20 * oneDay,
+      windowMs: null,
+    });
+    const closing = points[points.length - 1];
+    /* One performing loan of four thousand, not two. */
+    expect(closing?.lentMinorUnits).toBe(400000n);
+    expect(closing?.defaultedMinorUnits).toBeGreaterThan(400000n);
+  });
+
   it('ignores a loan that had not started yet', () => {
     const points = buildCapitalSeries({
       entries: [funded],

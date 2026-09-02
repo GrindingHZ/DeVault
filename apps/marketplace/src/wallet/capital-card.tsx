@@ -1,5 +1,6 @@
 import { fetchBalance, fetchLedgerEntries, fetchMyLoans } from '@depawn/contracts';
 import type { LedgerEntryResponse } from '@depawn/contracts';
+import type { StatusTone } from '@depawn/ui';
 import {
   Card,
   Meter,
@@ -102,20 +103,42 @@ export function CapitalCard(): ReactElement {
   const currency = balance.available.currency;
   const lent = closing?.lentMinorUnits ?? 0n;
   const interest = closing?.interestMinorUnits ?? 0n;
+  const defaulted = closing?.defaultedMinorUnits ?? 0n;
   const available = BigInt(balance.available.minorUnits);
   const held = BigInt(balance.held.minorUnits);
-  const total = available + held + lent + interest;
+  const total = available + held + lent + interest + defaulted;
 
   /* Every band is drawn in the same neutral. The status tones mean
      something in this product (a loan at risk, a run that failed), and
      spending one of them on "committed to offers" would teach a reader that
      amber is a category rather than a warning. Length carries the size, the
      label carries which band it is. */
-  const bands = [
-    { label: 'Available to spend', amount: available },
-    { label: 'Committed to offers', amount: held },
-    { label: 'Out on loans', amount: lent },
-    { label: 'Interest earned', amount: interest },
+  const bands: readonly {
+    readonly label: string;
+    readonly amount: bigint;
+    readonly tone: StatusTone;
+    readonly note?: string;
+  }[] = [
+    { label: 'Available to spend', amount: available, tone: 'neutral' },
+    { label: 'Committed to offers', amount: held, tone: 'neutral' },
+    { label: 'Out on loans', amount: lent, tone: 'neutral' },
+    { label: 'Interest earned', amount: interest, tone: 'neutral' },
+    /* Only when there is one. A row reading zero on every healthy account is
+       clutter, and this is an exception rather than a category.
+
+       The warning tone is the one status colour spent anywhere on this card,
+       and it is spent correctly: this is a state a reader has to act on, not
+       a fifth kind of money. */
+    ...(defaulted > 0n
+      ? [
+          {
+            label: 'In default',
+            amount: defaulted,
+            tone: 'warning' as StatusTone,
+            note: 'Still owed to you. Claim the collateral from your portfolio.',
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -196,17 +219,26 @@ export function CapitalCard(): ReactElement {
           {bands.map((band) => (
             <div key={band.label} className="flex flex-col gap-1">
               <div className="flex items-baseline justify-between gap-3">
-                <dt className="font-body text-sm text-ink-secondary">{band.label}</dt>
+                <dt
+                  className={`font-body text-sm ${
+                    band.tone === 'warning' ? 'text-status-warning' : 'text-ink-secondary'
+                  }`}
+                >
+                  {band.label}
+                </dt>
                 <dd className="font-figure text-sm tabular-nums text-ink-primary">
                   {formatAmount({ minorUnits: band.amount.toString(), currency })}
                 </dd>
               </div>
               <Meter
                 filledBasisPoints={total <= 0n ? 0 : Number((band.amount * 10_000n) / total)}
-                tone="neutral"
+                tone={band.tone}
                 label={band.label}
                 valueText={`${formatAmount({ minorUnits: band.amount.toString(), currency })} of ${formatAmount({ minorUnits: total.toString(), currency })}`}
               />
+              {band.note === undefined ? null : (
+                <p className="font-body text-xs text-ink-secondary">{band.note}</p>
+              )}
             </div>
           ))}
         </dl>

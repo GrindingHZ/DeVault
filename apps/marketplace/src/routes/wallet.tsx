@@ -139,7 +139,10 @@ function WithdrawCard(): ReactElement {
   return (
     <Card title="Withdraw">
       <form
-        className="flex items-end gap-3"
+        /* Wraps. The amount field and the button together are wider than a
+           phone, and without this the button hung off the side and took the
+           whole page into a horizontal scroll. */
+        className="flex flex-wrap items-end gap-3"
         onSubmit={(event) => {
           event.preventDefault();
           const minorUnits = toMinorUnits(amountInput);

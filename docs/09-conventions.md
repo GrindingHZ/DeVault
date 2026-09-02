@@ -244,3 +244,16 @@ you will need on the one day it matters.
 
 **Do not let a pause block an exit path.** Repayment, redemption, reclaim, and default claim must
 always work.
+
+## An identifier is never the only identification
+
+Added in P8e after a survey found account identifiers standing in for people on three screens, one
+of them the audit trail.
+
+A ULID is how our systems refer to a thing. It is not what the thing is called. Any screen naming a
+person or an item shows the name, and may show the identifier beside it. Where the identifier has to
+be quotable, show a short tail and keep the whole value in a `title`.
+
+The test is whether somebody could act on what they are reading. An operator looking at an audit row
+has to be able to say who did it. Staff at a counter have to be able to say whose watch this is.
+Neither question is answered by twenty six characters of base32.

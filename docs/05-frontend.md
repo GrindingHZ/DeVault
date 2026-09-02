@@ -159,20 +159,55 @@ and every screen usable without a mouse.
 ## Admin app routes
 
 ```
-/                              loan book overview
-/loans                         all loans, filter by status, overdue, at risk
-/liquidations
+/                              the dashboard: trading, loan book, exposure,
+                               reconciliation, dead letters, traffic
+/liquidations                  defaulted loans and the sales against them
+/operations                    pause and unpause, and the audit trail
+/parameters                    protocol parameters, with an effective date and history
 /reconciliation                latest run, drift items, run now
-/parameters                    protocol parameters, with an effective-date change
-/audit                         audit log search
-/accounts
-/system                        pause, unpause, health
+/deposits                      credit an account from the platform float
 ```
 
 The reconciliation screen is the most important one in the entire product. It shows, for each vault,
 three numbers that must agree: physical inventory count, database receipt count, and (in Phase 3)
 on-chain receipt count. Any disagreement is a red row with a drill-down. Build it in Phase 1 with two
 columns and add the third in Phase 3.
+
+## Screens are pages, not cards
+
+Every screen is a `Page` with a `PageHeader`. Before P8e each one was a `Card` used as a page
+wrapper, which is why they all rendered as a bordered box in the top left of an empty window and
+why none of them had a heading.
+
+`Page` defaults to a fluid width. `reading` is for a screen that is genuinely one form or one
+column of prose. `PageSection` is a band underneath, and carries the `h2` if it has a title; the
+`h1` belongs to the header and there is one per screen.
+
+## Nothing on screen is in the shape the database stores it
+
+Three rules, all of them broken somewhere before P8e:
+
+- An enum reaches a person through `packages/contracts/src/status-copy.ts`. Nothing renders a
+  status, a ledger kind, a direction or an audit action straight from the wire.
+- A timestamp reaches a person through `DateTime`. Nothing renders an ISO string.
+- An identifier may be a secondary reference and may never be the only thing naming a person or an
+  item. Where a screen needs one to be quotable, it shows a short tail and keeps the whole value in
+  the title.
+
+The audit trail is the case that made this a rule: its entire purpose is answering who did what,
+and it answered with an account id and a snake case identifier.
+
+## Every application catches its own failures
+
+`AppBoundary` is mounted once per shell. A render fault shows a stated failure and a way back
+rather than a white page, and an expired session redirects once rather than failing every query on
+the screen separately. A `403` is not a `401`: being refused an action is not being signed out.
+
+## Every mutation reports both outcomes
+
+`useMutationFeedback` in the shell, `useFeedback` in the screen. Inline `role="alert"` text keeps
+its job for an error that belongs beside a field; the toast carries the outcome of an action whose
+result is not otherwise visible.
 
 ## Component conventions
 

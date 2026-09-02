@@ -235,6 +235,18 @@ The conditions this amendment was made under, which any future one should meet t
 The palette and the typography remain frozen. Wanting a different visual world is still a P0.6
 sized project: regenerate, reconcile once, re-freeze.
 
+## Amendment, P8e: the page shell and the formatting primitives
+
+Additive, on the P8c conditions. No token changed value.
+
+`Page`, `PageHeader` and `PageSection` join the primitive list, along with `DateTime`,
+`AppBoundary` and `useMutationFeedback`. `DataTable` gained an overflow container and a stacked
+presentation below the medium breakpoint; its column definition did not change, so every caller
+gained the behaviour without being edited.
+
+`DateTime` is the typographic counterpart of `Money`: the wire carries one format, the reader sees
+another, and no screen writes its own. Both cache their `Intl` formatter per locale.
+
 ## Amendment, P0.6: the floor scope
 
 The marketplace became a dark workspace. That is the P0.6 the P8c amendment said this would take,

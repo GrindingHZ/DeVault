@@ -49,7 +49,7 @@ function GalleryPage(): ReactElement {
   const [isDialogOpen, setDialogOpen] = useState(false);
 
   return (
-    <AppShell productName="depawn gallery" navigation={<span>Primitive gallery</span>}>
+    <AppShell productName="DeVault gallery" navigation={<span>Primitive gallery</span>}>
       <div className="flex max-w-3xl flex-col gap-6">
         <Card title="Buttons">
           <div className="flex gap-2">

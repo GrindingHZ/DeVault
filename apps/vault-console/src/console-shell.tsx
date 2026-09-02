@@ -38,7 +38,7 @@ export function ConsoleShell({ children }: { readonly children: ReactNode }): Re
 
   return (
     <AppShell
-      productName="depawn vault console"
+      productName="DeVault console"
       surface="terminal"
       navigation={
         <>

@@ -58,7 +58,7 @@ export function MarketShell({
     <AppShell
       surface="floor"
       fills={fills}
-      productName="depawn"
+      productName="DeVault"
       context={<MarketContext />}
       rail={<MarketRail />}
       actions={

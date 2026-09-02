@@ -1,4 +1,5 @@
 export * from './app-shell';
+export * from './brand';
 export * from './button';
 export * from './data-table';
 export * from './card';
@@ -39,3 +40,5 @@ export * from './collateral-bar';
 export * from './interest';
 export * from './summary-strip';
 export * from './position-row';
+export * from './term-bar';
+export * from './legend';

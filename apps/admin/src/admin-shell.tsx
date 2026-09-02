@@ -85,7 +85,7 @@ export function AdminShell({ current, children }: AdminShellProps): ReactElement
   return (
     <div data-testid="authenticated-home">
       <AppShell
-        productName="depawn admin"
+        productName="DeVault admin"
         navigation={
           <>
             <AdminNavigation current={current} />

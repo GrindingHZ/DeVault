@@ -1,4 +1,5 @@
 import type { ReactElement, ReactNode } from 'react';
+import { BrandLockup } from './brand';
 
 export interface AppShellProps {
   readonly productName: string;
@@ -35,7 +36,7 @@ export function AppShell({
   const header = (
     <header className="flex min-h-row items-center justify-between gap-4 border-b border-edge bg-surface-raised px-4">
       <div className="flex min-w-0 items-center gap-4">
-        <span className="shrink-0 font-heading text-base font-semibold">{productName}</span>
+        <BrandLockup productName={productName} />
         {context}
       </div>
       {rail === undefined && navigation !== undefined ? (

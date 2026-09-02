@@ -69,26 +69,26 @@ apps/api/test/accrued-interest.integration.spec.ts  NEW
 **Interfaces:**
 - Produces: `accruedInterest: MoneyDto` on `loanResponseSchema`.
 
-- [ ] **Step 1: Write the failing integration test**
+- [x] **Step 1: Write the failing integration test**
 
 Three cases. A loan an hour old has accrued a figure matching `calculateAccruedInterest` for that
 elapsed time. A loan past maturity has stopped accruing, because rule L1 clamps at `maturesAt`. And
 the figure equals the payoff quote's `accruedInterest` for the same loan at the same instant, which
 is the assertion that matters: if the list and the quote ever disagree the list is lying.
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `pnpm --filter @depawn/api test:integration -- accrued-interest`
 Expected: FAIL, `accruedInterest` is not on the response.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 The mapper takes the clock's `now` and calls the same `calculateAccruedInterest` the payoff quote
 uses. Do not reimplement the arithmetic. It is named `accruedInterest` and not `payoffTotal`: a list
 figure is not a quote, and repayment still fetches a fresh one with `validUntil`.
 
-- [ ] **Step 4: Run it and watch it pass**
-- [ ] **Step 5: Commit**
+- [x] **Step 4: Run it and watch it pass**
+- [x] **Step 5: Commit**
 
 ```bash
 git commit -m "feat(lending): carry accrued interest on the loan list"
@@ -128,7 +128,7 @@ export function positionOfBorrowedLoan(loan: LoanResponse, now: number): Positio
 export function positionOfLentLoan(loan: LoanResponse, now: number): Position;
 ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 One test per row of the table in the spec, fourteen rows. Each asserts the stage in words, whether
 there is an action and which kind, and whether it raises attention. Two extra assertions that catch
@@ -136,7 +136,7 @@ the failures this model exists to prevent: no stage is a status enum (assert aga
 snake case regex), and a loan appears with a different stage and action depending on which side it
 is read from.
 
-- [ ] **Step 2: Run and watch them fail**
+- [x] **Step 2: Run and watch them fail**
 
 Run: `pnpm --filter @depawn/marketplace test:unit -- position`
 
@@ -146,13 +146,13 @@ This will report that the marketplace app has no test runner. Add one first: cop
 app has never had unit tests, which is why the position mapping would otherwise have to be tested
 through the DOM.
 
-- [ ] **Step 3: Implement the four mappers**
+- [x] **Step 3: Implement the four mappers**
 
 Pure functions over the response types. They take `now` rather than reading the clock, so a test
 does not have to travel in time and the demo clock cannot leak in.
 
-- [ ] **Step 4: Run and watch them pass**
-- [ ] **Step 5: Commit**
+- [x] **Step 4: Run and watch them pass**
+- [x] **Step 5: Commit**
 
 ```bash
 git commit -m "feat(marketplace-ui): model a position from either side"
@@ -174,7 +174,7 @@ export function needsAttention(position: Position): boolean;
 export function attentionOrder(left: Position, right: Position): number;
 ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 The four cases that raise it: a reclaimable hold, a loan at or past maturity, a defaulted loan whose
 collateral can be claimed, an item ready to collect.
@@ -183,14 +183,14 @@ The cases that must **not** raise it matter more, because this is where a rule l
 loan three weeks from maturity, a listing quietly taking offers, a pending offer inside its minimum
 lifetime, a settled loan. Assert each one false by name.
 
-- [ ] **Step 2: Run and watch them fail**
-- [ ] **Step 3: Implement**
+- [x] **Step 2: Run and watch them fail**
+- [x] **Step 3: Implement**
 
 `maturityWarningMs` is one day. The rule reads the `Position`, not the raw responses, so it cannot
 quietly grow a fifth source of truth.
 
-- [ ] **Step 4: Run and watch them pass**
-- [ ] **Step 5: Commit**
+- [x] **Step 4: Run and watch them pass**
+- [x] **Step 5: Commit**
 
 ```bash
 git commit -m "feat(marketplace-ui): say which positions need a person today"
@@ -220,16 +220,16 @@ export function totalsOf(input: {
 }): PortfolioTotals;
 ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Sums are `bigint` throughout and stay exact past the safe integer range. Only `ACTIVE` loans count
 toward borrowed and lent; a repaid loan is not still owed. Owed today is principal plus accrued.
 Empty input totals zero rather than throwing.
 
-- [ ] **Step 2: Run and watch them fail**
-- [ ] **Step 3: Implement**
-- [ ] **Step 4: Run and watch them pass**
-- [ ] **Step 5: Commit**
+- [x] **Step 2: Run and watch them fail**
+- [x] **Step 3: Implement**
+- [x] **Step 4: Run and watch them pass**
+- [x] **Step 5: Commit**
 
 ```bash
 git commit -m "feat(marketplace-ui): total both sides of a portfolio"
@@ -267,7 +267,7 @@ export function PositionRow(props: {
 }): ReactElement;
 ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `SummaryStrip` renders a label and a figure per entry and marks an attention tone with more than
 colour. A figure of zero still renders, because an empty space is not a zero.
@@ -276,17 +276,17 @@ colour. A figure of zero still renders, because an empty space is not a zero.
 one, and calls `onAct` separately from `onOpen`. Acting must not also open: a reclaim is not a
 navigation.
 
-- [ ] **Step 2: Run and watch them fail**
+- [x] **Step 2: Run and watch them fail**
 
 Run: `pnpm --filter @depawn/ui test:unit -- summary-strip position-row`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Body face for the words, mono with `tabular-nums` for the figures. The action is a real button
 inside the row, and the row itself is a button, so the action stops propagation.
 
-- [ ] **Step 4: Run and watch them pass**
-- [ ] **Step 5: Commit**
+- [x] **Step 4: Run and watch them pass**
+- [x] **Step 5: Commit**
 
 ```bash
 git commit -m "feat(ui): add the summary strip and the position row"
@@ -304,36 +304,36 @@ git commit -m "feat(ui): add the summary strip and the position row"
 - Consumes: everything from Tasks 1 to 5.
 - Produces: `/portfolio?side=all|borrowing|lending`
 
-- [ ] **Step 1: Merge the four queries**
+- [x] **Step 1: Merge the four queries**
 
 `/me/listings`, `/me/offers`, `/me/loans?role=borrower`, `/me/loans?role=lender`. Each maps through
 its own mapper from Task 2 into one array.
 
-- [ ] **Step 2: Degrade rather than disappear**
+- [x] **Step 2: Degrade rather than disappear**
 
 If one query fails the strip shows the totals it can and says which part is unavailable. A failed
 offers query must not blank out the loans.
 
-- [ ] **Step 3: Render the strip, the band and the table**
+- [x] **Step 3: Render the strip, the band and the table**
 
 The band renders only positions where `needsAttention`, sorted by `attentionOrder`. When it is empty
 it renders nothing at all rather than an empty box: a screen that is usually quiet should look
 quiet.
 
-- [ ] **Step 4: Put the tab in the URL**
+- [x] **Step 4: Put the tab in the URL**
 
 `side` as a router search param, validated with Zod, defaulting to `all`. The tab filters the table
 and never the strip: a reader on the Lending tab still wants to know what they owe.
 
-- [ ] **Step 5: Carry the old test ids**
+- [x] **Step 5: Carry the old test ids**
 
 `my-listings`, `my-offers` and `my-loans` move onto the table so the E2E suite keeps its grip.
 
-- [ ] **Step 6: Run the gates**
+- [x] **Step 6: Run the gates**
 
 Run: `pnpm check`
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git commit -m "feat(marketplace-ui): put every position on one screen"
@@ -347,19 +347,19 @@ git commit -m "feat(marketplace-ui): put every position on one screen"
 - Rewrite: `apps/marketplace/src/routes/borrow.listings.tsx`, `borrow.loans.tsx`, `lend.offers.tsx`, `lend.loans.tsx`
 - Modify: `apps/marketplace/src/market-rail.tsx`
 
-- [ ] **Step 1: Redirect each old route**
+- [x] **Step 1: Redirect each old route**
 
 `beforeLoad` throwing `redirect` to `/portfolio` with the matching `side`, replacing rather than
 pushing so the back button does not bounce through it. Same pattern as
 `listings.$listingId.tsx`.
 
-- [ ] **Step 2: Cut the rail from seven destinations to four**
+- [x] **Step 2: Cut the rail from seven destinations to four**
 
 Browse, Portfolio, My items, Wallet. The borrow and lend split survives as a filter, not as
 navigation.
 
-- [ ] **Step 3: Run the gates**
-- [ ] **Step 4: Commit**
+- [x] **Step 3: Run the gates**
+- [x] **Step 4: Commit**
 
 ```bash
 git commit -m "feat(marketplace-ui): fold the role split into a filter"
@@ -374,27 +374,27 @@ git commit -m "feat(marketplace-ui): fold the role split into a filter"
 - Modify: `e2e/tests/accessibility.spec.ts`
 - Create: `e2e/tests/marketplace.portfolio.spec.ts`
 
-- [ ] **Step 1: Write the end to end test**
+- [x] **Step 1: Write the end to end test**
 
 Reclaim reached from the attention band, and each of the four old paths landing on the portfolio
 with the right tab selected.
 
-- [ ] **Step 2: Point the accessibility routes at the portfolio**
+- [x] **Step 2: Point the accessibility routes at the portfolio**
 
 The route list names `/borrow/listings` and friends. They redirect now, so the axe pass would scan
 the same screen four times and miss the tab states.
 
-- [ ] **Step 3: Update the docs**
+- [x] **Step 3: Update the docs**
 
 `docs/05-frontend.md` gets the new route list and the position model as the reason four screens
 became one. `docs/OPEN-QUESTIONS.md` records that the borrow and lend split survives as a filter,
 and why.
 
-- [ ] **Step 4: Run everything**
+- [x] **Step 4: Run everything**
 
 Run: `pnpm check && pnpm test`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git commit -m "docs(flows): record the portfolio and its attention rule"

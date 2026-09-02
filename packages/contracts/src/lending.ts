@@ -41,6 +41,13 @@ export type LoanResponse = z.infer<typeof loanResponseSchema>;
 
 export const myLoansResponseSchema = z.object({
   items: z.array(loanResponseSchema),
+  /* The server's clock at the moment it answered. Anything the screen works
+     out about time comes from here rather than from the browser: how far
+     through its term a loan is, how many days are left, whether it has
+     matured. A demo process runs weeks ahead (docs/10-flows.md flow 15), so
+     a progress bar drawn against `Date.now()` would say a matured loan was
+     three percent through and be believed. */
+  asOf: z.iso.datetime(),
 });
 
 export type MyLoansResponse = z.infer<typeof myLoansResponseSchema>;

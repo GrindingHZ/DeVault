@@ -78,7 +78,10 @@ export class LendingController {
   ): Promise<MyLoansResponse> {
     const loans = await this.loanQueries.listByParticipant(account.id, role);
     const now = this.clock.now();
-    return { items: loans.map((readModel) => toLoanResponse(readModel, now)) };
+    return {
+      items: loans.map((readModel) => toLoanResponse(readModel, now)),
+      asOf: new Date(Number(now.epochMilliseconds)).toISOString(),
+    };
   }
 
   /* Loans are private to their parties; anyone else sees the same 404 as a

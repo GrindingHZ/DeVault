@@ -145,7 +145,7 @@ test('a lender takes the collateral once grace has run out', async ({ page, requ
   await originateLoan(request, borrowerEmail, lenderEmail, receiptId);
 
   await signIn(page, lenderEmail);
-  await page.getByRole('link', { name: 'Funded loans' }).click();
+  await page.getByRole('link', { name: 'Funded' }).click();
   await expect(page.getByTestId('funded-loans')).toContainText('Running');
   // Inside grace the server refuses, and the lender is told why rather than
   // left with a button that does nothing.
@@ -160,13 +160,13 @@ test('a lender takes the collateral once grace has run out', async ({ page, requ
   expect(advanced.status()).toBe(201);
 
   await signIn(page, lenderEmail);
-  await page.getByRole('link', { name: 'Funded loans' }).click();
+  await page.getByRole('link', { name: 'Funded' }).click();
   await page.getByRole('button', { name: 'Mark defaulted' }).click();
   await expect(page.getByTestId('funded-loans')).toContainText('Defaulted');
 
   await page.getByRole('button', { name: 'Claim the item' }).click();
   // The item is now the lender's, held in the vault, ready to redeem.
-  await page.getByRole('link', { name: 'My receipts' }).click();
-  await expect(page.getByTestId('my-receipts')).toContainText(receiptId);
+  await page.getByRole('link', { name: 'My items' }).click();
+  await expect(page.getByTestId(`receipt-${receiptId}`)).toBeVisible();
   await expect(page.getByTestId('my-receipts')).toContainText('In the vault');
 });

@@ -121,13 +121,13 @@ test('a borrower accepts an offer and both sides see the loan', async ({
   await fundAccount(request, loserEmail, '300000');
 
   await signIn(page, borrowerEmail);
-  await page.getByRole('link', { name: 'My receipts' }).click();
+  await page.getByRole('link', { name: 'My items' }).click();
   await page.getByRole('button', { name: 'List' }).click();
   await page.getByTestId('list-principal').fill('2500.00');
   await page.getByTestId('list-submit').click();
   await expect(page.getByTestId('my-listings')).toContainText('Taking offers');
 
-  await page.getByRole('link', { name: 'My listings' }).click();
+  await page.getByRole('link', { name: 'Listings' }).click();
   const listingLink = page.getByTestId('my-listings').getByRole('link').first();
   const listingId = (await listingLink.innerText()).trim();
 

@@ -263,6 +263,13 @@ object is destructured and deleted.
    The receipt burns **here**, at request time, not at the counter. The burn is the entitlement proof;
    the counter visit is identity verification.
 
+   This is why the borrower inventory never renders the receipt status on its own. `RELEASED` means
+   the token is spent, and between step 1 and step 4 the item is still on a shelf, so a screen
+   reading the receipt alone announces "Collected" about something nobody has collected. The two
+   states are read together by `custodyReadingFor` in `packages/ui` and rendered once. On a finished
+   redemption the same merge is what stops the row saying "Collected" and "Handed over" side by
+   side: one event, stated twice.
+
 2. Borrower attends the vault. Request appears in the vault console `/releases` queue.
 
 3. `POST /redemption-requests/:id/verify`.

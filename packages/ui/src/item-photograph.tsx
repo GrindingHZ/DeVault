@@ -4,7 +4,7 @@ import type { ReactElement } from 'react';
 export interface ItemPhotographProps {
   readonly src: string | null;
   readonly alt: string;
-  readonly size?: 'thumbnail' | 'row' | 'detail';
+  readonly size?: 'thumbnail' | 'row' | 'detail' | 'tile';
   readonly testId?: string;
 }
 
@@ -14,6 +14,9 @@ const boxBySize = {
      specific object, so the photograph is the largest thing in the row. */
   row: 'h-16 w-16 rounded-md',
   detail: 'h-40 w-40 rounded-lg',
+  /* The head of a holdings card. The one size that takes its width from its
+     container and rounds nothing, because the card clips it. */
+  tile: 'h-36 w-full',
 } as const;
 
 /* The item, or a placeholder that holds its space. The space is reserved

@@ -4,45 +4,42 @@ import {
   fetchMyReceipts,
   fetchMyRedemptionRequests,
   messageForError,
-  nameForCategory,
-  nameForRedemptionStatus,
-  nameForReceiptStatus,
   publishListing,
   requestRedemption,
 } from '@depawn/contracts';
-import type { ReceiptResponse, RedemptionRequestResponse } from '@depawn/contracts';
+import type { MoneyDto, ReceiptResponse, RedemptionRequestResponse } from '@depawn/contracts';
 import {
   Button,
-  Card,
-  DataTable,
   Dialog,
-  Explain,
+  EmptyState,
   Field,
-  ItemPhotograph,
   Money,
   Page,
   PageHeader,
+  PageSection,
   Skeleton,
-  StatusBadge,
   toMinorUnits,
 } from '@depawn/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Navigate, createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import type { ReactElement } from 'react';
+import { z } from 'zod';
 import { useCurrentAccount } from '../current-account';
+import { HoldingDetail } from '../holdings/holding-detail';
+import { HoldingTile } from '../holdings/holding-tile';
 import { marketKeys } from '../market-keys';
 import { MarketShell } from '../market-shell';
-import { receiptStatusTone } from '../receipt-status-tone';
 
-/* The tail rather than the head: a ULID begins with a timestamp, so every
-   receipt issued the same afternoon shares its first characters and only the
-   end of the string tells two of them apart. */
-function shortReference(id: string): string {
-  return id.slice(-6).toUpperCase();
-}
+/* Which item the reader has opened, in the URL rather than in React state, so
+   the back button closes the record and a link opens on it. */
+const receiptsSearchSchema = z.object({ item: z.string().min(1).optional() });
 
 export const Route = createFileRoute('/borrow/receipts')({
+  validateSearch: (input: Record<string, unknown>) => {
+    const parsed = receiptsSearchSchema.safeParse(input);
+    return parsed.success ? parsed.data : {};
+  },
   component: BorrowReceiptsPage,
 });
 
@@ -69,7 +66,7 @@ function BorrowReceiptsPage(): ReactElement | null {
           title="My items"
           description="What the vault is holding for you, and what you can do with each one."
         />
-        <ReceiptsCard />
+        <Holdings />
       </Page>
     </MarketShell>
   );
@@ -87,8 +84,18 @@ function redemptionMessageFor(error: unknown): string {
   return messageForError(error, 'The request could not be made.');
 }
 
-function ReceiptsCard(): ReactElement {
+/* Money is minor units in a string, so the sum is bigint and never a float. */
+function totalOf(values: readonly MoneyDto[], currency: string): MoneyDto {
+  const minorUnits = values
+    .filter((value) => value.currency === currency)
+    .reduce((running, value) => running + BigInt(value.minorUnits), 0n);
+  return { minorUnits: minorUnits.toString(), currency };
+}
+
+function Holdings(): ReactElement {
   const queryClient = useQueryClient();
+  const navigate = useNavigate({ from: Route.fullPath });
+  const search = Route.useSearch();
   const receiptsQuery = useQuery({ queryKey: receiptKeys.myReceipts, queryFn: fetchMyReceipts });
   const redemptionsQuery = useQuery({
     queryKey: receiptKeys.myRedemptions,
@@ -111,150 +118,163 @@ function ReceiptsCard(): ReactElement {
     onError: (error) => setRedemptionError(redemptionMessageFor(error)),
   });
 
-  const redemptionByReceipt = new Map<string, RedemptionRequestResponse>(
-    (redemptionsQuery.data?.items ?? []).map((item) => [item.receiptId, item]),
-  );
+  function openItem(receiptId: string | undefined): void {
+    void navigate({ search: () => (receiptId === undefined ? {} : { item: receiptId }) });
+  }
 
   if (receiptsQuery.isPending) {
+    /* A skeleton in the shape of the answer, never a spinner
+       (docs/DESIGN-BRIEF.md rule 5). */
     return (
-      <Card title="My receipts">
-        <Skeleton lineCount={4} />
-      </Card>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {[0, 1, 2].map((slot) => (
+          <div key={slot} className="rounded-lg border border-edge bg-surface-raised p-3">
+            <div className="mb-3 h-36 rounded-md bg-surface-sunken" />
+            <Skeleton lineCount={3} />
+          </div>
+        ))}
+      </div>
     );
   }
   if (receiptsQuery.isError || receiptsQuery.data === undefined) {
     return (
-      <Card title="My receipts">
-        <p role="alert" className="font-body text-sm text-status-danger">
-          Your receipts could not be loaded.
-        </p>
-      </Card>
+      <p role="alert" className="font-body text-sm text-status-danger">
+        Your items could not be loaded.
+      </p>
     );
   }
 
+  const receipts = receiptsQuery.data.items;
+  const redemptionByReceipt = new Map<string, RedemptionRequestResponse>(
+    (redemptionsQuery.data?.items ?? []).map((item) => [item.receiptId, item]),
+  );
+  const opened = receipts.find((receipt) => receipt.id === search.item);
+
+  if (receipts.length === 0) {
+    return (
+      <EmptyState
+        title="Nothing in the vault yet"
+        description="Bring an item to a vault. Once staff have appraised it and taken custody, it appears here and you can borrow against it."
+      />
+    );
+  }
+
+  const currency = receipts[0]?.appraisedValue.currency ?? 'AUD';
+  const inVault = receipts.filter((receipt) => receipt.status === 'IN_VAULT');
+  const securing = receipts.filter((receipt) => receipt.status === 'ENCUMBERED');
+
   return (
-    <Card title="My receipts">
+    <>
+      <PageSection>
+        <dl className="flex flex-wrap gap-8 border-b border-edge pb-4">
+          <Total
+            label="Appraised"
+            hint={`Across ${String(receipts.length)} item${receipts.length === 1 ? '' : 's'}`}
+            value={totalOf(
+              receipts.map((receipt) => receipt.appraisedValue),
+              currency,
+            )}
+          />
+          <Total
+            label="Securing loans"
+            hint={securing.length === 0 ? 'Nothing pledged' : 'Pledged until settled'}
+            tone={securing.length === 0 ? 'default' : 'warning'}
+            value={totalOf(
+              securing.map((receipt) => receipt.appraisedValue),
+              currency,
+            )}
+          />
+          <Total
+            label="Free to borrow against"
+            hint={`${String(inVault.length)} item${inVault.length === 1 ? '' : 's'} in the vault`}
+            value={totalOf(
+              inVault.map((receipt) => receipt.appraisedValue),
+              currency,
+            )}
+          />
+        </dl>
+      </PageSection>
+
       {redemptionError === null ? null : (
-        <p role="alert" className="mb-3 font-body text-sm text-status-danger">
+        <p role="alert" className="font-body text-sm text-status-danger">
           {redemptionError}
         </p>
       )}
-      <div data-testid="my-receipts">
-        <DataTable
-          columns={[
-            /* The item leads, because this is the reader's own property and
-               the receipt id is only how our systems refer to it.
 
-               A short reference rather than the whole identifier. Somebody
-               at the counter does need something to quote, and twenty six
-               characters of it repeated down a column is noise they have to
-               read past to find their own watch. The full value stays in the
-               title for anyone who needs to copy it. */
-            {
-              key: 'item',
-              header: 'Item',
-              render: (receipt: ReceiptResponse) => (
-                <span className="flex items-center gap-3">
-                  <ItemPhotograph
-                    src={receipt.hasPhotograph ? `/api/v1/receipts/${receipt.id}/photo` : null}
-                    alt={receipt.itemDescription}
-                    testId={`photo-${receipt.id}`}
-                  />
-                  <span className="min-w-0">
-                    <span className="block font-body text-sm font-semibold text-ink-primary">
-                      {receipt.itemDescription}
-                    </span>
-                    <span className="block font-body text-xs text-ink-secondary">
-                      {nameForCategory(receipt.itemCategory)}
-                    </span>
-                    <span
-                      data-testid={`receipt-${receipt.id}`}
-                      title={receipt.id}
-                      className="mt-0.5 block font-mono text-xs text-ink-secondary"
-                    >
-                      Ref {shortReference(receipt.id)}
-                    </span>
-                  </span>
-                </span>
-              ),
-            },
-            {
-              key: 'value',
-              label: 'Appraised value',
-              header: (
-                <span className="inline-flex items-center">
-                  Appraised value
-                  <Explain termId="appraisedValue" audience="borrower" />
-                </span>
-              ),
-              render: (receipt: ReceiptResponse) => (
-                <span className="font-mono tabular-nums">
-                  <Money value={receipt.appraisedValue} />
-                </span>
-              ),
-            },
-            {
-              key: 'status',
-              header: 'Status',
-              render: (receipt: ReceiptResponse) => (
-                <StatusBadge
-                  tone={receiptStatusTone(receipt.status)}
-                  label={nameForReceiptStatus(receipt.status)}
-                />
-              ),
-            },
-            {
-              key: 'redemption',
-              header: 'Redemption',
-              render: (receipt: ReceiptResponse) => {
-                const redemption = redemptionByReceipt.get(receipt.id);
-                return redemption === undefined ? (
-                  <span className="font-body text-sm text-ink-secondary">Not requested</span>
-                ) : (
-                  <span data-testid={`redemption-${receipt.id}`}>
-                    <StatusBadge
-                      tone={redemption.status === 'RELEASED' ? 'success' : 'active'}
-                      label={nameForRedemptionStatus(redemption.status)}
-                    />
-                  </span>
-                );
-              },
-            },
-            {
-              key: 'actions',
-              header: '',
-              render: (receipt: ReceiptResponse) =>
-                receipt.status === 'IN_VAULT' ? (
-                  <span className="flex gap-2">
-                    <Button
-                      variant="secondary"
-                      data-testid={`list-${receipt.id}`}
-                      onClick={() => setListingReceipt(receipt)}
-                    >
-                      List
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      className="whitespace-nowrap"
-                      data-testid={`redeem-${receipt.id}`}
-                      onClick={() => redemptionMutation.mutate(receipt.id)}
-                      disabled={redemptionMutation.isPending}
-                    >
-                      Ask for it back
-                    </Button>
-                  </span>
-                ) : null,
-            },
-          ]}
-          rows={receiptsQuery.data.items}
-          rowKey={(receipt) => receipt.id}
-          emptyTitle="No receipts yet"
-        />
+      <div
+        data-testid="my-receipts"
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
+      >
+        {receipts.map((receipt) => (
+          <HoldingTile
+            key={receipt.id}
+            receipt={receipt}
+            redemption={redemptionByReceipt.get(receipt.id)}
+            onOpen={openItem}
+            actions={
+              receipt.status === 'IN_VAULT' ? (
+                <>
+                  <Button
+                    variant="secondary"
+                    data-testid={`list-${receipt.id}`}
+                    onClick={() => setListingReceipt(receipt)}
+                  >
+                    List
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="whitespace-nowrap"
+                    data-testid={`redeem-${receipt.id}`}
+                    onClick={() => redemptionMutation.mutate(receipt.id)}
+                    disabled={redemptionMutation.isPending}
+                  >
+                    Ask for it back
+                  </Button>
+                </>
+              ) : undefined
+            }
+          />
+        ))}
       </div>
+
+      {opened === undefined ? null : (
+        <HoldingDetail
+          receipt={opened}
+          redemption={redemptionByReceipt.get(opened.id)}
+          onClose={() => openItem(undefined)}
+        />
+      )}
+
       {listingReceipt === null ? null : (
         <ListReceiptDialog receipt={listingReceipt} onClose={() => setListingReceipt(null)} />
       )}
-    </Card>
+    </>
+  );
+}
+
+function Total({
+  label,
+  hint,
+  value,
+  tone,
+}: {
+  readonly label: string;
+  readonly hint: string;
+  readonly value: MoneyDto;
+  readonly tone?: 'default' | 'warning';
+}): ReactElement {
+  return (
+    <div>
+      <dt className="font-body text-xs text-ink-secondary">{label}</dt>
+      <dd
+        className={`mt-1 font-mono text-lg tabular-nums ${
+          tone === 'warning' ? 'text-status-warning' : 'text-ink-primary'
+        }`}
+      >
+        <Money value={value} />
+      </dd>
+      <dd className="mt-0.5 font-body text-xs text-ink-secondary">{hint}</dd>
+    </div>
   );
 }
 
@@ -322,6 +342,9 @@ function ListReceiptDialog({
 
   return (
     <Dialog title="List this receipt" isOpen onClose={onClose}>
+      <p className="mb-4 font-body text-sm text-ink-secondary">
+        {receipt.itemDescription}, appraised at <Money value={receipt.appraisedValue} />.
+      </p>
       <form
         className="flex flex-col gap-4"
         onSubmit={(event) => {

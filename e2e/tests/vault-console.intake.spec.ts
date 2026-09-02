@@ -92,7 +92,7 @@ test('an item goes from intake to a receipt the borrower can see', async ({
   await borrowerPage.getByTestId('login-submit').click();
   await expect(borrowerPage.getByTestId('authenticated-home')).toBeVisible();
 
-  await borrowerPage.getByRole('link', { name: 'My receipts' }).click();
+  await borrowerPage.getByRole('link', { name: 'My items' }).click();
   await expect(borrowerPage.getByTestId(`receipt-${receiptId}`)).toBeVisible();
   await expect(borrowerPage.getByTestId('my-receipts')).toContainText('In the vault');
   await borrowerContext.close();

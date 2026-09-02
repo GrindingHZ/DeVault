@@ -111,7 +111,7 @@ test('the demo runbook walks end to end exactly as docs/DEMO.md describes', asyn
   // Step 2. The borrower lists it and two lenders compete.
   const borrowerPage = await openApp(browser, marketplaceBase, '/login');
   await signIn(borrowerPage, borrowerEmail, password);
-  await borrowerPage.getByRole('link', { name: 'My receipts' }).click();
+  await borrowerPage.getByRole('link', { name: 'My items' }).click();
   await borrowerPage.getByRole('button', { name: 'List' }).click();
   await borrowerPage.getByTestId('list-principal').fill('1500.00');
   await borrowerPage.getByTestId('list-submit').click();
@@ -178,9 +178,11 @@ test('the demo runbook walks end to end exactly as docs/DEMO.md describes', asyn
   await borrowerPage.getByRole('button', { name: 'Repay and release the item' }).click();
   await expect(borrowerPage.getByTestId('my-loans')).toContainText('Repaid');
 
-  await borrowerPage.getByRole('link', { name: 'My receipts' }).click();
+  await borrowerPage.getByRole('link', { name: 'My items' }).click();
   await borrowerPage.getByTestId(`redeem-${receiptId}`).click();
-  await expect(borrowerPage.getByTestId(`redemption-${receiptId}`)).toContainText('Requested');
+  await expect(borrowerPage.getByTestId(`redemption-${receiptId}`)).toContainText(
+    'Collection requested',
+  );
 
   await vaultPage.goto(`${vaultConsoleBase}/releases`);
   await expect(vaultPage.getByTestId('release-queue')).toContainText(receiptId);

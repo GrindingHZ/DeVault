@@ -169,7 +169,7 @@ test('a borrower repays a matured loan and the item comes back', async ({ page, 
   await page.getByRole('button', { name: 'Repay and release the item' }).click();
   await expect(page.getByTestId('my-loans')).toContainText('Repaid');
 
-  await page.getByRole('link', { name: 'My receipts' }).click();
+  await page.getByRole('link', { name: 'My items' }).click();
   await expect(page.getByTestId('my-receipts')).toContainText('In the vault');
 
   await page.getByRole('link', { name: 'Wallet' }).click();

@@ -13,6 +13,18 @@ const preset: Omit<Config, 'content'> = {
       transitionTimingFunction: {
         enter: 'var(--motion-ease-enter)',
         exit: 'var(--motion-ease-exit)',
+        /* Resolves to the entering curve everywhere except the floor, which
+           is the one scope that overshoots (P8h). A component asks for the
+           spring and gets whatever the surface it landed on means by it. */
+        spring: 'var(--motion-ease-spring)',
+      },
+      /* The P8h amplitude tokens, exposed the same way the durations are so
+         a control never reaches for a raw transform. */
+      scale: {
+        press: 'var(--motion-press-scale)',
+      },
+      translate: {
+        lift: 'var(--motion-lift)',
       },
       boxShadow: {
         raised: 'var(--elevation-raised)',

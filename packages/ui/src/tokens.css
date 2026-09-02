@@ -111,6 +111,27 @@
      screen, which the 2.5rem product row cannot do without scrolling
      something that should be readable at a glance. */
   --density-row-floor: 2.25rem;
+
+  /* Added in P8h under the amendment in docs/13-design-system.md. Additive:
+     no value above this line changed.
+
+     P8c tokenised how long a thing takes and never what it does, so the only
+     channel anything in the product moved on was colour. Colour is the one
+     channel a reader may not be able to see, and a control that does not
+     answer a press reads as a picture of a control rather than a control.
+
+     Amplitude is a token rather than a class because the same component has
+     to be emphatic on a floor somebody visits and nearly still on a terminal
+     somebody works at for a shift. The component says `active:scale-press`
+     once; the surface decides how far that is. */
+  --motion-press-scale: 0.97;
+  --motion-lift: -1px;
+
+  /* Overshoot is off here. A control that springs past its own size is right
+     on the marketplace floor and wrong on a reconciliation screen, so the
+     default is the same deceleration everything else enters on and the floor
+     scope below opts in. */
+  --motion-ease-spring: var(--motion-ease-enter);
 }
 
 /* Somebody who has asked their system not to animate things has asked for a
@@ -139,6 +160,13 @@
   --density-row-height: 3rem;
   --space-4: 0.75rem;
   --color-text-secondary: #334155;
+
+  /* Barely there on purpose. This is a fixed screen in a lit room that one
+     person drives through hundreds of intakes, where a control that hops
+     under the cursor is an irritation rather than a confirmation. The press
+     still registers, at the smallest amplitude that still reads. */
+  --motion-press-scale: 0.99;
+  --motion-lift: 0px;
 }
 
 /* The marketplace workspace. P0.6 amended the freeze to permit the palette to
@@ -180,8 +208,32 @@
 
   --density-row-height: var(--density-row-floor);
 
+  /* The floor is the surface a lender chooses to be on, and the only one
+     permitted to overshoot. The release settles past the resting size and
+     comes back, which is the difference between a control that acknowledges
+     a press and one that feels handled. */
+  --motion-press-scale: 0.96;
+  --motion-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
   /* A shadow tuned for light surfaces disappears on a dark one. Depth here
      comes from a lifted surface plus a darker cast than the page ground. */
   --elevation-raised: 0 1px 0 rgb(255 255 255 / 0.03), 0 8px 24px -12px rgb(0 0 0 / 0.7);
   --elevation-overlay: 0 1px 0 rgb(255 255 255 / 0.04), 0 20px 40px -16px rgb(0 0 0 / 0.85);
+}
+
+/* Amplitude has to be collapsed after the scope blocks rather than alongside
+   the durations at the top of the file. A scope selector and `:root` carry
+   the same specificity, so the floor override written above would otherwise
+   win on document order and reinstate exactly the motion this query exists
+   to remove.
+
+   Duration is not repeated here. Collapsing it once was enough, because
+   nothing below that block sets a duration. */
+@media (prefers-reduced-motion: reduce) {
+  :root,
+  [data-surface='terminal'],
+  [data-surface='floor'] {
+    --motion-press-scale: 1;
+    --motion-lift: 0px;
+  }
 }

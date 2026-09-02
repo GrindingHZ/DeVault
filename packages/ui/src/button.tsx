@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ReactElement } from 'react';
+import { pressable } from './pressable';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'danger';
 
@@ -26,13 +27,16 @@ export function Button({
          className computed before it silently dropped every layout class a
          caller passed, which is why a button asked to fill its row did not. */
       className={[
+        pressable,
         /* The gap replaces the space a flex container eats. A label built
            from a word and an element, as in "Lend" beside a Money, rendered
            as one run without it. */
-        'inline-flex min-h-row cursor-pointer items-center justify-center gap-1 rounded-md px-4',
-        'font-body text-sm font-medium transition-colors duration-control ease-enter',
-        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-status-active',
-        'disabled:cursor-not-allowed disabled:opacity-50',
+        'inline-flex min-h-row items-center justify-center gap-1 rounded-md px-4',
+        'font-body text-sm font-medium',
+        /* The shadow is what makes the one pixel of lift legible. Without it
+           the button moves and nothing explains why, which reads as a jitter
+           rather than as a thing being picked up. */
+        'hover:shadow-raised disabled:hover:shadow-none',
         classByVariant[variant],
         className ?? '',
       ].join(' ')}

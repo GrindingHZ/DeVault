@@ -18,7 +18,8 @@
     "check": "turbo run typecheck lint && prettier --check . && bash scripts/check-boundaries.sh && bash scripts/check-prose.sh . && bash scripts/check-design-tokens.sh .",
     "prepare": "husky",
     "move:build": "sui move build --path packages/move",
-    "move:test": "sui move test --path packages/move"
+    "move:test": "sui move test --path packages/move",
+    "move:fixtures": "pnpm --filter @depawn/api exec tsx scripts/generate-move-fixtures.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

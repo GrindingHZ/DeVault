@@ -15,4 +15,4 @@ fixture file the TypeScript reads.
 - [x] test(move): holds release exactly what they held and refund once
 - [x] feat(move): attest domain events beside the settlement that caused them
 - [x] feat(move): accrue interest with the borrower's rounding
-- [ ] test(move): interest agrees with the shared fixtures
+- [x] test(move): interest agrees with the shared fixtures

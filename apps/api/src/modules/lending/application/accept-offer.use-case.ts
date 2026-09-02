@@ -165,6 +165,15 @@ export class AcceptOfferUseCase {
               offerId: winningOffer.id,
               settlementRef,
             },
+            /* The offers that lost. None of them says the money moved: a
+               superseded hold stays held until its owner pulls it (rule M8),
+               and an indexer concluding otherwise would show lenders a
+               balance they do not have. */
+            ...supersededOfferIds.map((offerId) => ({
+              type: 'OfferSuperseded' as const,
+              offerId,
+              listingId: listing.id,
+            })),
           ],
           context,
         );

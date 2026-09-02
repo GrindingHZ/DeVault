@@ -139,6 +139,15 @@ export class CloseLiquidationUseCase {
               proceeds: closed.value.winningBid.amount,
               distributions: [...distributions],
             },
+            /* The buyer's title, which is a new receipt and has to announce
+               itself as one. An indexer that saw the sale and not the issuance
+               would rebuild a vault holding an item nobody owns. */
+            {
+              type: 'ReceiptIssued',
+              receiptId: reissued.id,
+              vaultId: reissued.vaultId,
+              appraisedValue: reissued.appraisedValue,
+            },
           ],
           context,
         );

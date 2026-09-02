@@ -327,6 +327,66 @@ describe('liquidation', () => {
     expect(requested.body.status).toBe('REQUESTED');
   });
 
+  /* Phase 3 rebuilds state by folding these, so a step that moves the world
+     without announcing itself is a step the indexer would never see. Three of
+     the four used to be silent (docs/14-state-machines.md finding 4). */
+  it('announces every step of a sale, not only the settlement', async () => {
+    const loan = await defaultedLoan();
+    harness.clock.advanceBy(31n * oneDay);
+    const liquidationId = await biddingLiquidation(loan, '200000');
+
+    const bidder = await loginAs(`crier-${randomUUID().slice(0, 8)}@liq.test`, 'MEMBER');
+    await signInAgain(loan.ops);
+    await fund(loan.ops, bidder.email, '400000');
+    await server()
+      .post(`/api/v1/liquidations/${liquidationId}/bids`)
+      .set('Cookie', bidder.cookies)
+      .set('Idempotency-Key', randomUUID())
+      .send({ amount: amount('300000') })
+      .expect(201);
+    await signInAgain(loan.ops);
+    await server()
+      .post(`/api/v1/liquidations/${liquidationId}/close`)
+      .set('Cookie', loan.ops.cookies)
+      .set('Idempotency-Key', randomUUID())
+      .send({})
+      .expect(201);
+
+    const published = await harness.prisma.outboxEvent.findMany({
+      orderBy: { createdAt: 'asc' },
+    });
+    const types = published.map((one) => one.type);
+    expect(types).toContain('LiquidationScheduled');
+    expect(types).toContain('LiquidationOpened');
+    expect(types).toContain('LiquidationSettled');
+    /* The buyer's title is a new receipt and announces itself as one. Without
+       it an indexer rebuilds a vault holding an item nobody owns. */
+    expect(types).toContain('ReceiptIssued');
+  });
+
+  it('announces a sale that was called off', async () => {
+    const loan = await defaultedLoan();
+    harness.clock.advanceBy(31n * oneDay);
+    await signInAgain(loan.ops);
+    const scheduled = await server()
+      .post(`/api/v1/loans/${loan.loanId}/liquidations`)
+      .set('Cookie', loan.ops.cookies)
+      .set('Idempotency-Key', randomUUID())
+      .send({ reservePrice: amount('200000') })
+      .expect(201);
+    await server()
+      .post(`/api/v1/liquidations/${scheduled.body.id}/cancel`)
+      .set('Cookie', loan.ops.cookies)
+      .set('Idempotency-Key', randomUUID())
+      .send({ reason: 'The borrower settled privately' })
+      .expect(201);
+
+    const published = await harness.prisma.outboxEvent.findMany({
+      where: { type: 'LiquidationCancelled' },
+    });
+    expect(published).toHaveLength(1);
+  });
+
   /* The fee is the one term read long after origination, so it is the one
      place an edit could reach an older loan. It cannot: the loan carries the
      fee it was written under. */

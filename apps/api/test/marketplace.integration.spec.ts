@@ -258,6 +258,18 @@ describe('marketplace', () => {
     // Money still out there, and the row says so.
     expect(offers.body.items[0].isHoldHeld).toBe(true);
 
+    /* Both halves announced. A cancellation used to move the listing and
+       every offer on it while saying nothing, so a Phase 3 indexer folding
+       events would have shown the listing live and the offers standing long
+       after both had stopped (docs/14-state-machines.md finding 4). */
+    const published = await harness.prisma.outboxEvent.findMany({
+      where: { type: { in: ['ListingCancelled', 'OfferSuperseded'] } },
+    });
+    expect(published.map((one) => one.type).sort()).toEqual([
+      'ListingCancelled',
+      'OfferSuperseded',
+    ]);
+
     // The hold is still committed until the lender reclaims (rule M8).
     const heldBefore = await server()
       .get('/api/v1/me/balance')

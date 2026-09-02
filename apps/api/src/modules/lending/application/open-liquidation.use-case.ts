@@ -4,6 +4,8 @@ import { LIQUIDATION_REPOSITORY } from '../../../domain/lending/liquidation-repo
 import type { LiquidationRepository } from '../../../domain/lending/liquidation-repository';
 import { LiquidationNotFound } from '../../../domain/lending/liquidation-not-found';
 import { AUDIT_PORT } from '../../../domain/ports/audit.port';
+import { DOMAIN_EVENT_PUBLISHER } from '../../../domain/ports/domain-event-publisher.port';
+import type { DomainEventPublisher } from '../../../domain/ports/domain-event-publisher.port';
 import type { AuditPort } from '../../../domain/ports/audit.port';
 import { CLOCK_PORT } from '../../../domain/ports/clock.port';
 import type { ClockPort } from '../../../domain/ports/clock.port';
@@ -31,6 +33,7 @@ export class OpenLiquidationUseCase {
     @Inject(SYSTEM_STATE_PORT) private readonly systemState: SystemStatePort,
     @Inject(LIQUIDATION_REPOSITORY) private readonly liquidations: LiquidationRepository,
     @Inject(AUDIT_PORT) private readonly audit: AuditPort,
+    @Inject(DOMAIN_EVENT_PUBLISHER) private readonly events: DomainEventPublisher,
     @Inject(CLOCK_PORT) private readonly clock: ClockPort,
   ) {}
 
@@ -53,6 +56,16 @@ export class OpenLiquidationUseCase {
         return opened;
       }
       await this.liquidations.save(opened.value, context);
+      await this.events.publish(
+        [
+          {
+            type: 'LiquidationOpened',
+            liquidationId: liquidation.id,
+            closesAt: opened.value.closesAt ?? now,
+          },
+        ],
+        context,
+      );
       await this.audit.record(
         {
           actorType: 'ACCOUNT',

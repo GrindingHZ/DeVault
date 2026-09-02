@@ -59,8 +59,8 @@ DRAFT ──publish──▶ ACTIVE ──acceptOffer──▶ MATCHED
 | Event | From, to | Guard | Effects | Fired by |
 |---|---|---|---|---|
 | `publish` | DRAFT to ACTIVE | caller is the borrower, not past its lifetime | `ListingPublished` | `publish-listing` |
-| `acceptOffer` | ACTIVE to MATCHED | not expired, offer PENDING and unexpired, inside the loan to value cap | supersedes every other offer, releases the winner's hold into a disbursement and a fee, encumbers the receipt, writes the loan and both notes, `LoanOriginated` | `accept-offer` |
-| `cancel` | DRAFT or ACTIVE to CANCELLED | caller is the borrower | supersedes every pending offer, whose holds stay held for their owners to pull | `cancel-listing` |
+| `acceptOffer` | ACTIVE to MATCHED | not expired, offer PENDING and unexpired, inside the loan to value cap | supersedes every other offer, releases the winner's hold into a disbursement and a fee, encumbers the receipt, writes the loan and both notes, `LoanOriginated` and one `OfferSuperseded` per beaten offer | `accept-offer` |
+| `cancel` | DRAFT or ACTIVE to CANCELLED | caller is the borrower | supersedes every pending offer, whose holds stay held for their owners to pull, `ListingCancelled` and one `OfferSuperseded` each | `cancel-listing` |
 | `expire` | ACTIVE to EXPIRED | past `expiresAt` | supersedes every pending offer | **nothing today** |
 
 `expire` is never called. Nothing sweeps listings, and the only scheduled work in the process is the
@@ -88,7 +88,7 @@ PENDING ──accept─────▶ ACCEPTED
 |---|---|---|---|---|
 | `accept` | PENDING to ACCEPTED | through `Listing.acceptOffer` | hold released into the origination | `accept-offer` |
 | `withdraw` | PENDING to WITHDRAWN | caller is the lender, past the minimum offer lifetime | hold refunded, `OfferWithdrawn` | `withdraw-offer` |
-| `supersede` | PENDING to SUPERSEDED | another offer was accepted, or the listing was cancelled | none. The hold stays held | `accept-offer`, `cancel-listing` |
+| `supersede` | PENDING to SUPERSEDED | another offer was accepted, or the listing was cancelled | the hold stays held, `OfferSuperseded` | `accept-offer`, `cancel-listing` |
 | `expire` | PENDING to EXPIRED | past `expiresAt` | none | **nothing today** |
 
 The hold is a second dimension this graph does not show, and the pair is the whole of rule M8. A
@@ -159,10 +159,10 @@ SCHEDULED ──open──▶ BIDDING ──close──▶ SETTLED
 
 | Event | From, to | Guard | Effects | Fired by |
 |---|---|---|---|---|
-| `open` | SCHEDULED to BIDDING | operations | sets `opensAt` and `closesAt` | `open-liquidation` |
+| `open` | SCHEDULED to BIDDING | operations | sets `opensAt` and `closesAt`, `LiquidationOpened` | `open-liquidation` |
 | `bid` | BIDDING, no status change | inside the window, at or above the reserve, above the standing high bid | holds the bidder's funds. The beaten bid stays held for its owner to pull | `place-bid` |
 | `close` | BIDDING to SETTLED | at least one bid | releases the winning hold across the waterfall, burns the receipt and issues the buyer one for the same item, marks the loan LIQUIDATED, `LiquidationSettled` | `close-liquidation` |
-| `cancel` | SCHEDULED to CANCELLED | operations | audit entry carrying the reason. The loan's sale slot is freed | `cancel-liquidation` |
+| `cancel` | SCHEDULED to CANCELLED | operations | audit entry carrying the reason, the loan's sale slot is freed, `LiquidationCancelled` | `cancel-liquidation` |
 
 `docs/02` drew `cancel` hanging off BIDDING. The code allows it only from SCHEDULED, and the code is
 right: cancelling an auction that has live bids would have to refund every hold on it, and nothing
@@ -235,14 +235,21 @@ column at the cost of scheduled work in a process that has none, which is a Phas
 this one. The third is fixed, above. `CustodyReceipt.transferHolder` is a fourth, deliberately: it is
 the seam a Phase 3 object transfer lands on and nothing in Phase 1 should be reaching it.
 
-**4. Five state changes emit no event:** a cancelled listing, a superseded offer, a scheduled
-liquidation, an opened one, and now a cancelled one. Every other transition that matters publishes
-one. `docs/08` has the Phase 3 indexer rebuilding state from events, so these are the five it would
-not see.
+**4. Five state changes emitted no event. Fixed, and it was six.** A cancelled listing, a superseded
+offer, a scheduled liquidation, an opened one, a cancelled one, and the receipt a sale now issues to
+its buyer. `docs/08` has the Phase 3 indexer rebuilding state from events, so every one of those was
+a change it would never have seen: a listing still taking offers after its borrower called it off, a
+sale that never opened, a vault holding an item nobody owns.
 
-The fifth is new, and deliberate for now: `cancel-liquidation` was written to match its three
-siblings rather than to be the one liquidation use case that publishes. Either all four gain an event
-or none does, and that decision belongs with the indexer in P9 rather than ahead of it.
+`ListingCancelled`, `OfferSuperseded`, `LiquidationScheduled`, `LiquidationOpened` and
+`LiquidationCancelled` join the union, and `close-liquidation` announces the buyer's receipt as the
+`ReceiptIssued` it is. `OfferSuperseded` is published one per beaten offer rather than one carrying a
+list, because an indexer folds per aggregate and an offer is its own aggregate.
+
+What none of them says is that money moved. A superseded hold stays held until its owner pulls it
+(rule M8), and an indexer reading supersession as a refund would show lenders a balance they do not
+have. The tests assert the events exist; the flow 9 tests assert the money does not move until
+somebody asks.
 
 **5. The `docs/02` drawings were stale in three places. Fixed.** The receipt's `claimDefault` target
 and its liquidation burn, both argued out in Q-012 and never redrawn, and the liquidation `cancel`

@@ -28,6 +28,11 @@ export type DomainEvent =
       readonly borrowerAccountId: AccountId;
     }
   | {
+      readonly type: 'ListingCancelled';
+      readonly listingId: ListingId;
+      readonly borrowerAccountId: AccountId;
+    }
+  | {
       readonly type: 'OfferPlaced';
       readonly listingId: ListingId;
       readonly offerId: OfferId;
@@ -35,6 +40,16 @@ export type DomainEvent =
       readonly rateBasisPoints: number;
     }
   | { readonly type: 'OfferWithdrawn'; readonly offerId: OfferId }
+  /* Beaten, or on a listing its borrower called off. The hold behind it is
+     deliberately not touched: refunds are pull and not push (rule M8), so the
+     money keeps sitting there until its owner asks. An indexer rebuilding
+     state from events has to know the offer lost without concluding the money
+     came back. */
+  | {
+      readonly type: 'OfferSuperseded';
+      readonly offerId: OfferId;
+      readonly listingId: ListingId;
+    }
   | {
       readonly type: 'LoanOriginated';
       readonly loanId: LoanId;
@@ -61,6 +76,18 @@ export type DomainEvent =
       readonly requestedBy: AccountId;
     }
   | { readonly type: 'ItemReleased'; readonly receiptId: ReceiptId; readonly releasedBy: StaffId }
+  | {
+      readonly type: 'LiquidationScheduled';
+      readonly liquidationId: LiquidationId;
+      readonly loanId: LoanId;
+      readonly reservePrice: Money;
+    }
+  | {
+      readonly type: 'LiquidationOpened';
+      readonly liquidationId: LiquidationId;
+      readonly closesAt: Instant;
+    }
+  | { readonly type: 'LiquidationCancelled'; readonly liquidationId: LiquidationId }
   | {
       readonly type: 'LiquidationSettled';
       readonly liquidationId: LiquidationId;

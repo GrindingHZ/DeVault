@@ -4,6 +4,8 @@ import { LIQUIDATION_REPOSITORY } from '../../../domain/lending/liquidation-repo
 import type { LiquidationRepository } from '../../../domain/lending/liquidation-repository';
 import { LiquidationNotFound } from '../../../domain/lending/liquidation-not-found';
 import { AUDIT_PORT } from '../../../domain/ports/audit.port';
+import { DOMAIN_EVENT_PUBLISHER } from '../../../domain/ports/domain-event-publisher.port';
+import type { DomainEventPublisher } from '../../../domain/ports/domain-event-publisher.port';
 import type { AuditPort } from '../../../domain/ports/audit.port';
 import { UNIT_OF_WORK } from '../../../domain/ports/unit-of-work';
 import type { UnitOfWork } from '../../../domain/ports/unit-of-work';
@@ -36,6 +38,7 @@ export class CancelLiquidationUseCase {
     @Inject(UNIT_OF_WORK) private readonly unitOfWork: UnitOfWork,
     @Inject(LIQUIDATION_REPOSITORY) private readonly liquidations: LiquidationRepository,
     @Inject(AUDIT_PORT) private readonly audit: AuditPort,
+    @Inject(DOMAIN_EVENT_PUBLISHER) private readonly events: DomainEventPublisher,
   ) {}
 
   /* No pause check. Pausing stops money and collateral moving; this moves
@@ -54,6 +57,10 @@ export class CancelLiquidationUseCase {
         return cancelled;
       }
       await this.liquidations.save(cancelled.value, context);
+      await this.events.publish(
+        [{ type: 'LiquidationCancelled', liquidationId: liquidation.id }],
+        context,
+      );
       await this.audit.record(
         {
           actorType: 'ACCOUNT',

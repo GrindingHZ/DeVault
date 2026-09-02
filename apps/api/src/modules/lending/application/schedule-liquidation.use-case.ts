@@ -10,6 +10,8 @@ import type { LoanRepository } from '../../../domain/lending/loan-repository';
 import { PROTOCOL_PARAMETERS } from '../../../domain/marketplace/protocol-parameters';
 import type { ProtocolParameters } from '../../../domain/marketplace/protocol-parameters';
 import { AUDIT_PORT } from '../../../domain/ports/audit.port';
+import { DOMAIN_EVENT_PUBLISHER } from '../../../domain/ports/domain-event-publisher.port';
+import type { DomainEventPublisher } from '../../../domain/ports/domain-event-publisher.port';
 import type { AuditPort } from '../../../domain/ports/audit.port';
 import { CLOCK_PORT } from '../../../domain/ports/clock.port';
 import type { ClockPort } from '../../../domain/ports/clock.port';
@@ -39,6 +41,7 @@ export class ScheduleLiquidationUseCase {
     @Inject(LOAN_REPOSITORY) private readonly loans: LoanRepository,
     @Inject(LIQUIDATION_REPOSITORY) private readonly liquidations: LiquidationRepository,
     @Inject(AUDIT_PORT) private readonly audit: AuditPort,
+    @Inject(DOMAIN_EVENT_PUBLISHER) private readonly events: DomainEventPublisher,
     @Inject(CLOCK_PORT) private readonly clock: ClockPort,
     @Inject(ID_GENERATOR) private readonly idGenerator: IdGenerator,
     @Inject(PROTOCOL_PARAMETERS) private readonly parameters: ProtocolParameters,
@@ -74,6 +77,17 @@ export class ScheduleLiquidationUseCase {
         reservePrice: command.reservePrice,
       });
       await this.liquidations.save(liquidation, context);
+      await this.events.publish(
+        [
+          {
+            type: 'LiquidationScheduled',
+            liquidationId: liquidation.id,
+            loanId: loan.id,
+            reservePrice: command.reservePrice,
+          },
+        ],
+        context,
+      );
       await this.audit.record(
         {
           actorType: 'ACCOUNT',

@@ -186,6 +186,14 @@ describe('origination', () => {
     const loserRow = await harness.prisma.offer.findUnique({ where: { id: losingOfferId } });
     expect(loserRow?.status).toBe('SUPERSEDED');
 
+    /* Announced, and announcing only that it lost. The hold behind it is
+       untouched until its owner pulls it, so an indexer that read this as a
+       refund would show the lender money they do not have. */
+    const superseded = await harness.prisma.outboxEvent.findMany({
+      where: { type: 'OfferSuperseded' },
+    });
+    expect(superseded).toHaveLength(1);
+
     // Rule M8: the losing hold stays committed until the lender reclaims.
     const loserBefore = await server()
       .get('/api/v1/me/balance')

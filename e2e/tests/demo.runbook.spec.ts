@@ -116,9 +116,11 @@ test('the demo runbook walks end to end exactly as docs/DEMO.md describes', asyn
   await borrowerPage.getByTestId('list-principal').fill('1500.00');
   await borrowerPage.getByTestId('list-submit').click();
   await expect(borrowerPage.getByTestId('my-listings')).toContainText('Taking offers');
-  const listingId = (
-    await borrowerPage.getByTestId('my-listings').getByRole('link').first().innerText()
-  ).trim();
+  /* The row opens the listing rather than printing its identifier. The test
+     takes the same route a reader does and reads the id off the URL. */
+  await borrowerPage.getByTestId('my-listings').getByTestId('position-row').first().click();
+  await borrowerPage.waitForURL(/listing=/);
+  const listingId = new URL(borrowerPage.url()).searchParams.get('listing') ?? '';
 
   for (const [email, rate] of [
     [rivalEmail, '24.00'],
@@ -141,7 +143,7 @@ test('the demo runbook walks end to end exactly as docs/DEMO.md describes', asyn
   // only then can it be accepted.
   await topRow.getByRole('button').first().click();
   await borrowerPage.getByRole('button', { name: 'Accept this offer' }).click();
-  await borrowerPage.getByRole('link', { name: 'My loans' }).click();
+  await borrowerPage.getByRole('link', { name: 'Portfolio' }).click();
   await expect(borrowerPage.getByTestId('my-loans')).toContainText('Running');
 
   // Step 3. Operations pushes the clock past maturity from the admin screen.
@@ -171,7 +173,11 @@ test('the demo runbook walks end to end exactly as docs/DEMO.md describes', asyn
   await signIn(borrowerPage, borrowerEmail, password);
 
   // Step 4. The borrower repays and the item walks back out of the vault.
-  await borrowerPage.getByRole('link', { name: 'My loans' }).click();
+  await borrowerPage.getByRole('link', { name: 'Portfolio' }).click();
+  /* Past maturity and inside grace, so the loan is one of the few things the
+     band raises. */
+  await expect(borrowerPage.getByTestId('attention-band')).toContainText('In grace');
+  await borrowerPage.getByRole('button', { name: 'Repay', exact: true }).first().click();
   // Interest stopped at maturity, which the clock is now well past.
   await expect(borrowerPage.getByTestId('payoff-total')).toContainText('AUD');
   await expect(borrowerPage.getByTestId('payoff-interest')).toContainText('AUD');

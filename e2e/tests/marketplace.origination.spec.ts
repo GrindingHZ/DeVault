@@ -127,9 +127,12 @@ test('a borrower accepts an offer and both sides see the loan', async ({
   await page.getByTestId('list-submit').click();
   await expect(page.getByTestId('my-listings')).toContainText('Taking offers');
 
-  await page.getByRole('link', { name: 'Listings' }).click();
-  const listingLink = page.getByTestId('my-listings').getByRole('link').first();
-  const listingId = (await listingLink.innerText()).trim();
+  /* The row opens the listing rather than printing its identifier. The id is
+     how our systems refer to the thing, not what the thing is, so the test
+     takes the same route a reader does and reads it off the URL. */
+  await page.getByTestId('my-listings').getByTestId('position-row').first().click();
+  await page.waitForURL(/listing=/);
+  const listingId = new URL(page.url()).searchParams.get('listing') ?? '';
 
   const winnerPage = await offerAs(browser, winnerEmail, listingId, '18.00');
   const loserPage = await offerAs(browser, loserEmail, listingId, '24.00');
@@ -149,15 +152,16 @@ test('a borrower accepts an offer and both sides see the loan', async ({
   await expect(page.getByTestId('offer-book')).toContainText('Total repayable');
   await page.getByRole('button', { name: 'Accept this offer' }).click();
 
+  await page.getByRole('link', { name: 'Portfolio' }).click();
   await expect(page.getByTestId('my-loans')).toContainText('Running');
   await expect(page.getByTestId('my-loans')).toContainText('AUD 2,500.00');
-  await expect(page.getByTestId('my-loans')).toContainText('18.00% p.a.');
+  await expect(page.getByTestId('my-loans')).toContainText('at 18.00% p.a.');
 
   // A full load rather than a client side hop, because this page has been
   // sitting on the listing while another context originated the loan.
-  await winnerPage.goto('/lend/loans');
-  await expect(winnerPage.getByTestId('funded-loans')).toContainText('Running');
-  await expect(winnerPage.getByTestId('funded-loans')).toContainText('AUD 2,500.00');
+  await winnerPage.goto('/portfolio?side=lending');
+  await expect(winnerPage.getByTestId('my-loans')).toContainText('Earning');
+  await expect(winnerPage.getByTestId('my-loans')).toContainText('You lent at 18.00% p.a.');
 
   // The losing hold is committed until its lender pulls it back (rule M8).
   await loserPage.getByRole('link', { name: 'Wallet' }).click();

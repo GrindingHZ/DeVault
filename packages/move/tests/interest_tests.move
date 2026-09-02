@@ -3,6 +3,9 @@ module depawn::interest_tests;
 
 use depawn::interest;
 
+// The value cases live in interest_fixtures_tests.move, generated from the
+// shared fixture file; what stays here is the relation a fixture cannot say.
+
 const DAY_MS: u64 = 86_400_000;
 const YEAR_MS: u64 = 31_536_000_000;
 const STARTED_AT_MS: u64 = 1_700_000_000_000;
@@ -20,17 +23,6 @@ fun stops_accruing_at_maturity() {
     );
     assert!(well_past == at_maturity);
     assert!(at_maturity > 0);
-}
-
-#[test]
-fun accrues_nothing_before_origination() {
-    let matures_at_ms = STARTED_AT_MS + 30 * DAY_MS;
-    assert!(interest::accrued(250_000, 1_800, STARTED_AT_MS, matures_at_ms, STARTED_AT_MS - DAY_MS) == 0);
-}
-
-#[test]
-fun does_not_overflow_on_a_large_principal_held_for_a_full_term() {
-    assert!(interest::accrued(10_000_000_000, 2_400, 0, YEAR_MS, YEAR_MS) == 2_400_000_000);
 }
 
 #[test]

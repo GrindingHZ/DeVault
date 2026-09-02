@@ -632,3 +632,84 @@ model DemoClock {
 
   @@map("demo_clock")
 }
+
+model ChainDeployment {
+  id                     String   @id
+  network                String
+  packageId              String   @map("package_id")
+  configId               String   @map("config_id")
+  adminCapId             String   @map("admin_cap_id")
+  operatorCapId          String   @map("operator_cap_id")
+  custodianCapId         String   @map("custodian_cap_id")
+  treasuryCapId          String?  @map("treasury_cap_id")
+  settlementCoinType     String   @map("settlement_coin_type")
+  settlementCoinDecimals Int      @map("settlement_coin_decimals")
+  publishedAt            DateTime @map("published_at")
+  publishedBy            String   @map("published_by")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  @@map("chain_deployment")
+}
+
+model ChainAccountAddress {
+  accountId String   @id @map("account_id")
+  address   String   @unique
+  source    String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("chain_account_address")
+}
+
+model ChainWallet {
+  id           String   @id
+  accountId    String   @map("account_id")
+  currency     String
+  address      String
+  objectId     String?  @unique @map("object_id")
+  openedDigest String?  @map("opened_digest")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@unique([accountId, currency])
+  @@map("chain_wallet")
+}
+
+enum ChainFundsHoldStatus {
+  HELD
+  RELEASED
+  REFUNDED
+
+  @@map("chain_funds_hold_status")
+}
+
+model ChainFundsHold {
+  id            String               @id
+  accountId     String               @map("account_id")
+  currency      String
+  minorUnits    BigInt               @map("minor_units")
+  objectId      String?              @unique @map("object_id")
+  status        ChainFundsHoldStatus
+  holdDigest    String?              @map("hold_digest")
+  settledDigest String?              @map("settled_digest")
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
+
+  @@index([accountId, status])
+  @@map("chain_funds_hold")
+}
+
+model ChainSettlement {
+  id                  String                @id
+  digest              String?
+  kind                LedgerTransactionKind
+  reference           String
+  ledgerTransactionId String                @unique @map("ledger_transaction_id")
+  occurredAt          DateTime              @map("occurred_at")
+  createdAt           DateTime              @default(now()) @map("created_at")
+  updatedAt           DateTime              @updatedAt @map("updated_at")
+
+  @@index([digest])
+  @@map("chain_settlement")
+}

@@ -69,12 +69,11 @@ describe('PositionSaleRow', () => {
      cannot put a number to. */
   it('writes the principal and today on the line itself', () => {
     render(<PositionSaleRow sale={sale} isSelected={false} onSelect={() => undefined} />);
-    const lent = screen.getByTestId('sale-scale-value-lent');
-    expect(lent.textContent).toContain('Lent');
-    expect(lent.textContent).toContain('2,500.00');
-    const today = screen.getByTestId('sale-scale-value-today');
-    expect(today.textContent).toContain('Today');
-    expect(today.textContent).toContain('2,512.32');
+    const written = screen.getByTestId('sale-scale-value-lent');
+    expect(written.textContent).toContain('Lent');
+    expect(written.textContent).toContain('2,500.00');
+    expect(written.textContent).toContain('Today');
+    expect(written.textContent).toContain('2,512.32');
   });
 
   /* The one figure in colour, because it is the one the decision turns on:
@@ -85,11 +84,6 @@ describe('PositionSaleRow', () => {
     expect(profit.textContent).toContain('+USD 86.98');
     expect(profit.textContent).toContain('3.5%');
     expect(profit.className).toContain('text-market-favourable');
-  });
-
-  it('states how far under today the price sits', () => {
-    render(<PositionSaleRow sale={sale} isSelected={false} onSelect={() => undefined} />);
-    expect(screen.getByTestId('figure-discount').textContent).toContain('2.4%');
   });
 
   /* The line is the part that makes four amounts comparable at a glance: the

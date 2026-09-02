@@ -42,12 +42,26 @@ const dotByEmphasis = {
   muted: 'h-2 w-2 border border-surface-raised',
 } as const;
 
-/* Where the line sits inside the box, and where an annotation sits above it.
-   Two heights rather than one, alternated: two figures a few percent apart
-   would otherwise print over each other, and the gap between them is exactly
-   the kind of small difference this line exists to show. */
-const trackTop = 44;
-const annotationTops = [22, 2] as const;
+/* Where the line sits inside the box, leaving one row above it for the
+   annotations and the leaders down to their dots. */
+const annotationTop = 0;
+const leaderTop = 16;
+const trackTop = 28;
+
+/* Two figures closer together than this share of the line cannot be written
+   side by side without touching. Stacking them at different heights was the
+   first attempt and it failed on the case that matters most: a position
+   listed the day it was drawn has earned nothing yet, so the principal and
+   what it is worth today are the same number in the same place. Closer than
+   this they are written as one label instead. */
+const mergeWithin = 16;
+
+interface Annotation {
+  readonly share: number;
+  readonly id: string;
+  readonly captions: string[];
+  readonly amounts: bigint[];
+}
 
 const trackByTone = {
   favourable: 'bg-market-favourable',
@@ -82,11 +96,30 @@ export function ValueScale({
     return marks.find((mark) => mark.id === id);
   }
 
-  /* In the order they sit along the line, so the alternating heights land on
-     neighbours rather than on whichever order the caller listed them in. */
-  const annotated = marks
-    .filter((mark) => mark.annotate === true)
-    .toSorted((left, right) => Number(left.minorUnits - right.minorUnits));
+  function money(minorUnits: bigint): string {
+    return formatAmount({ minorUnits: minorUnits.toString(), currency });
+  }
+
+  /* Walked in the order they sit along the line, so anything that would be
+     written on top of its neighbour joins it instead. */
+  const annotations: Annotation[] = [];
+  for (const mark of marks
+    .filter((one) => one.annotate === true)
+    .toSorted((left, right) => Number(left.minorUnits - right.minorUnits))) {
+    const share = shareOf(mark.minorUnits);
+    const previous = annotations.at(-1);
+    if (previous !== undefined && share - previous.share <= mergeWithin) {
+      previous.captions.push(mark.caption ?? mark.label);
+      previous.amounts.push(mark.minorUnits);
+      continue;
+    }
+    annotations.push({
+      share,
+      id: mark.id,
+      captions: [mark.caption ?? mark.label],
+      amounts: [mark.minorUnits],
+    });
+  }
 
   return (
     <div className="flex flex-col gap-2" data-testid={testId}>
@@ -101,32 +134,59 @@ export function ValueScale({
         className="relative"
         style={{ height: trackTop + 8 }}
       >
-        {annotated.map((mark, index) => {
-          const top = annotationTops[index % annotationTops.length] ?? annotationTops[0];
-          const share = shareOf(mark.minorUnits);
+        {annotations.map((annotation) => {
           /* Centred on its dot, except at the ends, where a centred label
              would hang off the card and get clipped. */
           const anchor =
-            share < 12 ? 'translateX(0)' : share > 88 ? 'translateX(-100%)' : 'translateX(-50%)';
+            annotation.share < 12
+              ? 'translateX(0)'
+              : annotation.share > 88
+                ? 'translateX(-100%)'
+                : 'translateX(-50%)';
+          /* Two names against one figure when the figures agree, which is
+             what a position listed on the day it was drawn looks like. */
+          const isOneFigure = annotation.amounts.every(
+            (amount) => amount === annotation.amounts[0],
+          );
           return (
-            <span key={`${mark.id}-annotation`}>
+            <span key={annotation.id}>
               <span
-                data-testid={testId === undefined ? undefined : `${testId}-value-${mark.id}`}
-                style={{ left: `${String(share)}%`, top, transform: anchor }}
-                className="absolute flex flex-col whitespace-nowrap leading-tight"
+                data-testid={testId === undefined ? undefined : `${testId}-value-${annotation.id}`}
+                style={{
+                  left: `${String(annotation.share)}%`,
+                  top: annotationTop,
+                  transform: anchor,
+                }}
+                className="absolute whitespace-nowrap font-body text-[11px] text-ink-secondary"
               >
-                {mark.caption === undefined ? null : (
-                  <span className="font-body text-[10px] text-ink-secondary">{mark.caption}</span>
+                {isOneFigure ? (
+                  <>
+                    {`${annotation.captions.join(' · ')} `}
+                    <span className="font-figure tabular-nums text-ink-primary">
+                      {money(annotation.amounts[0] ?? 0n)}
+                    </span>
+                  </>
+                ) : (
+                  annotation.amounts.map((amount, index) => (
+                    <span key={`${annotation.id}-${String(index)}`}>
+                      {index === 0 ? '' : ' · '}
+                      {`${annotation.captions[index] ?? ''} `}
+                      <span className="font-figure tabular-nums text-ink-primary">
+                        {money(amount)}
+                      </span>
+                    </span>
+                  ))
                 )}
-                <span className="font-figure text-[11px] tabular-nums text-ink-primary">
-                  {formatAmount({ minorUnits: mark.minorUnits.toString(), currency })}
-                </span>
               </span>
-              {/* The leader is what ties a figure to its dot once the label
-                  has had to move sideways to fit. */}
+              {/* The leader ties the figure to its dot once the label has had
+                  to move sideways to fit. */}
               <span
                 aria-hidden="true"
-                style={{ left: `${String(share)}%`, top: top + 20, height: trackTop - top - 20 }}
+                style={{
+                  left: `${String(annotation.share)}%`,
+                  top: leaderTop,
+                  height: trackTop - leaderTop,
+                }}
                 className="absolute w-px bg-edge"
               />
             </span>

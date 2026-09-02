@@ -52,9 +52,9 @@ describe('ValueScale', () => {
     expect(screen.getByText('Still to earn')).toBeTruthy();
   });
 
-  /* Two amounts a few percent apart would print over each other on one row,
-     and the gap between them is exactly what this line exists to show. */
-  it('stacks annotated amounts at alternating heights so they cannot collide', () => {
+  /* Two amounts a few percent apart would print over each other, so they are
+     written as one label instead of two overlapping ones. */
+  it('joins annotations that would be written on top of each other', () => {
     const { container } = render(
       <ValueScale
         marks={marks.map((mark) =>
@@ -65,11 +65,10 @@ describe('ValueScale', () => {
         testId="scale"
       />,
     );
-    const lent = container.querySelector('[data-testid="scale-value-lent"]') as HTMLElement;
-    const today = container.querySelector('[data-testid="scale-value-today"]') as HTMLElement;
-    expect(lent.textContent).toContain('2,500.00');
-    expect(today.textContent).toContain('2,512.32');
-    expect(lent.style.top).not.toBe(today.style.top);
+    const written = container.querySelector('[data-testid="scale-value-lent"]') as HTMLElement;
+    expect(written.textContent).toContain('2,500.00');
+    expect(written.textContent).toContain('2,512.32');
+    expect(container.querySelector('[data-testid="scale-value-today"]')).toBeNull();
   });
 
   it('leaves an unannotated mark as a dot alone', () => {

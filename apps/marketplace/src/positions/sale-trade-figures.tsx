@@ -51,6 +51,17 @@ export function SaleTradeFigures({
           >
             {trade.receive}
           </p>
+          {/* The gain sits under the figure it is a gain on, in the one
+              colour spent on this card. It was a bordered chip below, which
+              made the number a reader is here for look like a footnote. */}
+          <p
+            data-testid="figure-profit"
+            className={`font-figure text-sm font-semibold tabular-nums ${
+              trade.isProfitable ? 'text-market-favourable' : 'text-market-adverse'
+            }`}
+          >
+            {trade.profit} · {trade.profitShare}
+          </p>
         </div>
       </div>
 
@@ -61,25 +72,6 @@ export function SaleTradeFigures({
         label="What this position costs against what it is worth"
         testId="sale-scale"
       />
-
-      {/* The one figure in colour on the card, because it is the one the
-          decision turns on. */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span
-          data-testid="figure-profit"
-          className={`rounded-md border border-edge-strong px-2 py-0.5 font-figure text-sm font-semibold tabular-nums ${
-            trade.isProfitable ? 'text-market-favourable' : 'text-market-adverse'
-          }`}
-        >
-          {trade.profit} ({trade.profitShare}) profit
-        </span>
-        <span
-          data-testid="figure-discount"
-          className="rounded-md border border-edge px-2 py-0.5 font-body text-xs text-ink-secondary"
-        >
-          {trade.discountShare} below today's value
-        </span>
-      </div>
     </div>
   );
 }

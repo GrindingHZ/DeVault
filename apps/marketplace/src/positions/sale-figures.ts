@@ -103,13 +103,13 @@ export function scaleOf(sale: NoteSaleSummary): {
       {
         fromId: 'ask',
         toId: 'today',
-        label: `${trade.discount} yours at once`,
+        label: `${trade.discount} now`,
         tone: 'favourable',
       },
       {
         fromId: 'today',
         toId: 'maturity',
-        label: `${signedInterest(sale)} still to earn`,
+        label: `${signedInterest(sale)} to earn`,
         tone: 'neutral',
       },
     ],

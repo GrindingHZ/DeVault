@@ -1,6 +1,11 @@
 import { formatAmount, formatMoney, formatRate, interestOver } from '@depawn/ui';
 import type { StatusTone } from '@depawn/ui';
-import type { LoanResponse, MyListingResponse, MyOfferResponse } from '@depawn/contracts';
+import type {
+  LoanResponse,
+  MyListingResponse,
+  MyOfferResponse,
+  RedemptionStatusDto,
+} from '@depawn/contracts';
 import { isTerminal, toneOf } from './stages';
 import type { StageName } from './stages';
 
@@ -390,7 +395,17 @@ export function positionOfOffer(offer: MyOfferResponse, asOf: number): Position 
   };
 }
 
-export function positionOfBorrowedLoan(loan: LoanResponse, asOf: number): Position {
+/* Whether the item behind a repaid loan has been asked for, and how far that
+   has got. Null when no request exists yet.
+
+   Without it a repaid loan offered "Collect the item" for ever: the row had
+   no idea the reader had already walked in and asked, so the notification
+   kept telling them to do a thing they had done. */
+export function positionOfBorrowedLoan(
+  loan: LoanResponse,
+  asOf: number,
+  redemption: RedemptionStatusDto | null = null,
+): Position {
   const base = {
     id: `borrowed-${loan.id}`,
     side: 'borrowing' as const,
@@ -425,8 +440,35 @@ export function positionOfBorrowedLoan(loan: LoanResponse, asOf: number): Positi
 
   /* Repaid means the collateral is back in the borrower's name and sitting in
      a vault waiting to be walked out of. Nobody is going to remember that
-     unless the interface says so. */
+     unless the interface says so, which is why it is the one terminal stage
+     that still asks for something.
+
+     It stops asking the moment a request exists. Staff take it from there:
+     they verify identity and break the seal at the counter, and neither is
+     something this screen can do or should keep nagging about. */
   if (loan.status === 'REPAID') {
+    if (redemption === 'RELEASED') {
+      return {
+        ...base,
+        ...staged('Collected', 'borrowing'),
+        term: null,
+        caption: 'You have it back, and the receipt is spent',
+        figure: null,
+        action: null,
+        needsAttention: false,
+      };
+    }
+    if (redemption !== null) {
+      return {
+        ...base,
+        ...staged('Collection requested', 'borrowing'),
+        term: null,
+        caption: 'The vault is expecting you. Bring photo identification to the counter',
+        figure: null,
+        action: null,
+        needsAttention: false,
+      };
+    }
     return {
       ...base,
       ...staged('Repaid', 'borrowing'),

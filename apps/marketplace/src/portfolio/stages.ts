@@ -59,7 +59,20 @@ const borrowingStages = {
   Repaid: {
     tone: 'success',
     isTerminal: true,
-    meaning: 'Settled in full. The item is back under your name and waiting in the vault.',
+    meaning:
+      'Settled in full. The item is back under your name and waiting in the vault for you to ask for it.',
+  },
+  'Collection requested': {
+    tone: 'active',
+    isTerminal: false,
+    meaning:
+      'You have asked for the item back and the vault is expecting you. Bring photo identification to the counter; staff verify you, break the seal in front of you and hand it over.',
+  },
+  Collected: {
+    tone: 'success',
+    isTerminal: true,
+    meaning:
+      'The seal was broken in front of you and the item left the vault. The receipt is spent.',
   },
   Defaulted: {
     tone: 'danger',

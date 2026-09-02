@@ -1,5 +1,10 @@
-import { fetchMyListings, fetchMyLoans, fetchMyOffers } from '@depawn/contracts';
-import type { LoanResponse } from '@depawn/contracts';
+import {
+  fetchMyListings,
+  fetchMyLoans,
+  fetchMyOffers,
+  fetchMyRedemptionRequests,
+} from '@depawn/contracts';
+import type { LoanResponse, RedemptionStatusDto } from '@depawn/contracts';
 import { useQuery } from '@tanstack/react-query';
 import { marketKeys } from '../market-keys';
 import { attentionOf } from './attention';
@@ -58,6 +63,13 @@ export function usePositions(): Positions {
     queryKey: marketKeys.myLoans('lender'),
     queryFn: () => fetchMyLoans('lender'),
   });
+  /* Whether the item behind a repaid loan has been asked for. Without it the
+     row kept offering to collect something already requested, and the
+     notification kept counting it. */
+  const redemptionsQuery = useQuery({
+    queryKey: marketKeys.myRedemptions,
+    queryFn: fetchMyRedemptionRequests,
+  });
 
   const borrowedLoans = borrowedQuery.data?.items ?? [];
   const lentLoans = lentQuery.data?.items ?? [];
@@ -69,8 +81,17 @@ export function usePositions(): Positions {
   const borrowedAsOf = Date.parse(borrowedQuery.data?.asOf ?? '') || Date.now();
   const lentAsOf = Date.parse(lentQuery.data?.asOf ?? '') || Date.now();
 
+  /* Latest first, so a receipt redeemed more than once reports where it has
+     got to now rather than where it got to the first time. */
+  const redemptionByReceipt = new Map<string, RedemptionStatusDto>();
+  for (const request of redemptionsQuery.data?.items ?? []) {
+    redemptionByReceipt.set(request.receiptId, request.status);
+  }
+
   const borrowedLoanPositions = borrowedLoans
-    .map((loan) => positionOfBorrowedLoan(loan, borrowedAsOf))
+    .map((loan) =>
+      positionOfBorrowedLoan(loan, borrowedAsOf, redemptionByReceipt.get(loan.receiptId) ?? null),
+    )
     .sort(byItem);
   const lentLoanPositions = lentLoans
     .map((loan) => positionOfLentLoan(loan, lentAsOf))
@@ -102,7 +123,8 @@ export function usePositions(): Positions {
       listingsQuery.isPending ||
       offersQuery.isPending ||
       borrowedQuery.isPending ||
-      lentQuery.isPending,
+      lentQuery.isPending ||
+      redemptionsQuery.isPending,
     unavailable: [
       listingsQuery.isError ? 'your listings' : null,
       offersQuery.isError ? 'your offers' : null,

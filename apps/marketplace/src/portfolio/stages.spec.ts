@@ -98,6 +98,8 @@ const everyPosition: readonly Position[] = [
   positionOfBorrowedLoan(loan(), now),
   positionOfBorrowedLoan(loan(), wellPast),
   positionOfBorrowedLoan(loan({ status: 'REPAID' }), now),
+  positionOfBorrowedLoan(loan({ status: 'REPAID' }), now, 'REQUESTED'),
+  positionOfBorrowedLoan(loan({ status: 'REPAID' }), now, 'RELEASED'),
   positionOfBorrowedLoan(loan({ status: 'DEFAULTED' }), now),
   positionOfBorrowedLoan(loan({ status: 'LIQUIDATED' }), now),
   positionOfLentLoan(loan(), now),

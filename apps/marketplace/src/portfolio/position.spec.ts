@@ -207,6 +207,39 @@ describe('a loan the reader owes', () => {
     expect(position.needsAttention).toBe(true);
   });
 
+  /* The one thing the notification kept getting wrong: it offered to collect
+     an item the reader had already walked in and asked for. */
+  describe('collecting the item', () => {
+    it('asks for it back when nothing has been requested', () => {
+      const position = positionOfBorrowedLoan(loan({ status: 'REPAID' }), now, null);
+      expect(position.stage).toBe('Repaid');
+      expect(position.action?.kind).toBe('collect');
+      expect(position.needsAttention).toBe(true);
+    });
+
+    it.each(['REQUESTED', 'VERIFIED'] as const)('stops asking once the request is %s', (status) => {
+      const position = positionOfBorrowedLoan(loan({ status: 'REPAID' }), now, status);
+      expect(position.stage).toBe('Collection requested');
+      expect(position.action).toBeNull();
+      expect(position.needsAttention).toBe(false);
+    });
+
+    /* Still open, not history. Staff have the seal to break and the reader
+       has a counter to walk up to; it is finished when the item is theirs. */
+    it('keeps a requested collection in view', () => {
+      expect(isOpen(positionOfBorrowedLoan(loan({ status: 'REPAID' }), now, 'REQUESTED'))).toBe(
+        true,
+      );
+    });
+
+    it('files it into history once it has been handed over', () => {
+      const position = positionOfBorrowedLoan(loan({ status: 'REPAID' }), now, 'RELEASED');
+      expect(position.stage).toBe('Collected');
+      expect(position.needsAttention).toBe(false);
+      expect(isOpen(position)).toBe(false);
+    });
+  });
+
   /* The item is back in their name and sitting in a vault. Nobody remembers
      that on their own. */
   it('tells a repaid borrower to go and collect the item', () => {

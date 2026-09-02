@@ -12,8 +12,11 @@ export interface TermBarProps {
   readonly note: string;
   /* The second line, when there is one. The note says where the term has got
      to and this says what that leaves, which are two different questions and
-     a reader should not have to subtract to answer the second. */
-  readonly caption?: string | undefined;
+     a reader should not have to subtract to answer the second.
+
+     Split, so only the quantity is emphasised: "9 days" is the fact and
+     "left" is the grammar around it. */
+  readonly caption?: { readonly value: string; readonly trail: string } | undefined;
   readonly tone: StatusTone;
 }
 
@@ -25,17 +28,25 @@ export function TermBar({ elapsedBasisPoints, note, caption, tone }: TermBarProp
     /* A fixed width, not `w-full`. Inside a table cell a full width bar grew
        the column to whatever was left over and pushed the action button off
        the side of the table. */
-    <span className="flex w-24 flex-col gap-1">
+    /* Room above the bar. In a table these stack one under another and the
+       meter sat hard against the row before it, which read as one row's
+       chart bleeding into the next. */
+    <span className="flex w-24 flex-col gap-1 py-1">
       <Meter
         filledBasisPoints={elapsedBasisPoints}
         tone={tone}
         label="Term elapsed"
-        valueText={caption === undefined ? note : `${note}, ${caption}`}
+        valueText={
+          caption === undefined ? note : `${note}, ${caption.value} ${caption.trail}`.trim()
+        }
         testId="term-bar"
       />
       <span className="whitespace-nowrap font-body text-xs text-ink-primary">{note}</span>
       {caption === undefined ? null : (
-        <span className="whitespace-nowrap font-body text-xs text-ink-secondary">{caption}</span>
+        <span className="whitespace-nowrap font-body text-xs text-ink-secondary">
+          <span className="font-semibold text-ink-primary">{caption.value}</span>
+          {caption.trail === '' ? null : ` ${caption.trail}`}
+        </span>
       )}
     </span>
   );

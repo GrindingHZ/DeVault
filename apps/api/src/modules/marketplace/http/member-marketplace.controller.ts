@@ -12,7 +12,7 @@ import { MyListingsQuery } from '../application/my-listings.query';
 import { ReclaimHoldUseCase } from '../application/reclaim-hold.use-case';
 import {
   marketplaceStatusFor,
-  toListingResponse,
+  toMyListingResponse,
   toOfferResponse,
 } from './marketplace-response.mapper';
 
@@ -27,7 +27,7 @@ export class MemberMarketplaceController {
   @Get('listings')
   async myListings(@CurrentAccount() account: Account): Promise<MyListingsResponse> {
     const listings = await this.myListingsQuery.listFor(account.id);
-    return { items: listings.map(toListingResponse) };
+    return { items: listings.map((row) => toMyListingResponse(row, account.id)) };
   }
 
   @Get('offers')

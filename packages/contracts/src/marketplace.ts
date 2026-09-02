@@ -101,8 +101,21 @@ export const listingsPageResponseSchema = z.object({
 
 export type ListingsPageResponse = z.infer<typeof listingsPageResponseSchema>;
 
+/* A borrower's own listing, which is not the same shape as a public one. It
+   names the item rather than the receipt, and carries what the book currently
+   offers, because the question about your own listing is what accepting would
+   cost you today. */
+export const myListingResponseSchema = listingResponseSchema.extend({
+  itemDescription: z.string(),
+  itemCategory: itemCategorySchema,
+  bestOfferRateBasisPoints: z.number().int().nullable(),
+  offerCount: z.number().int().nonnegative(),
+});
+
+export type MyListingResponse = z.infer<typeof myListingResponseSchema>;
+
 export const myListingsResponseSchema = z.object({
-  items: z.array(listingResponseSchema),
+  items: z.array(myListingResponseSchema),
 });
 
 export type MyListingsResponse = z.infer<typeof myListingsResponseSchema>;

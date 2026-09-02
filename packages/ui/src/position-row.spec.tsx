@@ -60,6 +60,13 @@ describe('PositionRow', () => {
     expect(onOpen).toHaveBeenCalledTimes(1);
   });
 
+  /* A control that does nothing when pressed teaches the reader that
+     pressing things here is pointless. */
+  it('renders no control at all when there is nowhere to go', () => {
+    render(row({ actionLabel: null }));
+    expect(screen.queryByRole('button')).toBeNull();
+  });
+
   it('marks an attention row by more than its colour', () => {
     const { container } = render(row({ needsAttention: true }));
     expect(container.querySelector('[data-attention="true"]')).toBeTruthy();

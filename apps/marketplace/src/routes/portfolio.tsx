@@ -8,7 +8,6 @@ import {
   reclaimOffer,
   withdrawOffer,
 } from '@depawn/contracts';
-import type { LoanResponse } from '@depawn/contracts';
 import { Page, PageHeader, PositionRow, Skeleton, SummaryStrip, formatMoney } from '@depawn/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Navigate, createFileRoute, useNavigate } from '@tanstack/react-router';
@@ -115,8 +114,11 @@ function PortfolioBody(): ReactElement {
   const search = Route.useSearch();
   const side = search.side ?? 'all';
   /* Repaying opens a quote below the table rather than on its own screen, so
-     a borrower never loses sight of the rest of what they owe. */
-  const [payoffLoan, setPayoffLoan] = useState<LoanResponse | null>(null);
+     a borrower never loses sight of the rest of what they owe. The id rather
+     than the loan, so the card reads the same data as the table: once the
+     repayment lands the loan is no longer active and the card closes itself
+     instead of sitting there quoting a settled debt. */
+  const [payoffLoanId, setPayoffLoanId] = useState<string | null>(null);
   // Generated on mount and rotated per success (docs/05-frontend.md).
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
 
@@ -173,20 +175,28 @@ function PortfolioBody(): ReactElement {
     lentQuery.isError ? 'what you are owed' : null,
   ].filter((one): one is string => one !== null);
 
+  const payoffLoan = borrowedLoans.find(
+    (one) => one.id === payoffLoanId && one.status === 'ACTIVE',
+  );
+
   const isPending =
     listingsQuery.isPending ||
     offersQuery.isPending ||
     borrowedQuery.isPending ||
     lentQuery.isPending;
 
-  function open(position: Position): void {
-    if (position.listingId !== null) {
-      void navigate({ to: '/listings', search: { listing: position.listingId } });
-      return;
+  /* Null when the row has nowhere to go, which the row reads as "render no
+     control". A lent loan is the case: the collateral is the borrower's until
+     it is claimed, and the receipts screen shows only the reader's own. */
+  function openerFor(position: Position): (() => void) | undefined {
+    const { listingId } = position;
+    if (listingId !== null) {
+      return () => void navigate({ to: '/listings', search: { listing: listingId } });
     }
-    /* A loan is only ever about the item behind it, and the item lives with
-       the receipt. Nothing else to open. */
-    void navigate({ to: '/borrow/receipts' });
+    if (position.side === 'borrowing') {
+      return () => void navigate({ to: '/borrow/receipts' });
+    }
+    return undefined;
   }
 
   function actOn(position: Position): void {
@@ -194,13 +204,13 @@ function PortfolioBody(): ReactElement {
       return;
     }
     if (position.action.kind === 'repay') {
-      setPayoffLoan(borrowedLoans.find((one) => one.id === position.loanId) ?? null);
+      setPayoffLoanId(position.loanId);
       return;
     }
     /* Accepting an offer is a decision made against the book, and collecting
        an item is a visit to a vault. Neither is a button press here. */
     if (position.action.kind === 'accept' || position.action.kind === 'collect') {
-      open(position);
+      openerFor(position)?.();
       return;
     }
     act.mutate(position);
@@ -218,7 +228,7 @@ function PortfolioBody(): ReactElement {
         figure={position.figure}
         actionLabel={position.action?.label ?? null}
         onAct={() => actOn(position)}
-        onOpen={() => open(position)}
+        onOpen={openerFor(position)}
         needsAttention={position.needsAttention}
       />
     );
@@ -279,13 +289,12 @@ function PortfolioBody(): ReactElement {
 
       {/* The tab filters the table and never the strip. A reader on the
           lending side still wants to know what they owe. */}
-      <div className="flex gap-1" role="tablist" aria-label="Which side">
+      <div className="flex gap-1" role="group" aria-label="Which side">
         {sides.map((one) => (
           <button
             key={one}
             type="button"
-            role="tab"
-            aria-selected={side === one}
+            aria-pressed={side === one}
             data-testid={`side-${one}`}
             onClick={() => void navigate({ to: '/portfolio', search: { side: one } })}
             className={`rounded-sm border px-3 py-1 font-body text-sm transition-colors duration-control ease-enter focus-visible:outline focus-visible:outline-2 focus-visible:outline-status-active ${
@@ -323,7 +332,7 @@ function PortfolioBody(): ReactElement {
         </div>
       </section>
 
-      {payoffLoan === null ? null : <PayoffCard loan={payoffLoan} />}
+      {payoffLoan === undefined ? null : <PayoffCard loan={payoffLoan} />}
     </div>
   );
 }

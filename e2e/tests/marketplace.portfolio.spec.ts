@@ -150,7 +150,7 @@ test('the old role split paths land on the portfolio with the right side selecte
   for (const { path, side } of oldPaths) {
     await page.goto(path);
     await page.waitForURL(`**/portfolio?side=${side}`);
-    await expect(page.getByTestId(`side-${side}`)).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByTestId(`side-${side}`)).toHaveAttribute('aria-pressed', 'true');
   }
 });
 
@@ -233,6 +233,6 @@ test('one screen shows both sides and the tab never changes the totals', async (
   /* The selection is in the URL, so a reload restores the same view and the
      link is something a person can send. */
   await page.reload();
-  await expect(page.getByTestId('side-lending')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByTestId('side-lending')).toHaveAttribute('aria-pressed', 'true');
   await expect(table).toContainText('One kilogram gold bar');
 });

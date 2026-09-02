@@ -1,8 +1,11 @@
 import { Global, Module } from '@nestjs/common';
+import { isChainDriverEnabled, loadConfiguration } from '../../config/configuration';
 import { PROTOCOL_PARAMETERS } from '../../domain/marketplace/protocol-parameters';
 import type { ProtocolParameters } from '../../domain/marketplace/protocol-parameters';
 import { PROTOCOL_PARAMETERS_PORT } from '../../domain/ports/protocol-parameters.port';
+import type { ProtocolParametersPort } from '../../domain/ports/protocol-parameters.port';
 import { ProtocolParametersRegistry } from './protocol-parameters.registry';
+import { SuiProtocolParametersAdapter } from './sui-protocol-parameters.adapter';
 
 /* The token still resolves to a plain parameters object, so no use case
    knows that versions exist. The getters read the version in force at the
@@ -43,7 +46,15 @@ function liveParameters(registry: ProtocolParametersRegistry): ProtocolParameter
 @Module({
   providers: [
     ProtocolParametersRegistry,
-    { provide: PROTOCOL_PARAMETERS_PORT, useExisting: ProtocolParametersRegistry },
+    {
+      provide: PROTOCOL_PARAMETERS_PORT,
+      useFactory: (
+        registry: ProtocolParametersRegistry,
+        sui: SuiProtocolParametersAdapter | undefined,
+      ): ProtocolParametersPort =>
+        isChainDriverEnabled(loadConfiguration()) && sui !== undefined ? sui : registry,
+      inject: [ProtocolParametersRegistry, { token: SuiProtocolParametersAdapter, optional: true }],
+    },
     {
       provide: PROTOCOL_PARAMETERS,
       useFactory: liveParameters,

@@ -29,8 +29,27 @@ export interface CustodyReading {
 export function custodyReadingFor(
   receiptStatus: string,
   redemptionStatus: string | null,
+  listingStatus: string | null = null,
 ): CustodyReading {
   if (receiptStatus === 'IN_VAULT') {
+    /* Listing does not move the item and does not touch the receipt, so a
+       listed item and an idle one were the same word on the shelf: "In the
+       vault", above a button offering to list something already listed. The
+       listing is the more particular truth about it, so it wins the label. */
+    if (listingStatus === 'ACTIVE') {
+      return {
+        tone: 'active',
+        label: 'Taking offers',
+        detail: 'Listed on the market. Lenders are competing to fund it.',
+      };
+    }
+    if (listingStatus === 'DRAFT') {
+      return {
+        tone: 'neutral',
+        label: 'Draft listing',
+        detail: 'Written but not published. No lender can see it yet.',
+      };
+    }
     return { tone: 'active', label: 'In the vault', detail: 'Yours to list or to ask back.' };
   }
   if (receiptStatus === 'ENCUMBERED') {

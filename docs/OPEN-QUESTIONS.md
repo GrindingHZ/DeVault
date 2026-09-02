@@ -298,3 +298,18 @@ migration and a domain change rather than a display one. Worth doing: a lender's
 across settled loans is the one number this product cannot currently answer, and it is the number
 anybody comparing us to a savings account would ask for first. Until then a dash is the honest
 answer, because the alternative is a plausible number that is wrong.
+
+## Q-030: whether a listed item can be asked back without cancelling the listing
+**Blocks:** nothing today. The marketplace no longer offers it.
+**Currently implemented:** nothing on the server. `RequestRedemptionUseCase` checks that the receipt
+exists and that the caller holds it, then burns the receipt. It does not ask whether a live listing
+stands against that receipt, so a borrower could redeem an item that lenders are still bidding on and
+leave the listing pointing at a spent receipt.
+**Needs:** whoever owns docs/02
+**Notes:** Found while fixing the borrower inventory, which was offering "List" and "Ask for it back"
+on an item already listed. The listing button was refused by `ReceiptAlreadyListed`, so that half was
+merely rude; the redemption half would have gone through. The screen now hides both once a live
+listing stands, which closes the path a person can actually take, but a rule enforced only by a
+button is not enforced. The fix is a check in the use case, either refusing the redemption or
+cancelling the listing in the same transaction. Cancelling is the friendlier reading and is one
+transaction either way, since holds are released on cancellation already.

@@ -7,6 +7,12 @@ const apiBase = 'http://localhost:3000/api/v1';
 const password = 'a-long-enough-password';
 const oneDay = 24 * 60 * 60 * 1000;
 
+/* The offset lives in the api process, which outlives this spec, so it goes
+   back to real time whether the test passed or not. */
+test.afterEach(async ({ request }) => {
+  await request.post(`${apiBase}/test/clock/reset`, { data: {} });
+});
+
 async function registerMember(request: APIRequestContext, email: string): Promise<void> {
   const response = await request.post(`${apiBase}/auth/register`, { data: { email, password } });
   expect(response.status()).toBe(201);
@@ -120,6 +126,70 @@ async function offerOn(
   await request.post(`${apiBase}/auth/logout`);
 }
 
+/* Everything between a listing and a defaulted loan with a live sale on it,
+   done through the api because the sale is what this spec is about
+   (docs/06-testing.md). Returns the sale the bids go on. */
+async function saleOfDefaultedCollateral(
+  request: APIRequestContext,
+  borrowerEmail: string,
+  lenderEmail: string,
+  listingId: string,
+): Promise<string> {
+  await request.post(`${apiBase}/auth/login`, { data: { email: lenderEmail, password } });
+  const listing = await request.get(`${apiBase}/listings/${listingId}`);
+  const book = ((await listing.json()) as { offerBook: { id: string }[] }).offerBook;
+  const standing = book[0];
+  expect(standing).toBeDefined();
+  const offerId = standing?.id ?? '';
+  await request.post(`${apiBase}/auth/login`, { data: { email: borrowerEmail, password } });
+  const accepted = await request.post(`${apiBase}/listings/${listingId}/offers/${offerId}/accept`, {
+    headers: { 'idempotency-key': randomUUID() },
+    data: {},
+  });
+  expect(accepted.status()).toBe(201);
+  const loanId = ((await accepted.json()) as { id: string }).id;
+
+  // Past maturity and grace, then past the statutory holding period.
+  await request.post(`${apiBase}/test/clock/advance`, { data: { milliseconds: 38 * oneDay } });
+  await request.post(`${apiBase}/auth/login`, { data: { email: lenderEmail, password } });
+  await request.post(`${apiBase}/loans/${loanId}/default`, {
+    headers: { 'idempotency-key': randomUUID() },
+    data: {},
+  });
+  await request.post(`${apiBase}/test/clock/advance`, { data: { milliseconds: 31 * oneDay } });
+
+  await request.post(`${apiBase}/auth/login`, {
+    data: { email: 'ops@demo.test', password: 'demo-password-123' },
+  });
+  const scheduled = await request.post(`${apiBase}/loans/${loanId}/liquidations`, {
+    headers: { 'idempotency-key': randomUUID() },
+    data: { reservePrice: { minorUnits: '200000', currency: 'USD' } },
+  });
+  expect(scheduled.status()).toBe(201);
+  const liquidationId = ((await scheduled.json()) as { id: string }).id;
+  await request.post(`${apiBase}/liquidations/${liquidationId}/open`, {
+    headers: { 'idempotency-key': randomUUID() },
+    data: { biddingWindowMs: 7 * oneDay },
+  });
+  await request.post(`${apiBase}/auth/logout`);
+  return liquidationId;
+}
+
+async function bidOn(
+  request: APIRequestContext,
+  bidderEmail: string,
+  liquidationId: string,
+  minorUnits: string,
+): Promise<void> {
+  await request.post(`${apiBase}/auth/login`, { data: { email: bidderEmail, password } });
+  const bid = await request.post(`${apiBase}/liquidations/${liquidationId}/bids`, {
+    headers: { 'idempotency-key': randomUUID() },
+    data: { amount: { minorUnits, currency: 'USD' } },
+  });
+  expect(bid.status()).toBe(201);
+  await request.post(`${apiBase}/auth/logout`);
+}
+
 async function signIn(page: Page, email: string): Promise<void> {
   await page.goto('/login');
   await page.getByTestId('email-input').fill(email);
@@ -194,6 +264,85 @@ test('a lender reclaims an outbid hold from the attention band', async ({ page, 
 
   await page.getByRole('link', { name: 'Wallet' }).click();
   await expect(page.getByTestId('available-balance')).toHaveText('USD 3,000.00');
+});
+
+/* The twin of the outbid hold above, in the market the portfolio could not
+   see. Bidding on collateral holds money exactly as offering does, and a
+   beaten bid keeps holding it until its owner asks, but nothing anywhere
+   named that money: the reclaim endpoint existed and no screen could reach
+   it (docs/14-state-machines.md). */
+test('a beaten bidder reclaims a hold the portfolio could not see', async ({ page, request }) => {
+  const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  const borrowerEmail = `bid-borrower-${stamp}@example.test`;
+  const lenderEmail = `bid-lender-${stamp}@example.test`;
+  const beatenEmail = `beaten-${stamp}@example.test`;
+  const topperEmail = `topper-${stamp}@example.test`;
+  for (const email of [borrowerEmail, lenderEmail, beatenEmail, topperEmail]) {
+    await registerMember(request, email);
+  }
+  await fundAccount(request, lenderEmail, '300000');
+  await fundAccount(request, beatenEmail, '400000');
+  await fundAccount(request, topperEmail, '400000');
+
+  const receiptId = await issueReceiptFor(request, borrowerEmail, 'One kilogram gold bar');
+  const listingId = await publishListing(request, borrowerEmail, receiptId);
+  await offerOn(request, lenderEmail, listingId, 1800);
+  const liquidationId = await saleOfDefaultedCollateral(
+    request,
+    borrowerEmail,
+    lenderEmail,
+    listingId,
+  );
+
+  await bidOn(request, beatenEmail, liquidationId, '250000');
+  await bidOn(request, topperEmail, liquidationId, '300000');
+
+  await signIn(page, beatenEmail);
+  await expect(page.getByTestId('attention-count')).toHaveText('1');
+  await page.getByTestId('attention-bell').click();
+
+  const panel = page.getByTestId('attention-bell-panel');
+  await expect(panel).toContainText('One kilogram gold bar');
+  await expect(panel).toContainText('Outbid');
+  await expect(panel).toContainText('USD 2,500.00');
+
+  await panel.getByRole('button', { name: 'Reclaim funds' }).click();
+  await expect(page.getByTestId('attention-count')).toHaveCount(0);
+
+  await page.getByRole('link', { name: 'Wallet' }).click();
+  await expect(page.getByTestId('available-balance')).toHaveText('USD 4,000.00');
+});
+
+/* The standing bidder has nothing to do but wait, and closing the sale spends
+   their hold on the waterfall rather than refunding it. A row that asked
+   anyway would be a count nobody could ever clear. */
+test('the standing bidder is shown the bid and given no control', async ({ page, request }) => {
+  const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  const borrowerEmail = `wait-borrower-${stamp}@example.test`;
+  const lenderEmail = `wait-lender-${stamp}@example.test`;
+  const bidderEmail = `wait-bidder-${stamp}@example.test`;
+  for (const email of [borrowerEmail, lenderEmail, bidderEmail]) {
+    await registerMember(request, email);
+  }
+  await fundAccount(request, lenderEmail, '300000');
+  await fundAccount(request, bidderEmail, '400000');
+
+  const receiptId = await issueReceiptFor(request, borrowerEmail, 'One kilogram gold bar');
+  const listingId = await publishListing(request, borrowerEmail, receiptId);
+  await offerOn(request, lenderEmail, listingId, 1800);
+  const liquidationId = await saleOfDefaultedCollateral(
+    request,
+    borrowerEmail,
+    lenderEmail,
+    listingId,
+  );
+  await bidOn(request, bidderEmail, liquidationId, '250000');
+
+  await signIn(page, bidderEmail);
+  await page.goto('/portfolio?side=lending');
+  await expect(page.getByTestId('portfolio-open')).toContainText('Bidding');
+  // Nothing to do, so the bell stays quiet.
+  await expect(page.getByTestId('attention-count')).toHaveCount(0);
 });
 
 test('the two sides ask different questions and answer them in their own columns', async ({

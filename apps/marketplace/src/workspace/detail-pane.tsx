@@ -20,7 +20,7 @@ import {
   Skeleton,
   WorkspacePrompt,
 } from '@depawn/ui';
-import type { MarketRole } from '@depawn/ui';
+import type { BookStanding, MarketRole } from '@depawn/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
@@ -127,12 +127,22 @@ function DetailBody({
   /* The best standing rate, and the one behind it. The delta is the gap a
      lender has to close, which is more use than the same rate compared with
      itself a minute ago. */
-  const pendingRates = detail.offerBook
-    .filter((offer) => offer.status === 'PENDING')
+  const pendingOffers = detail.offerBook.filter((offer) => offer.status === 'PENDING');
+  const pendingRates = pendingOffers
     .map((offer) => offer.annualPercentageRateBasisPoints)
     .sort((left, right) => left - right);
   const bestRate = pendingRates[0] ?? null;
   const secondRate = pendingRates[1] ?? null;
+
+  /* Read from the book in the order the book is ranked in, so the header and
+     the table beneath it cannot disagree about who is first. */
+  const viewerStanding: BookStanding = !pendingOffers.some(
+    (offer) => offer.lenderAccountId === viewerAccountId,
+  )
+    ? 'absent'
+    : pendingOffers[0]?.lenderAccountId === viewerAccountId
+      ? 'leads'
+      : 'behind';
 
   return (
     <div className="flex flex-col">
@@ -163,6 +173,7 @@ function DetailBody({
                 previousBasisPoints={secondRate}
                 role={role}
                 label="best rate offered"
+                viewerStanding={viewerStanding}
               />
             </div>
           )}
@@ -297,7 +308,13 @@ function OfferBookPanel({
 
   const pending = detail.offerBook.filter((offer) => offer.status === 'PENDING');
   const canAccept = isBorrower && detail.status === 'ACTIVE';
-  const chosen = pending.find((offer) => offer.id === selectedOfferId);
+  /* Choosing exists to lead to accepting, and only the borrower accepts. A
+     lender was being shown a column of radios that led nowhere and a panel
+     quoting the borrower's cost to the person charging it. The selection is
+     a search parameter, so this has to be decided here rather than by not
+     rendering a control: a lender following a link carrying `offer` would
+     otherwise arrive at the same screen. */
+  const chosen = canAccept ? pending.find((offer) => offer.id === selectedOfferId) : undefined;
 
   return (
     <div data-testid="offer-book" className="border-b border-edge">
@@ -319,11 +336,16 @@ function OfferBookPanel({
         }))}
         role={role}
         currency={detail.requestedPrincipal.currency}
-        selectedOfferId={selectedOfferId}
-        onSelectOffer={onSelectOffer}
+        selectedOfferId={canAccept ? selectedOfferId : null}
+        onSelectOffer={canAccept ? onSelectOffer : undefined}
       />
       {chosen === undefined ? null : (
-        <div className="border-t border-edge p-3">
+        <div className="border-t border-edge bg-surface-sunken p-3">
+          {/* Named, because a pair of figures appearing under a table does
+              not say which row it is describing. */}
+          <p className="mb-2 font-body text-xs font-medium uppercase tracking-wide text-ink-secondary">
+            The offer you picked
+          </p>
           {/* Two figures, never one. A total cost sitting beside a principal
               reads as the total to repay, which it is not. */}
           <dl className="flex flex-col gap-1 font-figure text-xs">
@@ -353,8 +375,11 @@ function OfferBookPanel({
         </div>
       )}
       {canAccept && chosen === undefined && pending.length > 0 ? (
-        <p className="border-t border-edge p-3 font-body text-xs text-ink-secondary">
-          Choose an offer above to see what it costs and accept it.
+        /* An instruction, so it is set as one. The same words in loose grey
+           text under a table read as a caption on the table rather than as
+           the next thing to do. */
+        <p className="border-t border-edge bg-surface-sunken p-3 font-body text-xs font-medium text-ink-primary">
+          Select an offer above to see what it costs, then accept it.
         </p>
       ) : null}
     </div>

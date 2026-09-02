@@ -11,6 +11,7 @@ const item: CollateralItem = {
   appraisedValue: { minorUnits: '1380000', currency: 'AUD' },
   requestedPrincipal: { minorUnits: '800000', currency: 'AUD' },
   loanToValueBasisPoints: 5797,
+  categoryMaxLoanToValueBasisPoints: 6000,
   bestRateBasisPoints: 1120,
   closesIn: 'closes in 2h 14m',
   photographSrc: '/api/v1/receipts/r1/photo',

@@ -259,6 +259,21 @@ describe('the market index and tape', () => {
     expect(response.body.items[0].bestOfferRateBasisPoints).toBe(1120);
   });
 
+  /* The loan to value on a row means nothing without the limit it is judged
+     against: the same share is conservative for bullion and at the line for
+     art. Sent so the client never keeps its own copy of an editable policy. */
+  it('carries the category limit beside the loan to value', async () => {
+    await listingFrom({ category: 'ART' });
+    const response = await server().get('/api/v1/listings').set('Cookie', cookies).expect(200);
+    expect(response.body.items[0].categoryMaxLoanToValueBasisPoints).toBe(3000);
+  });
+
+  it('carries a different limit for a more liquid category', async () => {
+    await listingFrom({ category: 'BULLION' });
+    const response = await server().get('/api/v1/listings').set('Cookie', cookies).expect(200);
+    expect(response.body.items[0].categoryMaxLoanToValueBasisPoints).toBe(6000);
+  });
+
   it('reports no standing offer as null rather than as a rate', async () => {
     await listingFrom({ category: 'WATCH' });
     const response = await server().get('/api/v1/listings').set('Cookie', cookies).expect(200);

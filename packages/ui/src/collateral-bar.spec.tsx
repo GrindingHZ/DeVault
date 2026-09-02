@@ -5,7 +5,7 @@ import { CollateralBar } from './collateral-bar';
 const money = (minorUnits: string) => ({ minorUnits, currency: 'AUD' });
 
 describe('CollateralBar', () => {
-  it('states all three figures', () => {
+  it('states the two amounts a reader can act on', () => {
     render(
       <CollateralBar
         appraisedValue={money('1100000')}
@@ -16,7 +16,20 @@ describe('CollateralBar', () => {
     );
     expect(screen.getByText('AUD 11,000.00')).toBeTruthy();
     expect(screen.getByText('AUD 4,000.00')).toBeTruthy();
-    expect(screen.getByText('AUD 5,500.00')).toBeTruthy();
+  });
+
+  /* The limit stays as the line on the bar. As a figure it was money nobody
+     in this market can lend, since lenders compete on rate alone. */
+  it('does not state the limit as an amount', () => {
+    render(
+      <CollateralBar
+        appraisedValue={money('1100000')}
+        requestedPrincipal={money('400000')}
+        maxPrincipal={money('550000')}
+        loanToValueBasisPoints={3636}
+      />,
+    );
+    expect(screen.queryByText('AUD 5,500.00')).toBeNull();
   });
 
   /* Since lenders compete on rate alone, nobody can use the room under the

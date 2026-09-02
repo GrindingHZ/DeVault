@@ -16,6 +16,8 @@ export interface CollateralItem {
   readonly appraisedValue: MoneyValue;
   readonly requestedPrincipal: MoneyValue;
   readonly loanToValueBasisPoints: number;
+  /* What this category allows, so the chip bands against the right limit. */
+  readonly categoryMaxLoanToValueBasisPoints: number;
   readonly bestRateBasisPoints: number | null;
   readonly closesIn: string;
   readonly photographSrc: string | null;
@@ -98,7 +100,10 @@ export function CollateralRow({ item, isSelected, onSelect }: CollateralProps): 
             and DESIGN-BRIEF reserves the mono for amounts, rates and ids. */}
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1 font-body text-xs text-ink-secondary">
           <span>{item.categoryName}</span>
-          <LoanToValue basisPoints={item.loanToValueBasisPoints} />
+          <LoanToValue
+            basisPoints={item.loanToValueBasisPoints}
+            capBasisPoints={item.categoryMaxLoanToValueBasisPoints}
+          />
           <span>{item.closesIn}</span>
           <Relationship value={item.relationship} />
         </span>
@@ -125,7 +130,10 @@ export function CollateralCard({ item, isSelected, onSelect }: CollateralProps):
         {item.itemDescription}
       </span>
       <span className="flex flex-wrap items-center gap-2 font-body text-xs text-ink-secondary">
-        <LoanToValue basisPoints={item.loanToValueBasisPoints} />
+        <LoanToValue
+          basisPoints={item.loanToValueBasisPoints}
+          capBasisPoints={item.categoryMaxLoanToValueBasisPoints}
+        />
         <AskingRate basisPoints={item.bestRateBasisPoints} />
         <Relationship value={item.relationship} />
       </span>

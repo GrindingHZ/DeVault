@@ -77,6 +77,12 @@ export const listingSummarySchema = listingResponseSchema.extend({
      rather than absent so a rail can tell the difference between no offers
      and no answer, and never report the first when it means the second. */
   bestOfferRateBasisPoints: z.number().int().nullable(),
+  /* The most this category may be lent against, as a share of the appraisal.
+     Sent because the loan to value above means nothing without it: the same
+     percentage is conservative against bullion and at the limit against art.
+     It comes from the protocol parameters, so the client never holds a second
+     copy of a policy that can be edited. */
+  categoryMaxLoanToValueBasisPoints: z.number().int().positive(),
 });
 
 export type ListingSummary = z.infer<typeof listingSummarySchema>;

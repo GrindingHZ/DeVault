@@ -70,6 +70,7 @@ function itemFrom(
     appraisedValue: listing.appraisedValue,
     requestedPrincipal: listing.requestedPrincipal,
     loanToValueBasisPoints: listing.loanToValueBasisPoints,
+    categoryMaxLoanToValueBasisPoints: listing.categoryMaxLoanToValueBasisPoints,
     bestRateBasisPoints: bestRate,
     closesIn: closesIn(listing.expiresAt, nowEpochMs),
     photographSrc: listing.hasPhotograph ? `/api/v1/receipts/${listing.receiptId}/photo` : null,

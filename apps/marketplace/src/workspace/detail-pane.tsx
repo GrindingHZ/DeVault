@@ -191,7 +191,11 @@ function DetailBody({
               label="Loan to value"
               explain={<Explain termId="loanToValue" audience={audienceOf(role)} />}
             >
-              <LoanToValue basisPoints={detail.loanToValueBasisPoints} testId="detail-ltv" />
+              <LoanToValue
+                basisPoints={detail.loanToValueBasisPoints}
+                capBasisPoints={detail.categoryMaxLoanToValueBasisPoints}
+                testId="detail-ltv"
+              />
             </Figure>
             <Figure
               label="Lending ceiling"

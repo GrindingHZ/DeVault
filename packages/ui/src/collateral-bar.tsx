@@ -74,12 +74,12 @@ export function CollateralBar({
         />
       </div>
 
+      {/* Two amounts, not three. The limit stays as the line on the bar,
+          because seeing the fill stop short of it is the point of drawing it,
+          but as a figure it was money nobody in this market can lend. */}
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <Reading label="Borrowed" tone="accent">
           {formatMoney(requestedPrincipal)}
-        </Reading>
-        <Reading label="Category limit" tone="warning">
-          {formatMoney(maxPrincipal)}
         </Reading>
         <Reading label="Appraised" tone="plain">
           {formatMoney(appraisedValue)}

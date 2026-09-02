@@ -49,7 +49,10 @@ export function toRankedOfferResponse(ranked: RankedOffer): RankedOfferResponse 
   };
 }
 
-export function toListingSummary(summary: ListingSummaryReadModel): ListingSummary {
+export function toListingSummary(
+  summary: ListingSummaryReadModel,
+  categoryMaxLoanToValueBasisPoints: number,
+): ListingSummary {
   return {
     id: summary.id,
     borrowerAccountId: summary.borrowerAccountId,
@@ -64,6 +67,7 @@ export function toListingSummary(summary: ListingSummaryReadModel): ListingSumma
     itemDescription: summary.itemDescription,
     hasPhotograph: summary.hasPhotograph,
     bestOfferRateBasisPoints: summary.bestOfferRateBasisPoints,
+    categoryMaxLoanToValueBasisPoints,
     loanToValueBasisPoints: loanToValueBasisPointsOf(
       summary.requestedPrincipal,
       summary.appraisedValue,

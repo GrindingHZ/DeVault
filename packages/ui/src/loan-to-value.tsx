@@ -2,26 +2,46 @@ import type { ReactElement } from 'react';
 
 export interface LoanToValueProps {
   readonly basisPoints: number;
+  /* What this category may be lent against at most. Without it the bands
+     below are absolute, which is how a painting at its limit came to read as
+     comfortable and a gold bar well inside its limit read as risky. */
+  readonly capBasisPoints?: number;
   readonly testId?: string;
 }
 
 /* Banded rather than a bare number, because the reader's question is not
-   "what is the ratio" but "is this comfortable". The bands are about how much
-   room is left before the security stops covering the loan, and they are
-   deliberately coarse: three states someone can read at a glance beats a
-   gradient nobody can interpret. */
-function toneFor(basisPoints: number): { label: string; className: string } {
-  if (basisPoints <= 3000) {
-    return { label: 'comfortable', className: 'bg-surface-sunken text-status-success' };
+   "what is the ratio" but "is this comfortable".
+
+   The bands are a share of what the category allows, not of the appraisal.
+   The caps differ by liquidity, from sixty percent against bullion down to
+   thirty against art, so the same loan to value means opposite things
+   depending on what is in the vault. Judging every category by one absolute
+   threshold got four of the five backwards. */
+function toneFor(allowanceUsedBasisPoints: number): { label: string; className: string } {
+  if (allowanceUsedBasisPoints <= 6000) {
+    return { label: 'comfortable for this category', className: 'text-status-success' };
   }
-  if (basisPoints <= 5000) {
-    return { label: 'moderate', className: 'bg-surface-sunken text-status-active' };
+  if (allowanceUsedBasisPoints <= 8500) {
+    return { label: 'moderate for this category', className: 'text-status-active' };
   }
-  return { label: 'near the ceiling', className: 'bg-surface-sunken text-status-warning' };
+  return { label: 'near the limit for this category', className: 'text-status-warning' };
 }
 
-export function LoanToValue({ basisPoints, testId }: LoanToValueProps): ReactElement {
-  const tone = toneFor(basisPoints);
+/* Integer arithmetic, like every other share in this product. A cap of zero
+   would be a parameter set that lends nothing against a category, which is
+   not a division anybody should be doing. */
+function allowanceUsed(basisPoints: number, capBasisPoints: number): number {
+  if (capBasisPoints <= 0) {
+    return 10_000;
+  }
+  return Math.round((basisPoints * 10_000) / capBasisPoints);
+}
+
+export function LoanToValue({
+  basisPoints,
+  capBasisPoints,
+  testId,
+}: LoanToValueProps): ReactElement {
   /* Integer arithmetic all the way to the string. `(2145 / 100).toFixed(1)`
      answers 21.4, because 21.45 is not representable and lands just below it.
      Rounding tenths as integers cannot drift, which matters here for the same
@@ -30,15 +50,36 @@ export function LoanToValue({ basisPoints, testId }: LoanToValueProps): ReactEle
   const whole = Math.trunc(tenths / 10);
   const percent = tenths % 10 === 0 ? `${whole}` : `${whole}.${tenths % 10}`;
 
+  /* Without a cap the chip states the ratio and claims nothing about risk.
+     A wrong reassurance is worse than none. */
+  if (capBasisPoints === undefined) {
+    return (
+      <span
+        data-testid={testId}
+        className="inline-flex items-center gap-1 rounded-full bg-surface-sunken px-2 py-0.5 font-body text-xs tabular-nums text-ink-secondary"
+      >
+        {percent}% LTV
+      </span>
+    );
+  }
+
+  const used = allowanceUsed(basisPoints, capBasisPoints);
+  const tone = toneFor(used);
+  const capTenths = Math.round(capBasisPoints / 10);
+  const capPercent =
+    capTenths % 10 === 0
+      ? `${Math.trunc(capTenths / 10)}`
+      : `${Math.trunc(capTenths / 10)}.${capTenths % 10}`;
+
   return (
     <span
       data-testid={testId}
-      title={`Loan to value: ${tone.label}`}
+      title={`${percent}% of the appraisal, against a limit of ${capPercent}% for this category: ${tone.label}.`}
       className={[
-        'inline-flex items-center gap-1 rounded-full px-2 py-0.5',
         /* Tabular figures in the body face. The digits still line up, which
            is the only reason a chip like this ever wanted a monospace, and
            the two letters beside them stop reading as a typewriter. */
+        'inline-flex items-center gap-1 rounded-full bg-surface-sunken px-2 py-0.5',
         'font-body text-xs tabular-nums',
         tone.className,
       ].join(' ')}

@@ -13,6 +13,7 @@ scan() {
   grep -rnHP \
     --include='*.md' --include='*.ts' --include='*.tsx' \
     --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=build --exclude-dir=.git \
+    --exclude-dir=claude_design_handover \
     "$1" "$target" 2>/dev/null | grep -vE "$self_referential" || true
 }
 

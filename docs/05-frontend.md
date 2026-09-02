@@ -125,13 +125,33 @@ market, at one stage, with at most one thing to do about it. Four mappers in
 loan into that one shape. Every mapper takes `now` as a parameter rather than reading a clock, so a
 test does not travel in time and the demo clock cannot leak in.
 
+The screen has two axes, and neither is a filter over one list.
+
+**Side** picks borrowing or lending. **View** picks open or history. Four combinations, and each
+draws its own columns, because the questions differ: a borrower is shown what a loan is costing
+(interest so far, interest to come, owed today), a lender what it is returning (earned, still to
+earn, at maturity), and a closed row is shown what it was worth and how it ended. Running the open
+columns over closed rows put a dash under the interest, the settlement and the term on every line,
+which is what made the earlier arrangement of two tables per side look arbitrary.
+
+That earlier split was by entity: loans in one table, listings and offers in the other. It was the
+same mistake the portfolio exists to end, only smaller, and it asked a reader to work out which of
+their own things belonged where. A listing and the loan it becomes are one story, and they now sit
+in one table.
+
 It is two screens, not one with a filter. Borrowing and lending answer different questions with
 different columns: a borrower is shown what a loan is costing (interest so far, interest to come,
 owed today) and a lender is shown what it is returning (earned so far, still to earn, value at
 maturity). The one merged table had to drop every column that did not apply to both, which left it
-saying almost nothing. `side` picks between them and defaults to borrowing.
+saying almost nothing. `side` and `view` both live in the URL and default to borrowing and open.
 
-Both loan tables carry a term bar. Its arithmetic runs against `asOf` on the loan list response,
+Every row carries a photograph and a term. A person recognises their own things by sight long
+before they read a description, which is why the browse rail leads with one and the portfolio now
+does too. The term is how long is left, whatever the row is: a loan runs to maturity and gets a bar,
+a listing and an offer run to an expiry with no recorded start and get the words alone, and a closed
+row gets a dash like every other column with nothing true to say.
+
+The loan term bar Its arithmetic runs against `asOf` on the loan list response,
 which is the server's clock: the demo runs weeks ahead of any browser (flow 15), so a bar drawn
 against `Date.now()` would report a matured loan as three percent through.
 

@@ -11,9 +11,9 @@ self_referential='(docs/12-writing-and-commits\.md|scripts/check-prose\.sh|scrip
 
 scan() {
   grep -rnHP \
-    --include='*.md' --include='*.ts' --include='*.tsx' \
+    --include='*.md' --include='*.ts' --include='*.tsx' --include='*.move' \
     --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=build --exclude-dir=.git \
-    --exclude-dir=claude_design_handover --exclude-dir=test-results \
+    --exclude-dir=claude_design_handover --exclude-dir=test-results --exclude-dir=build \
     "$1" "$target" 2>/dev/null | grep -vE "$self_referential" || true
 }
 

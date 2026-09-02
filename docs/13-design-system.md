@@ -413,6 +413,87 @@ The skill supplies contrast and focus guidance. We verify it rather than assume 
 - The vault console is checked at 1366 by 768 with keyboard navigation only. Staff use a fixed
   terminal, not a laptop with a trackpad.
 
+## Amendment, P8h: press motion and the shared control surface
+
+Additive, on the P8c conditions. No token changed value, and no palette, typeface or spacing entry
+moved.
+
+### What was wrong
+
+P8c tokenised how long a thing takes and never what it does. The result was that `transition-colors`
+appeared twenty two times across the three applications and there were zero press states in the
+whole repository. Every control in the product answered a hand on exactly one channel, colour, which
+is the channel a reader with a colour vision deficiency has least access to and the one a person
+using the product in bright sun on a phone can see least well.
+
+Underneath that sat a second problem the first one hid. There was no tab component and no chip
+component, so four screens grew their own version of the same selected pill and all four disagreed:
+two paddings, two type sizes, and three different ideas about what selected looks like. The admin
+navigation carried selection in text colour alone, which DESIGN-BRIEF rule 3 forbids outright.
+
+### The tokens
+
+```
+--motion-press-scale  --motion-lift  --motion-ease-spring
+```
+
+Amplitude is a token rather than a class because the same component has to be emphatic on the
+marketplace floor and nearly still on a vault terminal. A component says `active:scale-press` once
+and the surface it landed on decides how far that is:
+
+| Scope | Press | Lift | Release |
+|---|---|---|---|
+| `:root`, the admin | 0.97 | 1px | settles, no overshoot |
+| `[data-surface='terminal']` | 0.99 | none | settles, no overshoot |
+| `[data-surface='floor']` | 0.96 | 1px | overshoots and comes back |
+
+The floor is the only scope permitted to overshoot, on the same reasoning that made it the only
+scope permitted to fork the palette in P0.6. It is the surface a lender chooses to be on. The
+console is a fixed screen one person drives through hundreds of intakes, where a control that hops
+under the cursor is an irritation rather than a confirmation.
+
+`--motion-ease-spring` resolves to `--motion-ease-enter` everywhere except the floor, so the tiering
+costs a component nothing: it asks for the spring and gets whatever the surface means by it.
+
+### Reduced motion, and why the collapse moved
+
+The P8c durations collapse in a media query near the top of the file. The amplitude tokens cannot,
+because a scope selector and `:root` carry the same specificity and the floor override is written
+further down. Collapsing amplitude beside the durations would let document order reinstate exactly
+the motion the query exists to remove. So there is a second `prefers-reduced-motion` block at the
+foot of `tokens.css` that names all three scopes. Duration is not repeated there, because nothing
+below the first block sets one.
+
+### The control surface
+
+`packages/ui/src/pressable.ts` is the single definition of what touching a control feels like.
+`Button`, `Tab`, `Chip` and the marketplace rail compose it rather than restating it. It exports
+`pressable` and `pressableInset`, which differ only in whether the focus ring is drawn outside the
+control or inside it, for one sitting flush against a container edge that would clip it. The two are
+alternatives rather than additions: putting both rings in one class list leaves the winner to
+stylesheet order rather than to the caller.
+
+Two primitives join the list in step 5:
+
+- **`TabStrip`, `Tab`, `TabItem`.** One of a set of views or destinations. Selection is carried by a
+  bottom edge bar, by weight, and by tone, which is `NavRailItem`'s rule turned ninety degrees. That
+  is deliberate: the rail and the strip are the same idea on two axes. `Tab` is a button and reports
+  `aria-pressed` because it changes what is on screen. `TabItem` is presentation only, for a router
+  link to wrap, because a destination is a place and the link owns `aria-current`.
+- **`Chip`.** A constraint that is on or off. It is a separate component from `Tab` rather than a
+  size of one because the two answer different questions: a tab asks which of these views am I
+  looking at, and exactly one is always chosen, while a chip asks whether this constraint is on, and
+  none of them being on is the ordinary case.
+
+### The conditions this was made under
+
+- **Additive only.** No existing token changed value.
+- **Semantic.** `--motion-press-scale`, not `--scale-96`.
+- **Bounded.** Two amplitudes and one easing. No second scale for anybody to pick from.
+- **Reduced motion belongs to the token.** A component cannot forget, and a scope cannot undo it.
+- **Tiering lives in the scope, not in the component.** A surface that wants less motion overrides a
+  value. It does not get its own component, and it never gets its own palette.
+
 ## Visual regression
 
 Once tokens are frozen, drift becomes detectable. Playwright takes a screenshot of one representative

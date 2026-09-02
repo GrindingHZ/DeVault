@@ -146,7 +146,12 @@ Three rules hold the screen together:
 
 - **The stage is words, never a status enum.** `IN_VAULT` and `SUPERSEDED` are correct names for a
   state machine and the wrong thing to say to a person.
-- **The attention band is empty most days.** A position needs attention only when its holder would
+- **What needs a person lives in the header, not on the screen.** A bell carries the count and the
+  list behind it; the portfolio shows positions, not urgency. It was a band across the top of the
+  portfolio, which put the one thing a reader would regret not doing on the one screen they had to
+  remember to open, and it duplicated a reclaim banner that shouted on every screen about held money
+  and knew about nothing else. Both are gone.
+- **The bell is empty most days.** A position needs attention only when its holder would
   regret not acting today: a hold that lost and is sitting there, a loan at or past maturity, a
   defaulted loan whose collateral can still be claimed, an item repaid for and waiting in a vault.
   The rule is stated once, in `portfolio/attention.ts`, so it cannot drift into meaning "anything
@@ -157,6 +162,24 @@ Three rules hold the screen together:
 The strip sums only outstanding loans. A repaid loan is history, and counting it would inflate both
 sides forever. Interest comes from the server as `accruedInterest` on the loan: the demo clock runs
 weeks ahead of the browser, so a figure computed here would be silently wrong.
+
+## The marketplace header
+
+Four things, in the order they are read: the brand, what needs you, what you can spend, who you are.
+
+The balance is a pill rather than a row of labelled figures. Both balances spelled out was two
+thirds of the wallet screen wedged beside the product name; the menu behind the pill still has the
+held figure, and the pill shows a dot when it is not zero, because that is when it explains why the
+spendable number looks wrong.
+
+Log out is behind the avatar. As a bare button in the header it gave the most destructive control on
+the screen the same weight as everything beside it, and never said whose session it would end.
+
+Every panel in the product opens through one `Popover`: click rather than hover, escape closes and
+returns the focus, and the panel is portaled out of whatever container would otherwise clip it. It
+carries the `data-surface` of the element it was triggered from, because leaving for the document
+body also leaves the palette scope, and the marketplace floor's panels opened white on a dark screen
+until they did.
 
 ## The marketplace workspace
 

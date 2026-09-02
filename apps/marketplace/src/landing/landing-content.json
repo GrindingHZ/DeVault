@@ -429,14 +429,14 @@
       "body": "Repayment is due. Pay USD 9,863.79 and the seal is broken the same day."
     },
     {
-      "mark": "DAY 31\u201337",
+      "mark": "DAY 31-37",
       "heading": "Grace period",
       "headingColor": "#d29922",
       "dotColor": "#d29922",
       "body": "Seven days. The receipt reads at risk, not defaulted, and the item is not for sale during this window."
     },
     {
-      "mark": "DAY 37\u201367",
+      "mark": "DAY 37-67",
       "heading": "Statutory holding",
       "headingColor": "#f85149",
       "dotColor": "#f85149",

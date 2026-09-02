@@ -101,8 +101,8 @@ export function toneForStatus(status: string): LandingTone {
 
 const toneByTimelineMark: Record<string, LandingTone> = {
   'DAY 30': 'accent',
-  'DAY 31–37': 'warn',
-  'DAY 37–67': 'danger',
+  'DAY 31-37': 'warn',
+  'DAY 37-67': 'danger',
   'AFTER SALE': 'accent',
 };
 

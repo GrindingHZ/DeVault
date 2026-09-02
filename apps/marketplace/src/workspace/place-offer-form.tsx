@@ -2,9 +2,10 @@ import { ApiError, messageForError, placeOffer } from '@depawn/contracts';
 import type { ListingDetailResponse } from '@depawn/contracts';
 import {
   Button,
-  Field,
   Money,
+  Slider,
   formatMoney,
+  formatRate,
   interestOver,
   rateToBasisPoints,
   standingAmong,
@@ -36,10 +37,26 @@ function offerMessageFor(error: unknown): string {
 
 const millisecondsPerDay = 24 * 60 * 60 * 1000;
 
+/* The smallest rate the contract accepts. Anything below it is not a cheap
+   offer, it is a rejected one. */
+const smallestRateBasisPoints = 1;
+
+function withoutSuffix(basisPoints: number): string {
+  return formatRate(basisPoints).replace(' p.a.', '');
+}
+
 /* Placing an offer commits real money for a month, and the form for it was a
-   number in a box. Everything below the field is the consequence of what is
-   in it: what the lender earns, where they would stand, and what the borrower
-   would repay. All three move as the rate is typed.
+   number in a box. Everything below the control is the consequence of what
+   it holds: what the lender earns, where they would stand, and what the
+   borrower would repay. All three move as the rate moves.
+
+   The rate is set by dragging rather than by typing. Undercutting is the
+   whole mechanic, and a lender doing it by typing has to hold the number to
+   beat in their head, compute one below it, and enter the result. On a
+   scale, the offer to beat is a mark they can aim at and the ceiling is the
+   end of the track. The box is still there, still typable, and shows the
+   same figure: some people know the rate they want and should not have to
+   hunt for it with a mouse.
 
    The arithmetic is the server's own, from packages/ui/src/interest.ts, so a
    figure quoted here and the figure charged later cannot disagree. */
@@ -50,25 +67,46 @@ export function PlaceOfferForm({
 }): ReactElement {
   const queryClient = useQueryClient();
   const feedback = useFeedback();
+  /* Two pieces of state for one number, on purpose. The box holds what was
+     typed, including the half finished states a person passes through, and
+     is what the form submits. The slider holds the last figure that parsed,
+     so clearing the box to retype it does not throw the handle to one end of
+     the track. */
   const [rateInput, setRateInput] = useState('18.00');
+  const [sliderBasisPoints, setSliderBasisPoints] = useState(1800);
   const [inputError, setInputError] = useState<string | null>(null);
   // Generated on mount and rotated per success (docs/05-frontend.md).
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
 
   const basisPoints = rateToBasisPoints(rateInput);
+  const ceiling = detail.maxAnnualPercentageRateBasisPoints;
   const standingRates = detail.offerBook
     .filter((offer) => offer.status === 'PENDING')
     .map((offer) => offer.annualPercentageRateBasisPoints);
   const best = standingRates.length === 0 ? null : Math.min(...standingRates);
 
-  const isAboveCeiling =
-    basisPoints !== null && basisPoints > detail.maxAnnualPercentageRateBasisPoints;
+  const isAboveCeiling = basisPoints !== null && basisPoints > ceiling;
   const interest =
     basisPoints === null || isAboveCeiling
       ? null
       : interestOver(detail.requestedPrincipal.minorUnits, basisPoints, detail.requestedDurationMs);
   const standing = basisPoints === null ? null : standingAmong(basisPoints, standingRates);
   const days = Math.round(detail.requestedDurationMs / millisecondsPerDay);
+
+  function takeRate(nextBasisPoints: number): void {
+    setSliderBasisPoints(nextBasisPoints);
+    setRateInput((nextBasisPoints / 100).toFixed(2));
+    setInputError(null);
+  }
+
+  function takeTypedRate(text: string): void {
+    setRateInput(text);
+    const parsed = rateToBasisPoints(text);
+    if (parsed !== null) {
+      setSliderBasisPoints(Math.min(Math.max(parsed, smallestRateBasisPoints), ceiling));
+      setInputError(null);
+    }
+  }
 
   /* Rule M4: lenders compete by lowering the rate, not by raising the
      principal. So the amount is the one the borrower asked for and is not a
@@ -101,6 +139,10 @@ export function PlaceOfferForm({
     },
   });
 
+  const errorMessage =
+    inputError ??
+    (isAboveCeiling ? `Above this listing's maximum of ${withoutSuffix(ceiling)}.` : null);
+
   return (
     <div className="flex flex-col gap-3 p-3">
       <h3 className="font-body text-xs font-medium uppercase tracking-wide text-ink-secondary">
@@ -108,7 +150,7 @@ export function PlaceOfferForm({
       </h3>
 
       <form
-        className="flex flex-col gap-3"
+        className="flex flex-col gap-4"
         onSubmit={(event) => {
           event.preventDefault();
           if (basisPoints === null) {
@@ -119,32 +161,45 @@ export function PlaceOfferForm({
           offerMutation.mutate({ rateBasisPoints: basisPoints });
         }}
       >
-        <Field
-          label="Annual rate (% per year)"
-          data-testid="offer-rate"
-          value={rateInput}
-          onChange={(event) => setRateInput(event.target.value)}
-          errorMessage={
-            inputError ??
-            (isAboveCeiling
-              ? `Above this listing's maximum of ${(detail.maxAnnualPercentageRateBasisPoints / 100).toFixed(2)}%.`
-              : undefined)
-          }
-        />
-
-        {/* Undercutting is the whole mechanic, so it is one click rather than
-            a sum the lender does in their head. */}
-        {best === null ? null : (
-          <button
-            type="button"
-            data-testid="offer-beat-best"
-            onClick={() => setRateInput(((best - 1) / 100).toFixed(2))}
-            disabled={best <= 1}
-            className="self-start rounded-sm border border-edge-strong px-2 py-1 font-body text-xs text-ink-secondary transition-colors duration-control ease-enter hover:text-ink-primary disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-status-active"
-          >
-            Undercut the best by 0.01
-          </button>
-        )}
+        <div className="flex flex-col gap-1">
+          <Slider
+            label="Annual rate (% per year)"
+            testId="offer-rate-slider"
+            value={sliderBasisPoints}
+            min={smallestRateBasisPoints}
+            max={ceiling}
+            onValueChange={takeRate}
+            valueText={withoutSuffix}
+            /* The offer to beat, drawn on the scale. Undercutting used to be
+               a button that did the subtraction; a mark on the track says
+               the same thing without deciding by how much. */
+            marker={best === null ? undefined : { value: best, label: 'Best' }}
+            valueControl={
+              <span className="flex items-center gap-1">
+                <input
+                  data-testid="offer-rate"
+                  inputMode="decimal"
+                  aria-label="Annual rate, percent per year"
+                  aria-invalid={errorMessage !== null}
+                  value={rateInput}
+                  onChange={(event) => takeTypedRate(event.target.value)}
+                  className={[
+                    'min-h-8 w-20 rounded-md border bg-surface-raised px-2',
+                    'text-right font-figure text-sm tabular-nums text-ink-primary',
+                    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-status-active',
+                    errorMessage === null ? 'border-edge-strong' : 'border-status-danger',
+                  ].join(' ')}
+                />
+                <span className="font-body text-sm text-ink-secondary">%</span>
+              </span>
+            }
+          />
+          {errorMessage === null ? null : (
+            <p role="alert" className="font-body text-sm text-status-danger">
+              {errorMessage}
+            </p>
+          )}
+        </div>
 
         <Consequence
           interest={interest}
@@ -192,7 +247,7 @@ function Consequence({
   if (interest === null || standing === null) {
     return (
       <p className="font-body text-xs text-ink-secondary">
-        Enter a rate to see what it earns and where it would stand.
+        Set a rate to see what it earns and where it would stand.
       </p>
     );
   }

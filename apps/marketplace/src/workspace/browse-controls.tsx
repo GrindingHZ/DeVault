@@ -11,10 +11,13 @@ import {
   JewelleryIcon,
   RowsIcon,
   Tab,
+  TabItem,
   TabStrip,
   WatchIcon,
   focusRing,
+  tabLinkClasses,
 } from '@depawn/ui';
+import { Link } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactElement, ReactNode } from 'react';
 
@@ -110,6 +113,12 @@ export function BrowseControls(props: BrowseControlsProps): ReactElement {
               onSelect={() => props.onScope(tab.value)}
             />
           ))}
+          {/* A destination among the view toggles, so it is a link rather
+              than a Tab: the secondary market is the other face of Browse
+              (docs/superpowers/specs/2026-08-24-secondary-market-design.md). */}
+          <Link to="/listings/positions" data-testid="scope-positions" className={tabLinkClasses}>
+            <TabItem label="Positions for sale" isActive={false} />
+          </Link>
         </TabStrip>
       </div>
 

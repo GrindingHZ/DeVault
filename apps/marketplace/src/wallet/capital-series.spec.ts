@@ -31,6 +31,7 @@ function loan(overrides: Partial<LoanResponse> = {}): LoanResponse {
     maturesAt: new Date(day0 + 32 * oneDay).toISOString(),
     graceEndsAt: new Date(day0 + 39 * oneDay).toISOString(),
     lenderNoteHolderAccountId: 'lender-1',
+    lenderNoteId: 'NOTE1',
     status: 'ACTIVE',
     accruedInterest: { minorUnits: '0', currency: 'USD' },
     originationSettlementRef: { kind: 'ledger', reference: 'ref', settledAt: '' },

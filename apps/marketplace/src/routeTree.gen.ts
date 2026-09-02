@@ -21,6 +21,7 @@ import { Route as LendLoansRouteImport } from './routes/lend.loans'
 import { Route as LendOffersRouteImport } from './routes/lend.offers'
 import { Route as ListingsIndexRouteImport } from './routes/listings.index'
 import { Route as ListingsListingIdRouteImport } from './routes/listings.$listingId'
+import { Route as ListingsPositionsRouteImport } from './routes/listings.positions'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -82,6 +83,11 @@ const ListingsListingIdRoute = ListingsListingIdRouteImport.update({
   path: '/listings/$listingId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ListingsPositionsRoute = ListingsPositionsRouteImport.update({
+  id: '/listings/positions',
+  path: '/listings/positions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/lend/loans': typeof LendLoansRoute
   '/lend/offers': typeof LendOffersRoute
   '/listings/$listingId': typeof ListingsListingIdRoute
+  '/listings/positions': typeof ListingsPositionsRoute
   '/listings/': typeof ListingsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/lend/loans': typeof LendLoansRoute
   '/lend/offers': typeof LendOffersRoute
   '/listings/$listingId': typeof ListingsListingIdRoute
+  '/listings/positions': typeof ListingsPositionsRoute
   '/listings': typeof ListingsIndexRoute
 }
 export interface FileRoutesById {
@@ -124,6 +132,7 @@ export interface FileRoutesById {
   '/lend/loans': typeof LendLoansRoute
   '/lend/offers': typeof LendOffersRoute
   '/listings/$listingId': typeof ListingsListingIdRoute
+  '/listings/positions': typeof ListingsPositionsRoute
   '/listings/': typeof ListingsIndexRoute
 }
 export interface FileRouteTypes {
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
     | '/lend/loans'
     | '/lend/offers'
     | '/listings/$listingId'
+    | '/listings/positions'
     | '/listings/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -154,6 +164,7 @@ export interface FileRouteTypes {
     | '/lend/loans'
     | '/lend/offers'
     | '/listings/$listingId'
+    | '/listings/positions'
     | '/listings'
   id:
     | '__root__'
@@ -168,6 +179,7 @@ export interface FileRouteTypes {
     | '/lend/loans'
     | '/lend/offers'
     | '/listings/$listingId'
+    | '/listings/positions'
     | '/listings/'
   fileRoutesById: FileRoutesById
 }
@@ -183,6 +195,7 @@ export interface RootRouteChildren {
   LendLoansRoute: typeof LendLoansRoute
   LendOffersRoute: typeof LendOffersRoute
   ListingsListingIdRoute: typeof ListingsListingIdRoute
+  ListingsPositionsRoute: typeof ListingsPositionsRoute
   ListingsIndexRoute: typeof ListingsIndexRoute
 }
 
@@ -272,6 +285,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ListingsListingIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/listings/positions': {
+      id: '/listings/positions'
+      path: '/listings/positions'
+      fullPath: '/listings/positions'
+      preLoaderRoute: typeof ListingsPositionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -287,6 +307,7 @@ const rootRouteChildren: RootRouteChildren = {
   LendLoansRoute: LendLoansRoute,
   LendOffersRoute: LendOffersRoute,
   ListingsListingIdRoute: ListingsListingIdRoute,
+  ListingsPositionsRoute: ListingsPositionsRoute,
   ListingsIndexRoute: ListingsIndexRoute,
 }
 export const routeTree = rootRouteImport

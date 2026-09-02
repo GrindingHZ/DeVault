@@ -29,6 +29,11 @@ export interface ValueChartProps {
   readonly currency: string;
   /* Names the whole chart for a screen reader, which cannot read a shape. */
   readonly label: string;
+  /* Pins a persistent marker at this instant, the way the positions page
+     marks where a loan stands today. Markers land only on series points
+     that sit exactly at the instant; the chart never interpolates a value,
+     because a drawn figure nobody priced would be the chart pricing it. */
+  readonly markedAtMs?: number | undefined;
   readonly testId?: string | undefined;
 }
 
@@ -114,7 +119,13 @@ function useMeasuredWidth(): readonly [React.RefObject<HTMLDivElement | null>, n
    One axis, always. Two measures at different scales get two charts rather
    than a second y-axis, which is the single most common way a chart like
    this starts lying. */
-export function ValueChart({ series, currency, label, testId }: ValueChartProps): ReactElement {
+export function ValueChart({
+  series,
+  currency,
+  label,
+  markedAtMs,
+  testId,
+}: ValueChartProps): ReactElement {
   const [plotRef, measuredWidth] = useMeasuredWidth();
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
@@ -258,6 +269,37 @@ export function ValueChart({ series, currency, label, testId }: ValueChartProps)
                 className={strokeByRole[one.role]}
               />
             ))}
+
+            {markedAtMs === undefined ? null : (
+              <>
+                {/* Quieter than the hover crosshair on purpose: this one is
+                    always there, so it has to sit behind the reading rather
+                    than compete with it. */}
+                <line
+                  data-marked-line="true"
+                  x1={xOf(markedAtMs)}
+                  x2={xOf(markedAtMs)}
+                  y1={0}
+                  y2={plotHeight}
+                  strokeWidth={1}
+                  className="stroke-edge"
+                />
+                {series.map((one) => {
+                  const point = one.points.find((candidate) => candidate.atMs === markedAtMs);
+                  return point === undefined ? null : (
+                    <circle
+                      key={`marked-${one.id}`}
+                      data-marked="true"
+                      cx={xOf(point.atMs)}
+                      cy={yOf(point.minorUnits)}
+                      r={4}
+                      strokeWidth={2}
+                      className={`${fillByRole[one.role]} stroke-surface-raised`}
+                    />
+                  );
+                })}
+              </>
+            )}
 
             {active === null ? null : (
               <>

@@ -66,6 +66,7 @@ function loan(overrides: Partial<LoanResponse> = {}): LoanResponse {
     maturesAt: '2026-09-30T12:00:00.000Z',
     graceEndsAt: '2026-10-07T12:00:00.000Z',
     lenderNoteHolderAccountId: 'gita',
+    lenderNoteId: 'NOTE1',
     status: 'ACTIVE',
     accruedInterest: money('5917'),
     originationSettlementRef: {

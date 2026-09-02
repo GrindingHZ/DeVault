@@ -151,6 +151,30 @@ describe('ValueChart', () => {
     expect(screen.queryByTestId('capital-tooltip')).toBeNull();
   });
 
+  /* The positions page pins a marker where the loan stands today, so a
+     reader finds now without hunting with the pointer. The marker only
+     lands on real points: interpolating one would be the client pricing. */
+  it('pins a marker on every series point at the marked instant', () => {
+    const { container } = render(
+      <ValueChart series={[total, cash]} currency="USD" label="Capital" markedAtMs={start + day} />,
+    );
+    expect(container.querySelectorAll('circle[data-marked="true"]')).toHaveLength(2);
+    expect(container.querySelector('line[data-marked-line="true"]')).toBeTruthy();
+  });
+
+  it('draws no marker where no point sits at the marked instant', () => {
+    const { container } = render(
+      <ValueChart
+        series={[total, cash]}
+        currency="USD"
+        label="Capital"
+        markedAtMs={start + day / 2}
+      />,
+    );
+    expect(container.querySelectorAll('circle[data-marked="true"]')).toHaveLength(0);
+    expect(container.querySelector('line[data-marked-line="true"]')).toBeTruthy();
+  });
+
   /* A blank rectangle reads as something that failed to load. */
   it('says plainly when there is nothing to draw', () => {
     render(<ValueChart series={[]} currency="USD" label="Capital" />);

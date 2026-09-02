@@ -31,12 +31,12 @@ IN_VAULT ──encumber──────────▶ ENCUMBERED ──releas
 | `encumber` | IN_VAULT to ENCUMBERED | holder owns it, not already encumbered | records the loan id on the receipt | `accept-offer` |
 | `releaseEncumbrance` | ENCUMBERED to IN_VAULT | none beyond status | clears the loan id | `repay-loan` |
 | `claimDefault` | ENCUMBERED to IN_VAULT under the claimant | loan DEFAULTED, caller holds the lender note | holder changes | `claim-receipt` |
-| `transferHolder` | IN_VAULT to IN_VAULT | not encumbered | holder changes | nothing today |
+| `transferHolder` | IN_VAULT to IN_VAULT | not encumbered | holder changes | **nothing today** |
 | `burnForRedemption` | IN_VAULT to RELEASED | holder is the caller, not encumbered | redemption request opens in REQUESTED | `request-redemption` |
 | `burnForLiquidation` | IN_VAULT or ENCUMBERED to LIQUIDATED | sale settling | vault exposure falls | `close-liquidation` |
 
-Three disagreements with the drawing in `docs/02`, two of them already recorded as Q-012 and still
-undrawn:
+Three disagreements with the drawing in `docs/02`, two of them recorded as Q-012 and undrawn for
+months. All three are now drawn:
 
 1. The drawing sends `claimDefault` back to ENCUMBERED with a holder change. The code moves it to
    IN_VAULT under the claimant, which is what lets a lender redeem through flow 6 with no special
@@ -162,17 +162,22 @@ SCHEDULED ──open──▶ BIDDING ──close──▶ SETTLED
 | `open` | SCHEDULED to BIDDING | operations | sets `opensAt` and `closesAt` | `open-liquidation` |
 | `bid` | BIDDING, no status change | inside the window, at or above the reserve, above the standing high bid | holds the bidder's funds. The beaten bid stays held for its owner to pull | `place-bid` |
 | `close` | BIDDING to SETTLED | at least one bid | releases the winning hold across the waterfall, burns the receipt, marks the loan LIQUIDATED, `LiquidationSettled` | `close-liquidation` |
-| `cancel` | SCHEDULED to CANCELLED | none | none | **nothing today** |
+| `cancel` | SCHEDULED to CANCELLED | operations | audit entry carrying the reason. The loan's sale slot is freed | `cancel-liquidation` |
 
-Two problems here, and the drawing is one of them.
+`docs/02` drew `cancel` hanging off BIDDING. The code allows it only from SCHEDULED, and the code is
+right: cancelling an auction that has live bids would have to refund every hold on it, and nothing
+does that in bulk. The drawing has been corrected rather than the table.
 
-`docs/02` draws `cancel` hanging off BIDDING. The code allows it only from SCHEDULED. The code is
-right and the drawing is wrong: cancelling an auction that has live bids would have to refund every
-hold on it, and nothing does that. Correct the drawing rather than the table.
+Cancelling used to be unreachable, which made CANCELLED a state the schema could hold and the product
+could not enter. `POST /liquidations/:id/cancel` now reaches it, operations only, and demands a
+reason for the audit entry, because cancelling reverses an operations judgement and the record has to
+say why.
 
-Cancelling is unreachable either way. There is no endpoint, `docs/10` flow 8 never mentions it, and
-nothing calls `Liquidation.cancel()`. CANCELLED is a state the schema can hold and the product
-cannot enter.
+Reaching it exposed a second thing. `liquidation.loan_id` was plainly unique, so a cancelled sale
+would have held the loan's only slot for ever and the loan could never have been sold again: a
+cancel that bricks its loan is worse than no cancel at all. The index is now partial on
+`status <> 'CANCELLED'`, the same shape as the one open sale per note, and `findByLoan` reads the
+live one. A called off sale leaves the loan exactly where it found it.
 
 ## RedemptionRequest
 
@@ -194,12 +199,18 @@ correct, and the two are merged before anything is shown.
 
 Ordered by what it costs.
 
-**1. A beaten bidder cannot get their money back from any screen.** `place-bid` holds funds and
-leaves a beaten bid held, pull not push, the same as an offer. `POST /liquidations/:id/bids/:id/reclaim`
-exists and `reclaimBid` is in the contracts client, but no application calls it, and the portfolio
-models listings, offers, loans and note sales, never bids. So the money is held, no row shows it and
-the bell cannot count it. This is the exact failure the attention band was built for, in the one
-place it does not reach.
+**1. A beaten bidder could not get their money back from any screen. Fixed.** `place-bid` holds funds
+and leaves a beaten bid held, pull not push, the same as an offer.
+`POST /liquidations/:id/bids/:id/reclaim` existed and `reclaimBid` was in the contracts client, but
+no application called it, and the portfolio modelled listings, offers, loans and note sales, never
+bids. The money was held, no row showed it and the bell could not count it: the exact failure the
+attention band was built for, in the one place it did not reach.
+
+`GET /me/bids` now answers what a bidder has bid and, separately, whether the money behind it is
+still committed. The bid cannot say that on its own, for the same reason a superseded offer cannot:
+reclaiming refunds the hold and writes nothing back. `positionOfBid` turns each into a row on the
+lending side, so a beaten bid raises attention with a Reclaim funds control until the money is
+home.
 
 **2. `docs/OPEN-QUESTIONS.md` Q-006 records a decision that is not implemented.** It says the winning
 bidder receives a newly issued receipt for the same item. `close-liquidation` burns the old receipt
@@ -207,20 +218,29 @@ and issues nothing. After a sale the buyer holds no representation of the item a
 issuance is missing or the recorded answer is stale, and until one of them moves the file is telling
 a reader something untrue.
 
-**3. Three transitions are drawn and coded and never fired:** `Listing.expire`, `Offer.expire` and
-`Liquidation.cancel`. The first two are contained, because every guard that matters reads the clock
-rather than the status, and the screens now do too. The third means a scheduled sale can never be
-called off.
+**3. Three transitions were drawn and coded and never fired:** `Listing.expire`, `Offer.expire` and
+`Liquidation.cancel`. The first two are contained and stay lazy: every guard that matters reads the
+clock rather than the status, and the screens now do too. Sweeping them would buy a truer status
+column at the cost of scheduled work in a process that has none, which is a Phase 2 trade rather than
+this one. The third is fixed, above. `CustodyReceipt.transferHolder` is a fourth, deliberately: it is
+the seam a Phase 3 object transfer lands on and nothing in Phase 1 should be reaching it.
 
 **4. Four state changes emit no event:** a cancelled listing, a superseded offer, a scheduled
 liquidation and an opened one. Every other transition that matters publishes one. `docs/08` has the
 Phase 3 indexer rebuilding state from events, so these are the four it would not see.
 
-**5. The `docs/02` drawings are stale in three places:** the receipt's `claimDefault` target and its
-liquidation burn, both already argued out in Q-012 and never redrawn, and the liquidation `cancel`
-arrow hanging off the wrong state.
+**5. The `docs/02` drawings were stale in three places. Fixed.** The receipt's `claimDefault` target
+and its liquidation burn, both argued out in Q-012 and never redrawn, and the liquidation `cancel`
+arrow hanging off the wrong state. All three now match the code, and each carries the sentence saying
+why the code is the right reading.
 
-None of these is a live money defect. The ledger balances, every guard holds, and no transition can
-be fired from a state that forbids it. What they are is a set of places where the map and the ground
-disagree, which is the kind of thing that is cheap now and expensive at the Move rewrite, when the
+None of these was a live money defect. The ledger balances, every guard holds, and no transition can
+be fired from a state that forbids it. What they were is a set of places where the map and the ground
+disagreed, which is the kind of thing that is cheap now and expensive at the Move rewrite, when the
 map is what somebody will build from.
+
+Finding 1 was the exception in one respect: no money was lost, but money was stranded, and the
+product had no way to say so. Three holds in the demo dataset were sitting exactly like that.
+
+Left open on purpose: finding 2, which needs a founder decision rather than code, and finding 4,
+whose four missing events matter from P9 when the indexer exists and are speculative before it.

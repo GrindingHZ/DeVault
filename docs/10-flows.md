@@ -340,6 +340,12 @@ Note that step 1 must remain available while the system is paused (rule S2).
 
 2. `POST /liquidations/:id/open` → `BIDDING`, sets `closesAt`.
 
+   Or `POST /liquidations/:id/cancel` with a reason → `CANCELLED`, if the sale should not run after
+   all: the borrower settled privately, the appraisal is disputed, the wrong loan was picked. Only
+   from `SCHEDULED`. Once bidding has opened, every bid holds somebody's money and nothing refunds
+   them in bulk, so an open sale is closed rather than called off. A cancelled sale frees the loan to
+   be scheduled again.
+
 3. `POST /liquidations/:id/bids`.
    > **─── transaction boundary ───**
    > Assert `BIDDING`, not closed, bid `>= reservePrice` and above the current high bid.
@@ -371,6 +377,7 @@ better product. Do not make it configurable.
 | Holding period not elapsed | 422 `HOLDING_PERIOD_ACTIVE` |
 | Bid below reserve | 422 `BID_BELOW_RESERVE` |
 | Bidding closed | 409 `LIQUIDATION_NOT_OPEN` |
+| Cancelling a sale that has opened | 409 `LIQUIDATION_NOT_SCHEDULED` |
 
 ### Test cases that must exist
 
@@ -381,14 +388,23 @@ nothing), and exactly equal (boundary). Each asserts distributions sum exactly t
 
 ## Flow 9: reclaiming a superseded hold
 
-**Actor:** lender
+**Actor:** lender or bidder
 
 `POST /me/offers/:offerId/reclaim`
 > **─── transaction boundary ───**
 > Assert the offer is `SUPERSEDED` or `EXPIRED` and the caller is the lender. `refundHold`. Mark the
 > hold reclaimed so a repeat is a no-op rather than a double refund.
 
+`POST /liquidations/:id/bids/:bidId/reclaim` is the same flow in the other market: a beaten bid holds
+money exactly as a beaten offer does, and pulling it back is the same single transaction.
+
 Small flow, and the one most likely to be forgotten. Test the double-reclaim case explicitly.
+
+**Both need a screen that can name the money, which is the half that was forgotten.** `GET /me/offers`
+and `GET /me/bids` each carry the hold state alongside the offer or bid, because reclaiming refunds
+the hold and writes nothing back: read the status alone and a row goes on asking for money that is
+already home, and the notification counting it can never be cleared. The portfolio raises a beaten
+offer or bid for attention only while `isHoldHeld`.
 
 ---
 

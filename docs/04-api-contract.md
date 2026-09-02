@@ -174,11 +174,21 @@ happen.
 ```
 POST   /loans/:id/liquidations                    OPERATIONS. Enforces the holding period.
 POST   /liquidations/:id/open
+POST   /liquidations/:id/cancel                   OPERATIONS. SCHEDULED only, reason required.
 GET    /liquidations?status=
 GET    /liquidations/:id
 POST   /liquidations/:id/bids
 POST   /liquidations/:id/close                    runs the waterfall, settles
+GET    /me/bids                                   the caller's bids and whether the money is held
+POST   /liquidations/:id/bids/:bidId/reclaim      reclaim a beaten hold
 ```
+
+Cancelling is refused once bidding has opened: an open sale holds every bidder's money and nothing
+refunds them in bulk. A cancelled sale frees the loan to be scheduled again.
+
+`GET /me/bids` carries `isHoldHeld` for the same reason `GET /me/offers` does. Reclaiming refunds the
+hold and writes nothing back to the bid, so the bid alone cannot say whether there is anything left
+to ask for, and a screen reading it alone goes on asking for money already home.
 
 ### Admin and operations
 

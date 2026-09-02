@@ -89,12 +89,20 @@ const allowedTransitions: Record<ListingStatus, ListingStatus[]> = {
 
 ```
 IN_VAULT ──encumber──▶ ENCUMBERED ──release──▶ IN_VAULT
-    │                       │
-    │                       └──claimDefault──▶ ENCUMBERED (holder changes)
+    │  ▲                    │
+    │  └──claimDefault──────┘ (holder becomes the claimant)
     │
+    ├──transferHolder─────▶ IN_VAULT (holder changes)
     ├──burnForRedemption──▶ RELEASED
-    └──burnForLiquidation─▶ LIQUIDATED
+    └──burnForLiquidation─▶ LIQUIDATED ◀──burnForLiquidation── ENCUMBERED
 ```
+
+`claimDefault` lands in IN_VAULT under the claimant rather than staying encumbered (Q-012). The loan
+it was pledged against is over, and leaving it encumbered would mean a lender who took the
+collateral could not then redeem it without a special case. `burnForLiquidation` runs from
+ENCUMBERED as well as from IN_VAULT, because flow 8 can sell before any lender has claimed.
+`transferHolder` exists in the entity and in the custody port and nothing fires it; it is the seam a
+Phase 3 object transfer lands on. `docs/14-state-machines.md` carries the guards and effects.
 
 Fields: `id`, `vaultId`, `holderAccountId`, `intakeRecordHash`, `appraisedValue: Money`,
 `appraisedAt`, `appraiserId`, `itemCategory`, `insurancePolicyReference`, `status`, `encumberedByLoanId`.
@@ -241,9 +249,14 @@ transaction in Phase 3.
 
 ```
 SCHEDULED ──open──▶ BIDDING ──close──▶ SETTLED
-                       │
-                       └──cancel──▶ CANCELLED
+    │
+    └──cancel──▶ CANCELLED
 ```
+
+Cancelling runs from SCHEDULED only. A sale that has opened has bids behind it and every bid holds
+somebody's money; calling one off would have to refund all of them, and nothing does that in bulk.
+Close it instead. A cancelled sale gives the loan its slot back, so the loan can be scheduled again:
+the one sale per loan index is partial on that account.
 
 Fields: `id`, `loanId`, `receiptId`, `reservePrice: Money`, `opensAt`, `closesAt`, `winningBidId`,
 `status`, `waterfallResult`.

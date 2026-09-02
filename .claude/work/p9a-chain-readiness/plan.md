@@ -7,7 +7,7 @@ fixtures have one home, the package scaffold builds, and the api resolves the SD
 ## Tasks
 
 - [x] chore(config): add settlement and custody driver switches
-- [ ] feat(ledger): refuse chain settlement until the adapter exists
+- [x] feat(ledger): refuse chain settlement until the adapter exists
 - [ ] feat(custody): refuse chain custody until the adapter exists
 - [ ] test(api): flipping a driver to chain fails at the port and nowhere else
 - [ ] test(domain): read interest and waterfall fixtures from a shared file

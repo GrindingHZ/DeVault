@@ -90,6 +90,18 @@ export function FundedIcon(props: IconProps): ReactElement {
   );
 }
 
+/* Two columns of different heights: what is owed and what is owned, which is
+   what the screen behind it holds. */
+export function PortfolioIcon(props: IconProps): ReactElement {
+  return (
+    <Icon {...props}>
+      <path d="M4 20h16" />
+      <rect x="6" y="11" width="4" height="9" />
+      <rect x="14" y="5" width="4" height="15" />
+    </Icon>
+  );
+}
+
 export function WalletIcon(props: IconProps): ReactElement {
   return (
     <Icon {...props}>

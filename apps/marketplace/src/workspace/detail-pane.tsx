@@ -290,7 +290,7 @@ function OfferBookPanel({
       // cached receipts screen would still offer it for listing.
       await queryClient.invalidateQueries({ queryKey: marketKeys.myReceipts });
       await queryClient.invalidateQueries({ queryKey: walletKeys.all });
-      await navigate({ to: '/borrow/loans' });
+      await navigate({ to: '/portfolio', search: { side: 'borrowing' } });
     },
     onError: (error) => setAcceptError(acceptMessageFor(error)),
   });

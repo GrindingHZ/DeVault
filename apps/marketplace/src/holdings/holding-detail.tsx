@@ -78,7 +78,11 @@ export function HoldingDetail({ receipt, redemption, onClose }: HoldingDetailPro
           <section className="border-t border-edge pt-4">
             <p className="font-body text-sm text-ink-secondary">
               A loan is standing against this item.{' '}
-              <Link to="/borrow/loans" className="text-status-active underline">
+              <Link
+                to="/portfolio"
+                search={{ side: 'borrowing' }}
+                className="text-status-active underline"
+              >
                 See what it costs to settle
               </Link>
             </p>

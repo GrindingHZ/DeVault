@@ -24,7 +24,7 @@ export function ReclaimBanner(): ReactElement | null {
       <p className="font-body text-sm text-ink-primary">
         You have {reclaimable.length} held offer{reclaimable.length === 1 ? '' : 's'} waiting to be
         reclaimed.{' '}
-        <Link to="/lend/offers" className="text-status-active">
+        <Link to="/portfolio" search={{ side: 'lending' }} className="text-status-active">
           Reclaim your funds
         </Link>
       </p>

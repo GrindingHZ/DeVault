@@ -336,7 +336,7 @@ function ListReceiptDialog({
       await queryClient.invalidateQueries({ queryKey: marketKeys.myListings });
       await queryClient.invalidateQueries({ queryKey: marketKeys.browse });
       onClose();
-      await navigate({ to: '/borrow/listings' });
+      await navigate({ to: '/portfolio', search: { side: 'borrowing' } });
     },
   });
 

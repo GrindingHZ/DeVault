@@ -133,4 +133,12 @@ describe('PositionSaleDetail', () => {
     fireEvent.click(screen.getByTestId('buy-position'));
     expect(onBuy).toHaveBeenCalledTimes(1);
   });
+
+  /* A seller reading their own listing still wants the chart; what they
+     cannot do is buy it from themselves. */
+  it('drops the control and keeps the chart when there is nothing to buy', () => {
+    render(<PositionSaleDetail sale={sale} asOfMs={asOfMs} onBuy={null} />);
+    expect(screen.queryByTestId('buy-position')).toBeNull();
+    expect(screen.getByTestId('sale-chart')).toBeTruthy();
+  });
 });

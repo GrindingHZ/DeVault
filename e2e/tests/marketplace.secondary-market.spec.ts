@@ -163,6 +163,16 @@ test('a lender exits early and another takes the position', async ({ page, reque
   await expect(page.getByTestId('portfolio-open')).toContainText('Listed for sale');
   await expect(page.getByTestId('portfolio-open')).toContainText('Withdraw sale');
 
+  /* The seller finds their own listing on the market under its own tab,
+     where it carries a status and cannot be bought back. */
+  await page.getByRole('link', { name: 'Secondary Market' }).click();
+  await expect(page.getByTestId('sale-list')).toHaveCount(0);
+  await page.getByTestId('sale-scope-mine').click();
+  await expect(page.getByTestId('sale-status')).toHaveText('Listed');
+  await page.getByTestId('sale-row').click();
+  await expect(page.getByTestId('sale-chart')).toBeVisible();
+  await expect(page.getByTestId('buy-position')).toHaveCount(0);
+
   // The buyer scans the items first, and only the item they choose draws.
   await signIn(page, buyerEmail);
   await page.getByRole('link', { name: 'Secondary Market' }).click();

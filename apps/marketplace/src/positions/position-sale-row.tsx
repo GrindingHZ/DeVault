@@ -1,7 +1,8 @@
 import type { NoteSaleSummary } from '@depawn/contracts';
-import { ItemPhotograph, focusRing } from '@depawn/ui';
+import { ItemPhotograph, StatusBadge, focusRing } from '@depawn/ui';
 import type { ReactElement } from 'react';
 import { photographOf } from './sale-figures';
+import { saleStatusOf } from './sale-status';
 import { SaleTermLine } from './sale-term-line';
 import { SaleTradeFigures } from './sale-trade-figures';
 
@@ -9,6 +10,10 @@ export interface PositionSaleRowProps {
   readonly sale: NoteSaleSummary;
   readonly isSelected: boolean;
   readonly onSelect: () => void;
+  /* A seller looking at their own listings needs to know which of them is
+     still standing. On the market every row is open, so saying so on each
+     one would be a badge that never varies. */
+  readonly showsStatus?: boolean;
 }
 
 /* One position on the market, as an item rather than as a chart.
@@ -21,7 +26,9 @@ export function PositionSaleRow({
   sale,
   isSelected,
   onSelect,
+  showsStatus = false,
 }: PositionSaleRowProps): ReactElement {
+  const status = saleStatusOf(sale.status);
   return (
     <button
       type="button"
@@ -53,6 +60,11 @@ export function PositionSaleRow({
           </span>
           <SaleTermLine sale={sale} />
         </span>
+        {showsStatus ? (
+          <span className="ml-auto shrink-0" data-testid="sale-status">
+            <StatusBadge tone={status.tone} label={status.label} />
+          </span>
+        ) : null}
       </span>
 
       <SaleTradeFigures sale={sale} />

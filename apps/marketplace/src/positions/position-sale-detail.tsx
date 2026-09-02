@@ -10,7 +10,10 @@ import { SaleTradeFigures } from './sale-trade-figures';
 export interface PositionSaleDetailProps {
   readonly sale: NoteSaleSummary;
   readonly asOfMs: number;
-  readonly onBuy: () => void;
+  /* Null for a position the reader cannot buy: their own, or one that has
+     already left the market. The chart is still worth reading, so the panel
+     stays and only the control goes. */
+  readonly onBuy: (() => void) | null;
 }
 
 /* The chosen position, and how its value got where it is.
@@ -79,9 +82,11 @@ export function PositionSaleDetail({ sale, asOfMs, onBuy }: PositionSaleDetailPr
 
         <SaleTradeFigures sale={sale} size="detail" />
 
-        <Button data-testid="buy-position" onClick={onBuy}>
-          Buy this position
-        </Button>
+        {onBuy === null ? null : (
+          <Button data-testid="buy-position" onClick={onBuy}>
+            Buy this position
+          </Button>
+        )}
       </div>
     </Card>
   );

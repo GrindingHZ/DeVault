@@ -106,6 +106,40 @@ describe('PositionSaleRow', () => {
     expect(container.querySelector('[data-testid="sale-scale-segment-today"]')).toBeTruthy();
   });
 
+  /* A seller's own list carries every state a sale reaches; the market only
+     ever carries open ones, so a badge there would never vary. */
+  it('says what a sale is doing only when asked to', () => {
+    const { rerender } = render(
+      <PositionSaleRow sale={sale} isSelected={false} onSelect={() => undefined} />,
+    );
+    expect(screen.queryByTestId('sale-status')).toBeNull();
+
+    rerender(
+      <PositionSaleRow sale={sale} isSelected={false} onSelect={() => undefined} showsStatus />,
+    );
+    expect(screen.getByTestId('sale-status').textContent).toBe('Listed');
+  });
+
+  it('never shows a reader the shape the database stores a state in', () => {
+    for (const [status, label] of [
+      ['OPEN', 'Listed'],
+      ['SOLD', 'Sold'],
+      ['WITHDRAWN', 'Withdrawn'],
+      ['VOIDED', 'Ended'],
+    ] as const) {
+      const { unmount } = render(
+        <PositionSaleRow
+          sale={{ ...sale, status }}
+          isSelected={false}
+          onSelect={() => undefined}
+          showsStatus
+        />,
+      );
+      expect(screen.getByTestId('sale-status').textContent).toBe(label);
+      unmount();
+    }
+  });
+
   it('hands the press to the caller and says whether it is the chosen one', () => {
     const onSelect = vi.fn();
     const { rerender } = render(

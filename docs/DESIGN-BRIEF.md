@@ -180,30 +180,20 @@ no meaning, and a reader who cannot see it has lost nothing.
 loan and a rate moving your way are different ideas, and one should be able to change without
 dragging the other with it.
 
-## Where the monospace goes, amended P8f
+## Where the monospace goes, amended P8f, superseded by P8g
 
-`--font-mono` is IBM Plex Mono, and a slab monospace set on words reads as a
-typewriter. It had spread from the amounts it was chosen for onto section
-headings, stage labels, filter groups, category names and phrases like
-"closes in 71d 23h", which is most of what made the product feel dated.
+Kept as a record of the reasoning rather than as a live rule.
 
-The rule, which the token table above already implied and nobody was holding
-to:
+P8f found the monospace set on section headings, stage labels, filter groups, category names and
+phrases like "closes in 71d 23h", and pulled it back to "figures that line up in a column". That
+half was right and still holds for labels.
 
-**Monospace is for figures that have to line up in a column. Everything a
-person reads as words is the body face.**
+The other half was wrong. It kept figures in the monospace on the grounds that a column has to
+align, and P8g replaced that with a better test: a figure is compared to the one above it, an
+identifier is read one character at a time to be quoted. Alignment is a job for tabular numerals,
+not for a typewriter face, and `--font-figure` carries `tnum` so no caller has to remember.
 
-| Monospace | Body face |
-|---|---|
-| Amounts, rates, percentages | Section and group headings |
-| Timestamps in a tape or a log | Stage and destination labels |
-| Identifiers and settlement references | Category names, status words |
-| Any column of numerals compared down | Countdowns and other phrases |
-
-A figure that sits inline in a sentence rather than in a column does not need
-the monospace to align, and takes `tabular-nums` in the body face instead. The
-loan to value chip is the example: the digits still line up, and the two
-letters beside them stop looking like a receipt.
+The live rule is the table under **Typefaces, amended P8g** above.
 
 ## The five UX rules this product cares about most
 

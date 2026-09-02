@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Tokens only. No raw hex, `rgb()`/`hsl()`, arbitrary Tailwind colour, or hardcoded `font-family` outside `packages/ui/src/tokens.css`.
-- Monospace is for figures that line up in a column. Words are the body face (`docs/DESIGN-BRIEF.md`, P8f amendment).
+- Four type roles, not two (`docs/DESIGN-BRIEF.md`, P8g amendment): headings and body and labels in `--font-body`, amounts and rates and dates in `--font-figure` which carries `tnum`, and only quoted identifiers such as a receipt reference in `--font-mono`. A figure is compared to the one above it; an identifier is read one character at a time.
 - Prose rules apply to comments, docs and UI copy: no em or en dashes, no curly quotes, no ellipsis character, no emoji, no banned phrases. This bites on glyphs too: an HTML numeric entity like the one for a filled square reads as a hex colour to `check-design-tokens.sh`, so use a unicode escape.
 - Commits are one line, `type(scope): lowercase imperative summary`, max 72 characters, scope from the list in `scripts/check-commit-msg.sh`.
 - No `any`, no non-null assertion outside test fixtures, no `as` casts to silence the compiler.

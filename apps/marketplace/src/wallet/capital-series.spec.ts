@@ -142,6 +142,42 @@ describe('what a lender is worth', () => {
     expect(points[points.length - 1]?.lentMinorUnits).toBe(400000n);
   });
 
+  /* Both sides of the wallet are replayed, not just their sum, which is what
+     lets the breakdown answer for a day in the past rather than only for
+     today: committing cash to an offer moves it between the two and leaves
+     the cash line alone. */
+  it('replays what was available and what was committed, separately', () => {
+    const committed = entry({
+      id: 'held',
+      kind: 'HOLD_FUNDS',
+      direction: 'CREDIT',
+      purpose: 'USER_HELD',
+      amount: { minorUnits: '400000', currency: 'USD' },
+      occurredAt: new Date(day0 + oneDay).toISOString(),
+    });
+    const takenFromAvailable = entry({
+      id: 'held-out',
+      kind: 'HOLD_FUNDS',
+      direction: 'DEBIT',
+      purpose: 'USER_AVAILABLE',
+      amount: { minorUnits: '400000', currency: 'USD' },
+      occurredAt: new Date(day0 + oneDay).toISOString(),
+    });
+
+    const points = buildCapitalSeries({
+      entries: [funded, committed, takenFromAvailable],
+      loans: [],
+      asOfMs: day0 + 2 * oneDay,
+      windowMs: null,
+    });
+    const closing = points[points.length - 1];
+    expect(closing?.availableMinorUnits).toBe(600000n);
+    expect(closing?.heldMinorUnits).toBe(400000n);
+    // The money did not leave, so the line the chart draws did not move.
+    expect(closing?.cashMinorUnits).toBe(1000000n);
+    expect(points[0]?.heldMinorUnits).toBe(0n);
+  });
+
   it('rises as the interest accrues, on a day nobody did anything', () => {
     const points = buildCapitalSeries({
       entries: [funded, originated],

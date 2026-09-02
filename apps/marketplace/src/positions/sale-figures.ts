@@ -39,8 +39,23 @@ export function discountSentenceOf(sale: NoteSaleSummary): string {
   return `${amount} (${shareOf(discount.basisPoints)}) below today's value`;
 }
 
-export function termLineOf(sale: NoteSaleSummary): string {
-  return `${nameForCategory(sale.itemCategory)} · ${formatRate(
-    sale.annualPercentageRateBasisPoints,
-  )} · matures ${formatInstant(sale.maturesAt, 'date')}`;
+export interface TermParts {
+  readonly category: string;
+  readonly rate: string;
+  /* Split from its lead so only the date carries the weight: "matures" is
+     the same word on every row and the date is the part a reader is
+     comparing. */
+  readonly maturesOn: string;
+}
+
+export function termPartsOf(sale: NoteSaleSummary): TermParts {
+  return {
+    category: nameForCategory(sale.itemCategory),
+    rate: formatRate(sale.annualPercentageRateBasisPoints),
+    maturesOn: formatInstant(sale.maturesAt, 'date'),
+  };
+}
+
+export function photographOf(sale: NoteSaleSummary): string | null {
+  return sale.hasPhotograph ? `/api/v1/receipts/${sale.receiptId}/photo` : null;
 }

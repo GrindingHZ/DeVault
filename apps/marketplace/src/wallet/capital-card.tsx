@@ -9,6 +9,7 @@ import {
   TabStrip,
   ValueChart,
   formatAmount,
+  formatInstant,
   formatMoney,
 } from '@depawn/ui';
 import { useQuery } from '@tanstack/react-query';
@@ -54,6 +55,12 @@ async function fetchWholeLedger(): Promise<readonly LedgerEntryResponse[]> {
 
 export function CapitalCard(): ReactElement {
   const [windowId, setWindowId] = useState<WindowId>('1M');
+  /* The day under the pointer, which every figure on this card follows.
+     Reading the chart out in a tooltip meant the breakdown underneath went on
+     describing today while the pointer was three weeks back; moving the whole
+     card instead answers the question a reader actually has, which is how the
+     money was divided on the day they are pointing at. */
+  const [readingAtMs, setReadingAtMs] = useState<number | null>(null);
 
   const balanceQuery = useQuery({ queryKey: walletKeys.balance, queryFn: fetchBalance });
   const ledgerQuery = useQuery({ queryKey: walletKeys.history, queryFn: fetchWholeLedger });
@@ -101,12 +108,36 @@ export function CapitalCard(): ReactElement {
   );
 
   const currency = balance.available.currency;
-  const lent = closing?.lentMinorUnits ?? 0n;
-  const interest = closing?.interestMinorUnits ?? 0n;
-  const defaulted = closing?.defaultedMinorUnits ?? 0n;
-  const available = BigInt(balance.available.minorUnits);
-  const held = BigInt(balance.held.minorUnits);
+  /* The day being read: the one under the pointer, or today when the pointer
+     is away. A hovered day is a reconstruction from the ledger; today's cash
+     is the balance the server reports, which is the figure of record. */
+  const reading =
+    readingAtMs === null ? null : (points.find((one) => one.atMs === readingAtMs) ?? null);
+  const shown = reading ?? closing;
+
+  const lent = shown?.lentMinorUnits ?? 0n;
+  const interest = shown?.interestMinorUnits ?? 0n;
+  const defaulted = shown?.defaultedMinorUnits ?? 0n;
+  const available =
+    reading === null ? BigInt(balance.available.minorUnits) : reading.availableMinorUnits;
+  const held = reading === null ? BigInt(balance.held.minorUnits) : reading.heldMinorUnits;
   const total = available + held + lent + interest + defaulted;
+
+  /* Hovering re-reads the change as the run from the opening of the window up
+     to that day, rather than leaving a figure on screen that describes a
+     period ending somewhere else. */
+  const shownChange =
+    reading === null || change === null
+      ? change
+      : {
+          openingMinorUnits: change.openingMinorUnits,
+          closingMinorUnits: reading.totalMinorUnits,
+          deltaMinorUnits: reading.totalMinorUnits - change.openingMinorUnits,
+        };
+  const changeTrail =
+    reading === null
+      ? `over ${chosen.id === 'ALL' ? 'all time' : `the last ${chosen.label}`}`
+      : `by ${formatInstant(new Date(reading.atMs).toISOString(), 'date')}`;
 
   /* Every band is drawn in the same neutral. The status tones mean
      something in this product (a loan at risk, a run that failed), and
@@ -146,6 +177,15 @@ export function CapitalCard(): ReactElement {
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
+            {/* Which day every figure on this card is answering for. Always
+                present rather than appearing on hover: a caption that arrives
+                and leaves would shift the number underneath it while somebody
+                is reading along the line. */}
+            <p data-testid="capital-as-of" className="font-body text-xs text-ink-secondary">
+              {reading === null
+                ? 'Today'
+                : formatInstant(new Date(reading.atMs).toISOString(), 'date')}
+            </p>
             {/* The headline is everything the reader owns, not the cash they
                 happen to be holding. Cash falls when money is successfully
                 lent, so a wallet that led with it would report a good month
@@ -156,18 +196,18 @@ export function CapitalCard(): ReactElement {
             >
               {formatMoney({ minorUnits: total.toString(), currency })}
             </p>
-            {change === null ? null : (
+            {shownChange === null ? null : (
               <p
                 data-testid="capital-change"
                 className={`font-figure text-sm tabular-nums ${
-                  change.deltaMinorUnits < 0n ? 'text-market-adverse' : 'text-market-favourable'
+                  shownChange.deltaMinorUnits < 0n
+                    ? 'text-market-adverse'
+                    : 'text-market-favourable'
                 }`}
               >
-                {change.deltaMinorUnits < 0n ? '' : '+'}
-                {formatAmount({ minorUnits: change.deltaMinorUnits.toString(), currency })}
-                <span className="ml-1 font-body text-ink-secondary">
-                  over {chosen.id === 'ALL' ? 'all time' : `the last ${chosen.label}`}
-                </span>
+                {shownChange.deltaMinorUnits < 0n ? '' : '+'}
+                {formatAmount({ minorUnits: shownChange.deltaMinorUnits.toString(), currency })}
+                <span className="ml-1 font-body text-ink-secondary">{changeTrail}</span>
               </p>
             )}
           </div>
@@ -189,11 +229,16 @@ export function CapitalCard(): ReactElement {
           testId="capital-chart"
           currency={currency}
           label={`Everything you own over ${chosen.id === 'ALL' ? 'all time' : `the last ${chosen.label}`}`}
+          /* The figures above and below are the readout, so the chart does
+             not raise a second one over the top of them. */
+          readout="external"
+          onHoverChange={setReadingAtMs}
           series={[
             {
               id: 'total',
               label: 'Everything you own',
               role: 'subject',
+              shape: 'smooth',
               points: points.map((point) => ({
                 atMs: point.atMs,
                 minorUnits: point.totalMinorUnits,
@@ -203,6 +248,7 @@ export function CapitalCard(): ReactElement {
               id: 'cash',
               label: 'Cash in your wallet',
               role: 'reference',
+              shape: 'smooth',
               points: points.map((point) => ({
                 atMs: point.atMs,
                 minorUnits: point.cashMinorUnits,

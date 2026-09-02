@@ -177,33 +177,76 @@ describe('ValueChart', () => {
 
   /* A sloped line between two samples invites reading a figure off a point
      nobody quoted. A step says the value held, then changed. */
-  it('walks along and then up when a series asks for steps', () => {
+  it('joins samples with straight lines by default', () => {
+    const { container } = render(
+      <ValueChart series={[total]} currency="USD" label="Capital" testId="capital" />,
+    );
+    const drawn = container.querySelector('path[stroke-width="2"]')?.getAttribute('d') ?? '';
+    expect(drawn.match(/L/g)).toHaveLength(2);
+    expect(drawn).not.toContain('C');
+  });
+
+  it('curves through every sample when a series asks to be smoothed', () => {
     const { container } = render(
       <ValueChart
-        series={[{ ...total, shape: 'step' }]}
+        series={[{ ...total, shape: 'smooth' }]}
         currency="USD"
         label="Capital"
         testId="capital"
       />,
     );
-    const line = container.querySelector('path[stroke-width="2"]');
-    const drawn = line?.getAttribute('d') ?? '';
-    // Two commands per step rather than one: along at the height it was
-    // already at, then up to the height it just reached.
-    const heights = [...drawn.matchAll(/[ML][\d.]+ ([\d.]+)/g)].map((match) => match[1]);
-    expect(heights).toHaveLength(5);
-    expect(heights[1]).toBe(heights[0]);
-    expect(heights[3]).toBe(heights[2]);
-    expect(heights[2]).not.toBe(heights[1]);
+    const drawn = container.querySelector('path[stroke-width="2"]')?.getAttribute('d') ?? '';
+    // One cubic per gap, and nothing straight left in it.
+    expect(drawn.match(/C/g)).toHaveLength(2);
+    expect(drawn).not.toContain('L');
   });
 
-  it('slides straight between samples by default', () => {
+  /* Why the smoothing is monotone rather than a plain spline: a spline rounds
+     a turn by leaving the range of the samples it joins, which would draw a
+     balance dipping to a figure the account never held. */
+  it('never leaves the range of the samples it is joining', () => {
+    const turning = {
+      ...total,
+      shape: 'smooth' as const,
+      points: [
+        { atMs: start, minorUnits: 1000000n },
+        { atMs: start + day, minorUnits: 1000000n },
+        { atMs: start + 2 * day, minorUnits: 500000n },
+      ],
+    };
     const { container } = render(
-      <ValueChart series={[total]} currency="USD" label="Capital" testId="capital" />,
+      <ValueChart series={[turning]} currency="USD" label="Capital" testId="capital" />,
     );
-    expect(
-      container.querySelector('path[stroke-width="2"]')?.getAttribute('d')?.match(/L/g),
-    ).toHaveLength(2);
+    const drawn = container.querySelector('path[stroke-width="2"]')?.getAttribute('d') ?? '';
+    const heights = [...drawn.matchAll(/[\d.]+ ([\d.]+)/g)].map((match) => Number(match[1]));
+    /* Higher on the screen is a smaller y, and the flat pair is the highest
+       the series ever gets, so nothing may be drawn above it. */
+    const highest = Math.min(...heights);
+    expect(heights.every((height) => height >= highest)).toBe(true);
+  });
+
+  it('hands the instant under the pointer to a caller reading it out itself', () => {
+    const seen: (number | null)[] = [];
+    const { container } = render(
+      <ValueChart
+        series={[total, cash]}
+        currency="USD"
+        label="Capital"
+        readout="external"
+        onHoverChange={(atMs) => seen.push(atMs)}
+        testId="capital"
+      />,
+    );
+    const surface = container.querySelector('.relative') as HTMLElement;
+    surface.getBoundingClientRect = () => ({ left: 0, width: 600 }) as DOMRect;
+
+    fireEvent.pointerMove(surface, { clientX: 600 });
+    expect(seen).toEqual([start + 2 * day]);
+    // The caller is showing the figures, so the chart does not compete.
+    expect(screen.queryByTestId('capital-tooltip')).toBeNull();
+
+    fireEvent.pointerLeave(surface);
+    expect(seen).toEqual([start + 2 * day, null]);
   });
 
   /* A blank rectangle reads as something that failed to load. */

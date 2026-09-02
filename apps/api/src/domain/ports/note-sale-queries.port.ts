@@ -14,8 +14,13 @@ export interface NoteSaleSummaryReadModel {
   readonly status: NoteSaleStatus;
   readonly askPrice: Money;
   readonly createdAt: Instant;
+  readonly receiptId: string;
   readonly itemDescription: string;
   readonly itemCategory: ItemCategory;
+  /* Whether the media endpoint will actually serve a photograph of this item.
+     The predicate is the browse read model's, so a row cannot promise a
+     picture the endpoint then refuses. */
+  readonly hasPhotograph: boolean;
   readonly principal: Money;
   readonly annualPercentageRateBasisPoints: number;
   readonly startedAt: Instant;

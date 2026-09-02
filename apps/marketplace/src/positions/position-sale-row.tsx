@@ -1,7 +1,8 @@
 import type { NoteSaleSummary } from '@depawn/contracts';
-import { focusRing } from '@depawn/ui';
+import { ItemPhotograph, focusRing } from '@depawn/ui';
 import type { ReactElement } from 'react';
-import { discountSentenceOf, figuresOf, termLineOf } from './sale-figures';
+import { discountSentenceOf, figuresOf, photographOf } from './sale-figures';
+import { SaleTermLine } from './sale-term-line';
 
 export interface PositionSaleRowProps {
   readonly sale: NoteSaleSummary;
@@ -35,11 +36,22 @@ export function PositionSaleRow({
           : 'border-edge bg-surface-raised hover:border-edge-strong',
       ].join(' ')}
     >
-      <span className="flex flex-col gap-0.5">
-        <span className="truncate font-heading text-base font-semibold text-ink-primary">
-          {sale.itemDescription}
+      {/* The photograph leads, because a person recognises the thing they
+          are lending against by sight long before they read a description,
+          which is the same reason the browse rail leads with one. */}
+      <span className="flex items-center gap-3">
+        <ItemPhotograph
+          src={photographOf(sale)}
+          alt={sale.itemDescription}
+          size="row"
+          testId="sale-photograph"
+        />
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <span className="truncate font-heading text-base font-semibold text-ink-primary">
+            {sale.itemDescription}
+          </span>
+          <SaleTermLine sale={sale} />
         </span>
-        <span className="font-body text-xs text-ink-secondary">{termLineOf(sale)}</span>
       </span>
 
       <span className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">

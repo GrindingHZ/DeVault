@@ -22,8 +22,10 @@ const sale: NoteSaleSummary = {
   status: 'OPEN',
   askPrice: money('245000'),
   createdAt: startedAt,
+  receiptId: 'R1',
   itemDescription: 'One kilogram gold bar, cast',
   itemCategory: 'BULLION',
+  hasPhotograph: true,
   principal: money('250000'),
   annualPercentageRateBasisPoints: 1800,
   startedAt,
@@ -71,9 +73,9 @@ describe('saleChartOf', () => {
     }
   });
 
-  it('draws the value as steps, because a day is the unit being compared', () => {
+  it('smooths the value line without letting it leave the days it joins', () => {
     const [value] = saleChartOf(sale, asOfMs).series;
-    expect(value?.shape).toBe('step');
+    expect(value?.shape).toBe('smooth');
     expect(value?.role).toBe('subject');
   });
 

@@ -1,8 +1,9 @@
 import type { NoteSaleSummary } from '@depawn/contracts';
-import { Button, Card, ValueChart } from '@depawn/ui';
+import { Button, Card, ItemPhotograph, ValueChart } from '@depawn/ui';
 import type { ReactElement } from 'react';
 import { saleChartOf } from './sale-chart';
-import { discountSentenceOf, figuresOf, termLineOf } from './sale-figures';
+import { discountSentenceOf, figuresOf, photographOf } from './sale-figures';
+import { SaleTermLine } from './sale-term-line';
 
 export interface PositionSaleDetailProps {
   readonly sale: NoteSaleSummary;
@@ -23,11 +24,19 @@ export function PositionSaleDetail({ sale, asOfMs, onBuy }: PositionSaleDetailPr
   return (
     <Card data-testid="sale-detail">
       <div className="flex flex-col gap-4">
-        <header className="flex flex-col gap-0.5">
-          <h2 className="font-heading text-base font-semibold text-ink-primary">
-            {sale.itemDescription}
-          </h2>
-          <p className="font-body text-xs text-ink-secondary">{termLineOf(sale)}</p>
+        <header className="flex items-center gap-3">
+          <ItemPhotograph
+            src={photographOf(sale)}
+            alt={sale.itemDescription}
+            size="thumbnail"
+            testId="detail-photograph"
+          />
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <h2 className="truncate font-heading text-base font-semibold text-ink-primary">
+              {sale.itemDescription}
+            </h2>
+            <SaleTermLine sale={sale} />
+          </div>
         </header>
 
         <ValueChart

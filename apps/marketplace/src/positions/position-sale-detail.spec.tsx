@@ -15,8 +15,10 @@ const sale: NoteSaleSummary = {
   status: 'OPEN',
   askPrice: money('245000'),
   createdAt: '2026-08-01T00:00:00.000Z',
+  receiptId: 'R1',
   itemDescription: 'One kilogram gold bar, cast',
   itemCategory: 'BULLION',
+  hasPhotograph: true,
   principal: money('250000'),
   annualPercentageRateBasisPoints: 1800,
   startedAt: '2026-08-01T00:00:00.000Z',
@@ -44,15 +46,19 @@ describe('PositionSaleDetail', () => {
     expect(screen.getByTestId('detail-figure-ask').textContent).toBe('USD 2,450.00');
   });
 
-  /* One step per day of the term, which is what makes every day hoverable. */
-  it('steps the value line a day at a time', () => {
+  /* One curve per day of the term, which is what makes every day hoverable. */
+  it('curves the value line through every day of the term', () => {
     const { container } = render(
       <PositionSaleDetail sale={sale} asOfMs={asOfMs} onBuy={() => undefined} />,
     );
     const line = container.querySelector('path[stroke-width="2"]');
-    const commands = line?.getAttribute('d')?.match(/L/g) ?? [];
-    // Thirty days, two commands each: along at the value it held, then up.
-    expect(commands).toHaveLength(60);
+    expect(line?.getAttribute('d')?.match(/C/g)).toHaveLength(30);
+  });
+
+  it('shows the item and bolds the date it matures', () => {
+    render(<PositionSaleDetail sale={sale} asOfMs={asOfMs} onBuy={() => undefined} />);
+    expect(screen.getByTestId('detail-photograph')).toBeTruthy();
+    expect(screen.getByTestId('matures-on').tagName).toBe('STRONG');
   });
 
   it('reads out both lines for the day under the pointer', () => {

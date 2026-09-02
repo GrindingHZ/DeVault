@@ -23,8 +23,14 @@ export interface CapitalPoint {
   readonly atMs: number;
   /* Available plus held. Both are the reader's money and both are spendable
      eventually, so the chart does not split them; the breakdown beside it
-     does. */
+     does, from the two figures below. */
   readonly cashMinorUnits: bigint;
+  /* The same money, split the way the breakdown reads it. Every ledger entry
+     names which of the two accounts it moved (packages/contracts wallet
+     schema), so both are replayable rather than only their sum, which is what
+     lets the breakdown answer for a past day and not only for today. */
+  readonly availableMinorUnits: bigint;
+  readonly heldMinorUnits: bigint;
   /* Principal out on loans that were still running at this moment. */
   readonly lentMinorUnits: bigint;
   /* What those loans had earned by this moment, and not a penny of what they
@@ -72,7 +78,8 @@ function signedAmount(entry: LedgerEntryResponse): bigint {
 
 interface CashStep {
   readonly atMs: number;
-  readonly cashMinorUnits: bigint;
+  readonly availableMinorUnits: bigint;
+  readonly heldMinorUnits: bigint;
 }
 
 /* Every balance the account has held, in order. Replayed forward from zero
@@ -85,23 +92,37 @@ function cashStepsOf(entries: readonly LedgerEntryResponse[]): readonly CashStep
   );
 
   const steps: CashStep[] = [];
-  let running = 0n;
+  let available = 0n;
+  let held = 0n;
   for (const entry of chronological) {
-    running += signedAmount(entry);
-    steps.push({ atMs: Date.parse(entry.occurredAt), cashMinorUnits: running });
+    if (entry.purpose === 'USER_HELD') {
+      held += signedAmount(entry);
+    } else {
+      available += signedAmount(entry);
+    }
+    steps.push({
+      atMs: Date.parse(entry.occurredAt),
+      availableMinorUnits: available,
+      heldMinorUnits: held,
+    });
   }
   return steps;
 }
 
-function cashAt(steps: readonly CashStep[], atMs: number): bigint {
-  let held = 0n;
+const noCash: Omit<CashStep, 'atMs'> = { availableMinorUnits: 0n, heldMinorUnits: 0n };
+
+function cashAt(steps: readonly CashStep[], atMs: number): Omit<CashStep, 'atMs'> {
+  let reached = noCash;
   for (const step of steps) {
     if (step.atMs > atMs) {
       break;
     }
-    held = step.cashMinorUnits;
+    reached = {
+      availableMinorUnits: step.availableMinorUnits,
+      heldMinorUnits: step.heldMinorUnits,
+    };
   }
-  return held;
+  return reached;
 }
 
 /* When each loan stopped being outstanding, taken from the ledger rather
@@ -207,15 +228,18 @@ export function buildCapitalSeries(input: CapitalSeriesInput): readonly CapitalP
 
   return stamps.map((atMs) => {
     const cash = cashAt(steps, atMs);
+    const total = cash.availableMinorUnits + cash.heldMinorUnits;
     const notes = notesAt(input.loans, closed, atMs);
     return {
       atMs,
-      cashMinorUnits: cash,
+      cashMinorUnits: total,
+      availableMinorUnits: cash.availableMinorUnits,
+      heldMinorUnits: cash.heldMinorUnits,
       lentMinorUnits: notes.lentMinorUnits,
       interestMinorUnits: notes.interestMinorUnits,
       defaultedMinorUnits: notes.defaultedMinorUnits,
       totalMinorUnits:
-        cash + notes.lentMinorUnits + notes.interestMinorUnits + notes.defaultedMinorUnits,
+        total + notes.lentMinorUnits + notes.interestMinorUnits + notes.defaultedMinorUnits,
     };
   });
 }

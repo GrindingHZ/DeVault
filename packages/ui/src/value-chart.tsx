@@ -21,12 +21,15 @@ export interface ValueSeries {
      keeps the two apart where they hold the same value and one would
      otherwise sit invisibly underneath the other. */
   readonly role: 'subject' | 'reference';
-  /* How the line travels between two samples. `linear` claims the value slid
-     evenly from one to the next; `step` holds each sample until the next one
-     lands and jumps there. Use `step` when the samples are the readable unit
-     and the reader is meant to compare one to the next, which is what a daily
-     interest figure is. */
-  readonly shape?: 'linear' | 'step';
+  /* How the line travels between two samples. `linear` joins them straight;
+     `smooth` curves through them.
+
+     The curve is monotone (Fritsch and Carlson), not a plain spline, and the
+     difference matters here: a plain spline overshoots around a turn, so a
+     balance that never fell would be drawn dipping below a figure the account
+     never held. A monotone curve stays inside the two samples it joins, so
+     the shape is easier to read and still cannot claim anything untrue. */
+  readonly shape?: 'linear' | 'smooth';
   readonly points: readonly ValuePoint[];
 }
 
@@ -40,6 +43,13 @@ export interface ValueChartProps {
      that sit exactly at the instant; the chart never interpolates a value,
      because a drawn figure nobody priced would be the chart pricing it. */
   readonly markedAtMs?: number | undefined;
+  /* Where the figures under the pointer are read. `tooltip` is this chart's
+     own readout. `external` means the caller is showing them somewhere
+     better, usually by updating figures it was already displaying, and two
+     readouts of the same number would only compete. */
+  readonly readout?: 'tooltip' | 'external';
+  /* The instant under the pointer, or null when it leaves. */
+  readonly onHoverChange?: (atMs: number | null) => void;
   readonly testId?: string | undefined;
 }
 
@@ -120,6 +130,53 @@ function useMeasuredWidth(): readonly [React.RefObject<HTMLDivElement | null>, n
   return [ref, width];
 }
 
+/* Reading an array without asserting it is populated, so the smoothing below
+   can index its neighbours without a non-null assertion in production code. */
+function at(values: readonly number[], index: number): number {
+  return values[index] ?? 0;
+}
+
+/* Tangents that cannot overshoot: zero wherever the samples turn, averaged
+   where they do not, then limited to three times the local slope, which is
+   the Fritsch and Carlson condition for staying monotone. */
+function monotoneTangents(xs: readonly number[], ys: readonly number[]): readonly number[] {
+  const count = xs.length;
+  const slopes: number[] = [];
+  for (let index = 0; index < count - 1; index += 1) {
+    const run = at(xs, index + 1) - at(xs, index);
+    slopes.push(run === 0 ? 0 : (at(ys, index + 1) - at(ys, index)) / run);
+  }
+
+  const tangents: number[] = [];
+  for (let index = 0; index < count; index += 1) {
+    if (index === 0 || index === count - 1) {
+      tangents.push(at(slopes, index === 0 ? 0 : count - 2));
+      continue;
+    }
+    const before = at(slopes, index - 1);
+    const after = at(slopes, index);
+    tangents.push(before * after <= 0 ? 0 : (before + after) / 2);
+  }
+
+  for (let index = 0; index < count - 1; index += 1) {
+    const slope = at(slopes, index);
+    if (slope === 0) {
+      tangents[index] = 0;
+      tangents[index + 1] = 0;
+      continue;
+    }
+    const from = at(tangents, index) / slope;
+    const to = at(tangents, index + 1) / slope;
+    const distance = from * from + to * to;
+    if (distance > 9) {
+      const limit = 3 / Math.sqrt(distance);
+      tangents[index] = limit * from * slope;
+      tangents[index + 1] = limit * to * slope;
+    }
+  }
+  return tangents;
+}
+
 /* How a value moved, drawn as a line per series over one shared scale.
 
    One axis, always. Two measures at different scales get two charts rather
@@ -130,6 +187,8 @@ export function ValueChart({
   currency,
   label,
   markedAtMs,
+  readout = 'tooltip',
+  onHoverChange,
   testId,
 }: ValueChartProps): ReactElement {
   const [plotRef, measuredWidth] = useMeasuredWidth();
@@ -163,22 +222,31 @@ export function ValueChart({
   }
 
   function pathOf(points: readonly ValuePoint[], shape: ValueSeries['shape']): string {
-    return points
-      .map((point, index) => {
-        const x = xOf(point.atMs).toFixed(1);
-        const y = yOf(point.minorUnits).toFixed(1);
-        if (index === 0) {
-          return `M${x} ${y}`;
-        }
-        if (shape !== 'step') {
-          return `L${x} ${y}`;
-        }
-        // Along at the value it held, then up to the one it just reached.
-        const previous = points[index - 1];
-        const held = previous === undefined ? y : yOf(previous.minorUnits).toFixed(1);
-        return `L${x} ${held} L${x} ${y}`;
-      })
-      .join(' ');
+    const xs = points.map((point) => xOf(point.atMs));
+    const ys = points.map((point) => yOf(point.minorUnits));
+    const opening = `M${at(xs, 0).toFixed(1)} ${at(ys, 0).toFixed(1)}`;
+
+    if (shape !== 'smooth' || points.length < 3) {
+      return points
+        .map((point, index) =>
+          index === 0 ? opening : `L${at(xs, index).toFixed(1)} ${at(ys, index).toFixed(1)}`,
+        )
+        .join(' ');
+    }
+
+    /* A cubic through every sample, its control points a third of the way
+       along and leaning at the limited tangent, which is what keeps the
+       curve inside the pair it joins. */
+    const tangents = monotoneTangents(xs, ys);
+    const curves = points.slice(1).map((_point, index) => {
+      const reach = (at(xs, index + 1) - at(xs, index)) / 3;
+      const fromX = (at(xs, index) + reach).toFixed(1);
+      const fromY = (at(ys, index) + at(tangents, index) * reach).toFixed(1);
+      const toX = (at(xs, index + 1) - reach).toFixed(1);
+      const toY = (at(ys, index + 1) - at(tangents, index + 1) * reach).toFixed(1);
+      return `C${fromX} ${fromY}, ${toX} ${toY}, ${at(xs, index + 1).toFixed(1)} ${at(ys, index + 1).toFixed(1)}`;
+    });
+    return [opening, ...curves].join(' ');
   }
 
   function trackPointer(event: PointerEvent<HTMLDivElement>): void {
@@ -187,7 +255,14 @@ export function ValueChart({
       return;
     }
     const share = (event.clientX - box.left) / box.width;
-    setHoverIndex(Math.min(count - 1, Math.max(0, Math.round(share * (count - 1)))));
+    const index = Math.min(count - 1, Math.max(0, Math.round(share * (count - 1))));
+    setHoverIndex(index);
+    onHoverChange?.(subject?.points[index]?.atMs ?? null);
+  }
+
+  function releasePointer(): void {
+    setHoverIndex(null);
+    onHoverChange?.(null);
   }
 
   const money = (minorUnits: bigint): string =>
@@ -239,7 +314,7 @@ export function ValueChart({
           ref={plotRef}
           className="relative min-w-0 flex-1"
           onPointerMove={trackPointer}
-          onPointerLeave={() => setHoverIndex(null)}
+          onPointerLeave={releasePointer}
         >
           {/* The viewBox matches the pixel box exactly, so nothing is scaled
               and a circle stays a circle. */}
@@ -346,7 +421,7 @@ export function ValueChart({
             )}
           </svg>
 
-          {active === null ? null : (
+          {active === null || readout === 'external' ? null : (
             <div
               data-testid={testId === undefined ? undefined : `${testId}-tooltip`}
               data-side={isPointerLeftOfCentre ? 'right' : 'left'}

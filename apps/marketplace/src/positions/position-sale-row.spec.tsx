@@ -15,8 +15,10 @@ const sale: NoteSaleSummary = {
   status: 'OPEN',
   askPrice: money('245000'),
   createdAt: '2026-08-01T00:00:00.000Z',
+  receiptId: 'R1',
   itemDescription: 'One kilogram gold bar, cast',
   itemCategory: 'BULLION',
+  hasPhotograph: true,
   principal: money('250000'),
   annualPercentageRateBasisPoints: 1800,
   startedAt: '2026-08-01T00:00:00.000Z',
@@ -30,7 +32,28 @@ describe('PositionSaleRow', () => {
   it('leads with the item rather than with a chart', () => {
     render(<PositionSaleRow sale={sale} isSelected={false} onSelect={() => undefined} />);
     expect(screen.getByText('One kilogram gold bar, cast')).toBeTruthy();
+    expect(screen.getByTestId('sale-photograph')).toBeTruthy();
     expect(screen.queryByTestId('sale-chart')).toBeNull();
+  });
+
+  /* The date is what a reader compares down the column, so it is the only
+     part of the line carrying weight. */
+  it('bolds the maturity date and nothing else on the term line', () => {
+    render(<PositionSaleRow sale={sale} isSelected={false} onSelect={() => undefined} />);
+    const date = screen.getByTestId('matures-on');
+    expect(date.tagName).toBe('STRONG');
+    expect(date.textContent).not.toContain('matures');
+  });
+
+  it('separates the term line with bars rather than dots', () => {
+    const { container } = render(
+      <PositionSaleRow sale={sale} isSelected={false} onSelect={() => undefined} />,
+    );
+    const separators = [...container.querySelectorAll('span[aria-hidden="true"]')].map(
+      (node) => node.textContent,
+    );
+    expect(separators).toContain('|');
+    expect(separators).not.toContain('·');
   });
 
   /* The four a buyer compares down a column, all on the row so nothing has to

@@ -38,10 +38,10 @@ export interface SaleChart {
 
    The value line is priced with `interestOver`, the same truncating integer
    arithmetic the server accrues with, so the day the term ends the line lands
-   exactly on the server's `maturityValue` rather than near it. Drawn as steps
-   because the readable unit here is a day: a reader compares what it is worth
-   today against tomorrow, and a sloped line between two days invites reading a
-   figure off a point nobody quoted. */
+   exactly on the server's `maturityValue` rather than near it. Smoothed
+   monotonically, which curves it without ever leaving the range of the two
+   days it is joining, so no day on the line reads as a figure the position
+   never had. */
 export function saleChartOf(sale: NoteSaleSummary, asOfMs: number): SaleChart {
   const startMs = Date.parse(sale.startedAt);
   const matureMs = Date.parse(sale.maturesAt);
@@ -62,7 +62,7 @@ export function saleChartOf(sale: NoteSaleSummary, asOfMs: number): SaleChart {
         id: 'value',
         label: 'Position value',
         role: 'subject',
-        shape: 'step',
+        shape: 'smooth',
         points: value,
       },
       {

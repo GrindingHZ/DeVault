@@ -325,3 +325,18 @@ fun a_hold_without_a_key_is_refused() {
     test_scenario::return_shared(config);
     finish(scenario, operator);
 }
+
+#[test, expected_failure(abort_code = escrow::EInsufficientFunds)]
+fun a_payment_beyond_the_payout_is_refused() {
+    let (mut scenario, operator) = begin();
+    let lender = fund(&mut scenario, &operator, LENDER, 5_000);
+    let borrower = open(&mut scenario, &operator, BORROWER);
+    let hold_id = hold(&mut scenario, &operator, lender, 5_000);
+    let hold = scenario.take_shared_by_id<FundsHold<SUI>>(hold_id);
+    let mut payout = escrow::begin_release(&operator, hold, ORIGINATE_LOAN);
+    let mut wallet = scenario.take_shared_by_id<Wallet<SUI>>(borrower);
+    escrow::pay(&mut payout, &mut wallet, 5_001);
+    escrow::finish_release(payout);
+    test_scenario::return_shared(wallet);
+    finish(scenario, operator);
+}

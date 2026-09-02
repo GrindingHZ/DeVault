@@ -124,3 +124,8 @@ fun set_parameters_replaces_the_whole_struct() {
     test_scenario::return_shared(config);
     scenario.end();
 }
+
+#[test, expected_failure(abort_code = config::EBadParameters)]
+fun a_liquidation_fee_above_the_whole_is_refused() {
+    config::new_parameters(vector[6_000], 4_800, 600_000, 200, 10_001, 1, 1, true, 0);
+}

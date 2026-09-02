@@ -80,17 +80,12 @@ export function LandingLiquidity(): ReactElement {
                   className="flex flex-col gap-2 border-t border-edge py-5 last:border-b"
                 >
                   <div className="flex flex-wrap items-baseline justify-between gap-4">
-                    <div className="flex flex-wrap items-baseline gap-4">
-                      <h3
-                        className="font-heading font-semibold tracking-tight text-ink-primary"
-                        style={{ fontSize: 'clamp(1.3125rem, 2.2vw, 1.75rem)' }}
-                      >
-                        {track.category}
-                      </h3>
-                      <p className="max-w-[52ch] font-body text-sm text-ink-secondary">
-                        {liquidity.reasons[track.category] ?? track.reason}
-                      </p>
-                    </div>
+                    <h3
+                      className="font-heading font-semibold tracking-tight text-ink-primary"
+                      style={{ fontSize: 'clamp(1.3125rem, 2.2vw, 1.75rem)' }}
+                    >
+                      {track.category}
+                    </h3>
                     <p className="font-figure font-bold tabular-nums text-accent">
                       <span style={{ fontSize: 'clamp(1.5rem, 2.6vw, 2rem)' }}>
                         {Math.round(track.ltvPct * fill)}

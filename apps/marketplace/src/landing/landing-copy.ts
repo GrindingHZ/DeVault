@@ -39,24 +39,13 @@ export const liquidity = {
   heading: 'You borrow against a share of the appraisal, not all of it.',
   lede: 'Staff appraise the object at what it would fetch. We then lend a share of that figure, and the share depends on how quickly the object could be sold if you never came back for it. That sale is the only way the money comes back, so the faster and more certain it is, the more we lend.',
   barLabel: 'Share of the appraisal we lend',
-  /* One line each, and each one is the actual reason that category sits where
-     it does. The previous set were aphorisms. */
-  reasons: {
-    Bullion:
-      'Priced against spot every day. A dealer takes it the same afternoon at a number we can look up before you leave.',
-    Watches:
-      'A model with a public sales record. Weeks to sell, at a price we can check against completed auctions.',
-    Jewellery:
-      'A certificated stone holds its price. The setting is worth its metal and little more, so we lend against the stone.',
-    Collectibles:
-      'Graded, so the condition is not in dispute. What it fetches still depends on who is collecting this month.',
-    Art: 'One buyer at a time, and no two works are the same. An appraisal here is a judgement rather than a quote.',
-  } as Record<string, string>,
 } as const;
 
 export const custody = {
   eyebrow: 'Custody',
   heading: 'Nothing is repossessed, because we are already holding it.',
+  lede: 'The object is in the vault from the day you hand it over. There is no collections call and no credit listing, because the loan is secured by one thing we already have.',
+  timelineLabel: 'If the loan is not repaid',
   held: {
     heading: 'Your object',
     body: 'Appraised, photographed, sealed, insured. The intake record is hashed when written, so it cannot be edited later.',

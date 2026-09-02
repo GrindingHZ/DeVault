@@ -73,6 +73,39 @@ export function useScrollProgress(ref: RefObject<HTMLElement | null>): number {
   return progress;
 }
 
+/* How far a normal height section has risen through the viewport: 0 as its
+   top reaches the bottom of the screen, 1 once it has travelled most of the
+   way up.
+
+   `useScrollProgress` needs a section taller than the viewport to have
+   anything to measure. A section that is simply read, rather than pinned and
+   scrubbed, still wants something to animate against, and this gives it one
+   without inflating the page by several screens to get it. */
+export function useEnterProgress(ref: RefObject<HTMLElement | null>): number {
+  const [progress, setProgress] = useState(0);
+  const latest = useRef(0);
+
+  useEffect(() => {
+    function read(): void {
+      const element = ref.current;
+      if (element === null) {
+        return;
+      }
+      const rect = element.getBoundingClientRect();
+      const travel = window.innerHeight * 0.9;
+      const next = quantise(Math.min(Math.max((window.innerHeight - rect.top) / travel, 0), 1));
+      if (next !== latest.current) {
+        latest.current = next;
+        setProgress(next);
+      }
+    }
+    read();
+    return subscribe(read);
+  }, [ref]);
+
+  return progress;
+}
+
 /* Whether the reader has left the hero, as a fraction of the viewport. The
    nav is the only thing that asks, and it asks on the same ticker as
    everything else rather than adding a scroll listener of its own. */

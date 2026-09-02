@@ -1,5 +1,5 @@
 import { formatMoney } from '@depawn/ui';
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactElement } from 'react';
 import { orderBook, receiptLife, stations, terms, toneForStatus } from './landing-content';
 import { life } from './landing-copy';
@@ -26,12 +26,37 @@ export function LandingLife(): ReactElement {
 
   const index = Math.min(stations.length - 1, Math.floor(progress * stations.length));
   const within = progress * stations.length - index;
-  const station = stations[index];
-  const isListed = station?.label === 'Listed';
   /* The book only runs while the reader is standing in the stage it belongs
      to, which is also the only time it is on screen. */
-  const bookIsRunning = useIsInView(section, 0.3) && isListed;
-  const stage = useBookStage(bookIsRunning, reduced);
+  const isInView = useIsInView(section, 0.3);
+
+  /* The card used to change the instant the threshold passed, and it changed
+     height at the same time: 321 pixels at Redeemed against 544 at Listed.
+     Two jolts on one scroll. The height is now fixed for every station, and
+     the body is swapped behind a fade rather than under the reader.
+
+     `shown` lags `index`: the content fades out, then changes, then fades
+     back in, so nothing is ever seen mid swap. */
+  const [shown, setShown] = useState(index);
+  const [isVisible, setVisible] = useState(true);
+
+  useEffect(() => {
+    if (index === shown) {
+      return;
+    }
+    setVisible(false);
+    const timer = setTimeout(() => {
+      setShown(index);
+      setVisible(true);
+    }, 140);
+    return () => clearTimeout(timer);
+  }, [index, shown]);
+
+  const station = stations[shown];
+  /* Read off the station being rendered, not the one being scrolled into, so
+     the layout and the content it holds never disagree during the fade. */
+  const isListed = station?.label === 'Listed';
+  const stage = useBookStage(isInView && isListed, reduced);
 
   if (station === undefined) {
     return <section ref={section} />;
@@ -90,7 +115,7 @@ export function LandingLife(): ReactElement {
           </div>
 
           <div className="flex items-center">
-            <article className="w-full rounded-lg border border-edge bg-surface-raised p-7">
+            <article className="flex min-h-[34rem] w-full flex-col rounded-lg border border-edge bg-surface-raised p-7">
               {/* Never changes. It is the same object throughout. */}
               <header className="flex flex-wrap items-start justify-between gap-3 border-b border-edge pb-4">
                 <div className="min-w-0">
@@ -110,7 +135,12 @@ export function LandingLife(): ReactElement {
 
               {/* Only this part swaps. The header above it does not, which is
                   the whole argument of the section. */}
-              <div className={`grid gap-6 pt-5 ${isListed ? 'lg:grid-cols-[0.92fr_1.08fr]' : ''}`}>
+              <div
+                style={{ opacity: isVisible ? 1 : 0 }}
+                className={`grid flex-1 content-start gap-6 pt-5 transition-opacity duration-panel ease-enter ${
+                  isListed ? 'lg:grid-cols-[0.92fr_1.08fr]' : ''
+                }`}
+              >
                 <div>
                   <p className="max-w-[46ch] text-pretty font-body text-sm leading-relaxed text-ink-secondary">
                     {station.body}

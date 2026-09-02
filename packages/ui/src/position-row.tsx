@@ -7,6 +7,9 @@ export interface PositionRowProps {
   readonly side: 'borrowing' | 'lending';
   readonly stage: string;
   readonly tone: StatusTone;
+  /* Finishes the sentence the side reading starts. Optional: a row with
+     nothing to add says less rather than padding itself out. */
+  readonly detail?: string | null;
   readonly figure: { readonly label: string; readonly value: string } | null;
   readonly actionLabel: string | null;
   readonly onAct?: () => void;
@@ -30,6 +33,7 @@ export function PositionRow({
   side,
   stage,
   tone,
+  detail,
   figure,
   actionLabel,
   onAct,
@@ -54,7 +58,11 @@ export function PositionRow({
           <span className="truncate font-body text-sm font-semibold text-ink-primary">
             {itemDescription}
           </span>
-          <span className="font-body text-xs text-ink-secondary">{sideReadings[side]}</span>
+          <span className="truncate font-body text-xs text-ink-secondary">
+            {detail === null || detail === undefined
+              ? sideReadings[side]
+              : `${sideReadings[side]} ${detail}`}
+          </span>
         </span>
         <StatusBadge tone={tone} label={stage} />
         {/* Fixed width so a column of figures lines up down the table even

@@ -1,5 +1,6 @@
 import {
   claimReceipt,
+  markLoanDefaulted,
   fetchMyListings,
   fetchMyLoans,
   fetchMyOffers,
@@ -77,6 +78,9 @@ function successFor(position: Position): string {
   if (position.action?.kind === 'withdraw') {
     return 'The offer was withdrawn and the hold released.';
   }
+  if (position.action?.kind === 'default') {
+    return 'The loan is marked defaulted. The collateral is yours to claim.';
+  }
   return 'The collateral is yours to collect.';
 }
 
@@ -94,6 +98,9 @@ function runAction(position: Position, idempotencyKey: string): Promise<unknown>
   }
   if (position.action?.kind === 'reclaim' && position.offerId !== null) {
     return reclaimOffer(position.offerId, options);
+  }
+  if (position.action?.kind === 'default' && position.loanId !== null) {
+    return markLoanDefaulted(position.loanId, options);
   }
   if (position.action?.kind === 'claim' && position.loanId !== null) {
     return claimReceipt(position.loanId, options);
@@ -151,7 +158,7 @@ function PortfolioBody(): ReactElement {
     ...listings.map(positionOfListing),
     ...offers.map(positionOfOffer),
     ...borrowedLoans.map((loan) => positionOfBorrowedLoan(loan, now)),
-    ...lentLoans.map(positionOfLentLoan),
+    ...lentLoans.map((loan) => positionOfLentLoan(loan, now)),
   ];
 
   const totals = totalsOf({ borrowedLoans, lentLoans, positions });
@@ -207,6 +214,7 @@ function PortfolioBody(): ReactElement {
         side={position.side}
         stage={position.stage}
         tone={position.tone}
+        detail={position.detail}
         figure={position.figure}
         actionLabel={position.action?.label ?? null}
         onAct={() => actOn(position)}

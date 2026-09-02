@@ -143,6 +143,10 @@ describe('an offer as a position', () => {
 });
 
 describe('a loan the reader owes', () => {
+  it('says what rate it is running at', () => {
+    expect(positionOfBorrowedLoan(loan(), now).detail).toBe('at 18.00% p.a.');
+  });
+
   it('shows what settling today would cost', () => {
     const position = positionOfBorrowedLoan(loan(), now);
     expect(position.stage).toBe('Running');
@@ -183,20 +187,34 @@ describe('a loan the reader owes', () => {
 
 describe('a loan the reader is owed', () => {
   it('shows what it has earned so far', () => {
-    const position = positionOfLentLoan(loan());
+    const position = positionOfLentLoan(loan(), now);
     expect(position.stage).toBe('Earning');
     expect(position.figure).toEqual({ label: 'Accrued', value: 'AUD 59.17' });
     expect(position.needsAttention).toBe(false);
   });
 
+  /* Grace running out changes nothing on its own. The loan keeps saying it
+     is running until a lender marks it, so the screen has to ask. */
+  it('asks the lender to mark a loan whose grace has run out', () => {
+    const graceEndsAt = new Date(now - oneDay).toISOString();
+    const position = positionOfLentLoan(loan({ graceEndsAt }), now);
+    expect(position.stage).toBe('Past grace');
+    expect(position.action?.kind).toBe('default');
+    expect(position.needsAttention).toBe(true);
+  });
+
+  it('leaves a loan inside its grace alone', () => {
+    expect(positionOfLentLoan(loan(), now).action).toBeNull();
+  });
+
   it('offers the collateral to the lender on a default', () => {
-    const position = positionOfLentLoan(loan({ status: 'DEFAULTED' }));
+    const position = positionOfLentLoan(loan({ status: 'DEFAULTED' }), now);
     expect(position.action?.kind).toBe('claim');
     expect(position.needsAttention).toBe(true);
   });
 
   it('closes a repaid loan as settled', () => {
-    expect(positionOfLentLoan(loan({ status: 'REPAID' })).stage).toBe('Settled');
+    expect(positionOfLentLoan(loan({ status: 'REPAID' }), now).stage).toBe('Settled');
   });
 });
 
@@ -213,9 +231,9 @@ describe('the model as a whole', () => {
     positionOfBorrowedLoan(loan(), now),
     positionOfBorrowedLoan(loan({ status: 'REPAID' }), now),
     positionOfBorrowedLoan(loan({ status: 'DEFAULTED' }), now),
-    positionOfLentLoan(loan()),
-    positionOfLentLoan(loan({ status: 'DEFAULTED' })),
-    positionOfLentLoan(loan({ status: 'REPAID' })),
+    positionOfLentLoan(loan(), now),
+    positionOfLentLoan(loan({ status: 'DEFAULTED' }), now),
+    positionOfLentLoan(loan({ status: 'REPAID' }), now),
   ];
 
   it('never shows a stage in the shape the database stores it', () => {
@@ -229,7 +247,7 @@ describe('the model as a whole', () => {
   it('reads one defaulted loan two ways depending on the side', () => {
     const defaulted = loan({ status: 'DEFAULTED' });
     const borrower = positionOfBorrowedLoan(defaulted, now);
-    const lender = positionOfLentLoan(defaulted);
+    const lender = positionOfLentLoan(defaulted, now);
 
     expect(borrower.side).toBe('borrowing');
     expect(lender.side).toBe('lending');
@@ -243,7 +261,7 @@ describe('the model as a whole', () => {
      React render one of them and drop the other. */
   it('keeps one loan apart from itself when it is read from both sides', () => {
     const shared = loan();
-    expect(positionOfBorrowedLoan(shared, now).id).not.toBe(positionOfLentLoan(shared).id);
+    expect(positionOfBorrowedLoan(shared, now).id).not.toBe(positionOfLentLoan(shared, now).id);
   });
 
   it('keeps a listing apart from an offer that shares its identifier', () => {

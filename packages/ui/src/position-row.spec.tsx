@@ -32,6 +32,11 @@ describe('PositionRow', () => {
     expect(screen.getByText('You lent')).toBeTruthy();
   });
 
+  it('finishes the side reading with the detail when there is one', () => {
+    render(row({ side: 'lending', detail: 'at 18.00% p.a.' }));
+    expect(screen.getByText('You lent at 18.00% p.a.')).toBeTruthy();
+  });
+
   it('shows no action when there is nothing to do', () => {
     render(row({ actionLabel: null }));
     expect(screen.queryByRole('button', { name: 'Repay' })).toBeNull();

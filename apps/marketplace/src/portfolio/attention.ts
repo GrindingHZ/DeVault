@@ -7,6 +7,8 @@ import type { Position, PositionActionKind } from './position';
 
      money stuck in a hold that lost and will sit there until it is asked for
      a loan at or past its maturity
+     a loan whose grace has run out, which stays running until a lender says
+       otherwise
      a defaulted loan whose collateral can still be claimed
      an item repaid for and waiting in a vault to be walked out of
 
@@ -15,7 +17,13 @@ import type { Position, PositionActionKind } from './position';
    The whole value of this band is that it is empty most days, and a band
    that collects everything is the list of everything it replaced. */
 
-const urgentActions: readonly PositionActionKind[] = ['reclaim', 'repay', 'collect', 'claim'];
+const urgentActions: readonly PositionActionKind[] = [
+  'reclaim',
+  'repay',
+  'default',
+  'collect',
+  'claim',
+];
 
 export function needsAttention(position: Position): boolean {
   return position.needsAttention;
@@ -30,11 +38,12 @@ export function needsAttention(position: Position): boolean {
 const rank: Record<PositionActionKind, number> = {
   reclaim: 0,
   repay: 1,
-  claim: 2,
-  collect: 3,
-  publish: 4,
-  accept: 5,
-  withdraw: 6,
+  default: 2,
+  claim: 3,
+  collect: 4,
+  publish: 5,
+  accept: 6,
+  withdraw: 7,
 };
 
 export function attentionOrder(left: Position, right: Position): number {

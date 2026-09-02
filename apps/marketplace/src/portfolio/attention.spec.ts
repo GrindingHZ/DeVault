@@ -17,6 +17,7 @@ function position(overrides: Partial<Position> = {}): Position {
     offerId: null,
     stage: 'Standing',
     tone: 'active',
+    detail: null,
     figure: null,
     action: null,
     needsAttention: false,

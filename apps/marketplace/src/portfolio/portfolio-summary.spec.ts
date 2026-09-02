@@ -36,6 +36,7 @@ function attentionPosition(): Position {
     offerId: null,
     stage: 'Outbid',
     tone: 'warning',
+    detail: null,
     figure: null,
     action: { label: 'Reclaim', kind: 'reclaim' },
     needsAttention: true,

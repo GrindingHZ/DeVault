@@ -41,44 +41,147 @@ describe('the demo seed', () => {
   });
 
   it('fills the vault with inventory an operator can see', async () => {
-    expect(await prisma.custodyReceipt.count()).toBe(12);
+    expect(await prisma.custodyReceipt.count()).toBe(33);
     const vault = await prisma.vault.findUnique({ where: { id: 'VAULT-DEMO-1' } });
     expect(vault?.city).toBe('New York');
   });
 
-  it('leaves live listings with competing offers on each', async () => {
+  it('leaves live listings, with and without a book on them', async () => {
     const live = await prisma.listing.findMany({ where: { status: 'ACTIVE' } });
-    expect(live.length).toBeGreaterThanOrEqual(3);
-    for (const listing of live) {
-      const offers = await prisma.offer.count({ where: { listingId: listing.id } });
-      expect(offers).toBeGreaterThanOrEqual(2);
+    expect(live.length).toBeGreaterThanOrEqual(6);
+    const bookSizes = await Promise.all(
+      live.map((listing) => prisma.offer.count({ where: { listingId: listing.id } })),
+    );
+    /* One a reader can accept from, and one nobody has offered on, because
+       those two are different screens. */
+    expect(Math.max(...bookSizes)).toBeGreaterThanOrEqual(3);
+    expect(Math.min(...bookSizes)).toBe(0);
+  });
+
+  it('leaves a listing in every state a borrower can put one in', async () => {
+    for (const status of ['DRAFT', 'ACTIVE', 'CANCELLED', 'MATCHED'] as const) {
+      expect(
+        await prisma.listing.count({ where: { status } }),
+        `no listing left ${status}`,
+      ).toBeGreaterThanOrEqual(1);
     }
   });
 
-  it('leaves loans at more than one distance from maturity', async () => {
+  it('leaves loans at every distance from maturity', async () => {
     const active = await prisma.loan.findMany({ where: { status: 'ACTIVE' } });
-    expect(active.length).toBeGreaterThanOrEqual(2);
+    expect(active.length).toBeGreaterThanOrEqual(8);
     const maturities = new Set(active.map((loan) => loan.maturesAt.getTime()));
     expect(maturities.size).toBe(active.length);
+
+    const clock = await prisma.demoClock.findUnique({ where: { id: 'DEMO' } });
+    const now = Date.now() + Number(clock?.offsetMs ?? 0n);
+    /* The three a reader is meant to be able to tell apart on sight: one
+       still running, one past its maturity but inside grace, and one whose
+       grace has run out and is waiting for somebody to say so. */
+    expect(active.some((loan) => loan.maturesAt.getTime() > now)).toBe(true);
+    expect(
+      active.some((loan) => loan.maturesAt.getTime() < now && loan.graceEndsAt.getTime() > now),
+    ).toBe(true);
+    expect(active.some((loan) => loan.graceEndsAt.getTime() < now)).toBe(true);
   });
 
-  it('leaves one completed cycle and one sale under way', async () => {
-    expect(await prisma.loan.count({ where: { status: 'REPAID' } })).toBe(1);
-    expect(await prisma.custodyReceipt.count({ where: { status: 'RELEASED' } })).toBe(1);
+  it('leaves a loan in every state a loan can end in', async () => {
+    expect(await prisma.loan.count({ where: { status: 'REPAID' } })).toBeGreaterThanOrEqual(4);
+    expect(await prisma.loan.count({ where: { status: 'DEFAULTED' } })).toBeGreaterThanOrEqual(3);
+    expect(await prisma.loan.count({ where: { status: 'LIQUIDATED' } })).toBeGreaterThanOrEqual(2);
+  });
 
-    const defaulted = await prisma.loan.findMany({ where: { status: 'DEFAULTED' } });
-    expect(defaulted).toHaveLength(1);
-    const liquidations = await prisma.liquidation.findMany({ where: { status: 'BIDDING' } });
-    expect(liquidations).toHaveLength(1);
-    const sale = liquidations[0];
+  it('leaves the collateral in every state custody can hold it in', async () => {
+    /* Two, and both are right: the receipt burns when the item is asked for
+       rather than when it is handed over, because the burn is the
+       entitlement proof (flow 6). One of these has been collected and the
+       other is still on a shelf waiting for its owner. */
+    expect(await prisma.custodyReceipt.count({ where: { status: 'RELEASED' } })).toBe(2);
+    expect(
+      await prisma.custodyReceipt.count({ where: { status: 'ENCUMBERED' } }),
+    ).toBeGreaterThanOrEqual(8);
+    expect(
+      await prisma.custodyReceipt.count({ where: { status: 'IN_VAULT' } }),
+    ).toBeGreaterThanOrEqual(8);
+    // Asked for and not yet handed over, which is a stage of its own.
+    expect(await prisma.redemptionRequest.count()).toBeGreaterThanOrEqual(2);
+  });
+
+  it('leaves a sale settled and another still taking bids', async () => {
+    expect(await prisma.liquidation.count({ where: { status: 'SETTLED' } })).toBeGreaterThanOrEqual(
+      2,
+    );
+    const bidding = await prisma.liquidation.findMany({ where: { status: 'BIDDING' } });
+    expect(bidding).toHaveLength(1);
+    const sale = bidding[0];
     if (sale === undefined) {
       throw new Error('the seed must leave one sale taking bids');
     }
-    expect(await prisma.liquidationBid.count({ where: { liquidationId: sale.id } })).toBe(2);
+    expect(
+      await prisma.liquidationBid.count({ where: { liquidationId: sale.id } }),
+    ).toBeGreaterThan(0);
+  });
+
+  /* Money the reader cannot spend and does not know about, which is the one
+     thing the attention bell exists to point at (flow 9). */
+  it('leaves a hold that lost and was never reclaimed', async () => {
+    expect(await prisma.offer.count({ where: { status: 'SUPERSEDED' } })).toBeGreaterThanOrEqual(1);
+    expect(await prisma.fundsHold.count({ where: { status: 'HELD' } })).toBeGreaterThanOrEqual(1);
+  });
+
+  /* The account the runbook signs in as used to own nothing at all, so the
+     first screen a reader saw was empty. */
+  it('gives the account the runbook signs in as both sides of the market', async () => {
+    const reader = await prisma.account.findUnique({ where: { email: 'member@demo.test' } });
+    if (reader === null) {
+      throw new Error('the seed must create the account the runbook names');
+    }
+    expect(
+      await prisma.loan.count({ where: { borrowerAccountId: reader.id } }),
+      'nothing borrowed',
+    ).toBeGreaterThanOrEqual(5);
+    expect(
+      await prisma.lenderNote.count({ where: { holderAccountId: reader.id } }),
+      'nothing lent',
+    ).toBeGreaterThanOrEqual(5);
+    expect(
+      await prisma.custodyReceipt.count({ where: { holderAccountId: reader.id } }),
+      'nothing in the vault',
+    ).toBeGreaterThanOrEqual(5);
+  });
+
+  /* A wallet with one deposit in it draws a flat line. The chart is only
+     worth having if the balance actually moved, more than once, over months. */
+  it('leaves a wallet history long enough to have a shape', async () => {
+    const reader = await prisma.account.findUnique({ where: { email: 'member@demo.test' } });
+    if (reader === null) {
+      throw new Error('the seed must create the account the runbook names');
+    }
+    const accounts = await prisma.ledgerAccount.findMany({ where: { ownerId: reader.id } });
+    const entries = await prisma.ledgerEntry.findMany({
+      where: { accountId: { in: accounts.map((one) => one.id) } },
+      orderBy: { createdAt: 'asc' },
+    });
+    expect(entries.length).toBeGreaterThanOrEqual(30);
+
+    const kinds = await prisma.ledgerTransaction.findMany({
+      where: { entries: { some: { accountId: { in: accounts.map((one) => one.id) } } } },
+      select: { kind: true },
+    });
+    const seen = new Set(kinds.map((one) => one.kind));
+    for (const kind of [
+      'DEPOSIT',
+      'WITHDRAW',
+      'HOLD_FUNDS',
+      'ORIGINATE_LOAN',
+      'REPAY_LOAN',
+    ] as const) {
+      expect(seen.has(kind), `no ${kind} in the reader's history`).toBe(true);
+    }
   });
 
   it('leaves a note sale in every state the market can produce', async () => {
-    expect(await prisma.noteSale.count({ where: { status: 'OPEN' } })).toBe(1);
+    expect(await prisma.noteSale.count({ where: { status: 'OPEN' } })).toBeGreaterThanOrEqual(2);
     expect(await prisma.noteSale.count({ where: { status: 'SOLD' } })).toBe(1);
     expect(await prisma.noteSale.count({ where: { status: 'WITHDRAWN' } })).toBe(1);
     expect(await prisma.noteSale.count({ where: { status: 'VOIDED' } })).toBe(1);
@@ -107,12 +210,22 @@ describe('the demo seed', () => {
     for (const loan of await prisma.loan.findMany()) {
       expect(loan.startedAt.getTime()).toBeLessThanOrEqual(seededNow);
     }
-    for (const loan of await prisma.loan.findMany({ where: { status: 'ACTIVE' } })) {
-      expect(loan.maturesAt.getTime()).toBeGreaterThan(seededNow);
-    }
-    for (const listing of await prisma.listing.findMany({ where: { status: 'ACTIVE' } })) {
-      expect(listing.expiresAt.getTime()).toBeGreaterThan(seededNow);
-    }
+    /* Some are still inside their term and some are deliberately past it,
+       waiting in grace or waiting for a note holder to call the default.
+       What none of them may be is unstarted: read against real time rather
+       than against the clock the seed wrote, every one of these would look
+       like it begins months from now, which is the bug this asserts is
+       absent. */
+    const running = await prisma.loan.findMany({ where: { status: 'ACTIVE' } });
+    expect(running.some((loan) => loan.maturesAt.getTime() > seededNow)).toBe(true);
+    expect(running.some((loan) => loan.maturesAt.getTime() < seededNow)).toBe(true);
+    /* Most are still taking offers, and one is deliberately past its date,
+       because a borrower looking at a listing that ran out of time is a
+       screen the product has to render too. Nothing expires a listing on a
+       timer, so it sits ACTIVE with its date behind it. */
+    const listings = await prisma.listing.findMany({ where: { status: 'ACTIVE' } });
+    expect(listings.some((one) => one.expiresAt.getTime() > seededNow)).toBe(true);
+    expect(listings.some((one) => one.expiresAt.getTime() < seededNow)).toBe(true);
   });
 
   it('balances the ledger it wrote', async () => {
@@ -125,8 +238,8 @@ describe('the demo seed', () => {
 
   it('can be run again without stacking a second story on the first', async () => {
     runInApi('pnpm', ['run', 'db:seed'], container.getConnectionUri());
-    expect(await prisma.custodyReceipt.count()).toBe(12);
-    expect(await prisma.loan.count({ where: { status: 'REPAID' } })).toBe(1);
+    expect(await prisma.custodyReceipt.count()).toBe(33);
+    expect(await prisma.noteSale.count({ where: { status: 'OPEN' } })).toBeGreaterThanOrEqual(1);
   }, 300_000);
 });
 
@@ -246,12 +359,13 @@ describe('a demo process serving the seeded dataset', () => {
       overdueCount: number;
       defaultedCount: number;
     };
-    // Three loans running and none of them overdue: the clock the process
-    // inherited is the one the seed wrote those dates against. Read against
-    // real time every one of them would be counted as not yet started.
-    expect(book.outstandingCount).toBe(3);
-    expect(book.overdueCount).toBe(0);
-    expect(book.defaultedCount).toBe(1);
+    /* A book with loans running, some of them overdue, and defaults on it:
+       the clock the process inherited is the one the seed wrote those dates
+       against. Read against real time every one of them would be counted as
+       not yet started, and all three of these would be zero. */
+    expect(book.outstandingCount).toBeGreaterThanOrEqual(8);
+    expect(book.overdueCount).toBeGreaterThanOrEqual(1);
+    expect(book.defaultedCount).toBeGreaterThanOrEqual(3);
   });
 
   it('shows the story the runbook walks: live listings and a sale taking bids', async () => {

@@ -16,10 +16,9 @@ import {
   Money,
   OfferBook,
   Rate,
-  RateHistory,
+  CollateralBar,
   Skeleton,
   WorkspacePrompt,
-  bestRateSeries,
 } from '@depawn/ui';
 import type { MarketRole } from '@depawn/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -125,15 +124,15 @@ function DetailBody({
   readonly role: MarketRole;
 }): ReactElement {
   const isBorrower = role === 'borrower';
-  const series = bestRateSeries(
-    detail.offerBook.map((offer) => ({
-      createdAt: offer.createdAt,
-      annualPercentageRateBasisPoints: offer.annualPercentageRateBasisPoints,
-    })),
-  );
-  const best = series[series.length - 1];
-  const previous = series.length > 1 ? series[series.length - 2] : undefined;
-  const selected = detail.offerBook.find((offer) => offer.id === selectedOfferId);
+  /* The best standing rate, and the one behind it. The delta is the gap a
+     lender has to close, which is more use than the same rate compared with
+     itself a minute ago. */
+  const pendingRates = detail.offerBook
+    .filter((offer) => offer.status === 'PENDING')
+    .map((offer) => offer.annualPercentageRateBasisPoints)
+    .sort((left, right) => left - right);
+  const bestRate = pendingRates[0] ?? null;
+  const secondRate = pendingRates[1] ?? null;
 
   return (
     <div className="flex flex-col">
@@ -157,11 +156,11 @@ function DetailBody({
               ? null
               : `. ${liquidityNoteForCategory(detail.itemCategory) ?? ''}`}
           </p>
-          {best === undefined ? null : (
+          {bestRate === null ? null : (
             <div className="mt-3">
               <MarketDelta
-                currentBasisPoints={best.basisPoints}
-                previousBasisPoints={previous?.basisPoints ?? null}
+                currentBasisPoints={bestRate}
+                previousBasisPoints={secondRate}
                 role={role}
                 label="best rate offered"
               />
@@ -172,10 +171,11 @@ function DetailBody({
 
       <div className="flex flex-col xl:flex-row">
         <div className="min-w-0 flex-1 border-edge p-4 xl:border-r">
-          <RateHistory
-            points={series}
-            role={role}
-            highlightAtEpochMs={selected === undefined ? null : Date.parse(selected.createdAt)}
+          <CollateralBar
+            appraisedValue={detail.appraisedValue}
+            requestedPrincipal={detail.requestedPrincipal}
+            maxPrincipal={detail.maxPrincipal}
+            loanToValueBasisPoints={detail.loanToValueBasisPoints}
           />
           <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
             <Figure

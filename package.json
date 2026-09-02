@@ -19,7 +19,9 @@
     "prepare": "husky",
     "move:build": "sui move build --path packages/move",
     "move:test": "sui move test --path packages/move",
-    "move:fixtures": "pnpm --filter @depawn/api exec tsx scripts/generate-move-fixtures.ts"
+    "move:fixtures": "pnpm --filter @depawn/api exec tsx scripts/generate-move-fixtures.ts",
+    "chain:publish": "pnpm --filter @depawn/api exec tsx scripts/chain-publish.ts",
+    "chain:localnet": "bash scripts/localnet.sh"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

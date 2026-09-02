@@ -41,7 +41,14 @@ export interface TermProgress {
      and an offer both expire, and neither records when it began, so they get
      the words without the bar rather than a bar drawn from a guess. */
   readonly elapsedBasisPoints: number | null;
+  /* Where the term has got to, said as a count out of its length. A bar on
+     its own answers "roughly how far", which is not the question: a borrower
+     wants to know it is day twenty one of thirty. */
   readonly note: string;
+  /* What that leaves, when there is anything to leave. Two lines rather than
+     one, because "day 21 of 30" and "9 days left" are different questions
+     and a reader should not have to subtract to answer the second. */
+  readonly caption: string | null;
   readonly tone: StatusTone;
 }
 
@@ -58,6 +65,11 @@ export interface PositionMetrics {
      clock is involved beyond the one that produced `interestSoFar`. */
   readonly interestToCome: string;
   readonly interestWholeTerm: string;
+  /* How much of the term's interest has built up, in basis points, for the
+     bar in the interest column. Derived from the two figures above rather
+     than from the clock, so the length and the numbers beside it cannot
+     disagree. */
+  readonly interestFilledBasisPoints: number;
   /* Borrower: what settling today would cost. Lender: what comes back if it
      runs to maturity. */
   readonly settlement: PositionFigure;
@@ -156,18 +168,24 @@ function photographOf(receiptId: string, hasPhotograph: boolean): string | null 
 function closesIn(expiresAtIso: string, asOf: number): TermProgress {
   const expiresAt = Date.parse(expiresAtIso);
   if (!Number.isFinite(expiresAt)) {
-    return { elapsedBasisPoints: null, note: 'no closing date', tone: 'neutral' };
+    return { elapsedBasisPoints: null, note: 'no closing date', caption: null, tone: 'neutral' };
   }
   if (asOf > expiresAt) {
-    return { elapsedBasisPoints: null, note: 'past its closing date', tone: 'warning' };
+    return {
+      elapsedBasisPoints: null,
+      note: 'past its closing date',
+      caption: null,
+      tone: 'warning',
+    };
   }
   const remaining = expiresAt - asOf;
   if (remaining < oneDay) {
-    return { elapsedBasisPoints: null, note: 'closes today', tone: 'warning' };
+    return { elapsedBasisPoints: null, note: 'closes today', caption: null, tone: 'warning' };
   }
   return {
     elapsedBasisPoints: null,
     note: `closes in ${plural(daysBetween(asOf, expiresAt), 'day')}`,
+    caption: null,
     tone: 'active',
   };
 }
@@ -177,26 +195,38 @@ function termOf(loan: LoanResponse, asOf: number): TermProgress {
      defaulted while its maturity date is still ahead, and a row reading
      "Defaulted" beside "19 days to maturity" contradicts itself. */
   if (loan.status === 'DEFAULTED') {
-    return { elapsedBasisPoints: 10_000, note: 'term ended in default', tone: 'danger' };
+    return {
+      elapsedBasisPoints: 10_000,
+      note: 'term ended in default',
+      caption: null,
+      tone: 'danger',
+    };
   }
   const startedAt = Date.parse(loan.startedAt);
   const maturesAt = Date.parse(loan.maturesAt);
   const graceEndsAt = Date.parse(loan.graceEndsAt);
   const span = maturesAt - startedAt;
   if (!Number.isFinite(span) || span <= 0) {
-    return { elapsedBasisPoints: 0, note: 'term unknown', tone: 'neutral' };
+    return { elapsedBasisPoints: 0, note: 'term unknown', caption: null, tone: 'neutral' };
   }
 
   const elapsed = Math.min(Math.max(asOf - startedAt, 0), span);
   const elapsedBasisPoints = Math.round((elapsed / span) * 10_000);
 
+  /* Counted from one: the day a loan is drawn down is its first day, not its
+     zeroth. Rounded rather than truncated so a term of thirty days and a
+     daylight saving hour is still thirty days. */
+  const termDays = Math.max(1, Math.round(span / oneDay));
+  const dayNow = Math.min(termDays, Math.floor(elapsed / oneDay) + 1);
+
   if (asOf > graceEndsAt) {
-    return { elapsedBasisPoints: 10_000, note: 'grace has run out', tone: 'danger' };
+    return { elapsedBasisPoints: 10_000, note: 'grace has run out', caption: null, tone: 'danger' };
   }
   if (asOf > maturesAt) {
     return {
       elapsedBasisPoints: 10_000,
-      note: `${plural(daysBetween(asOf, graceEndsAt), 'day')} of grace left`,
+      note: `day ${String(termDays)} of ${String(termDays)}`,
+      caption: `${plural(daysBetween(asOf, graceEndsAt), 'day')} of grace left`,
       tone: 'warning',
     };
   }
@@ -204,7 +234,8 @@ function termOf(loan: LoanResponse, asOf: number): TermProgress {
     elapsedBasisPoints,
     /* Short. The column is called Term, so "to maturity" was a phrase
        repeated on every row that pushed the action button off the side. */
-    note: `${plural(daysBetween(asOf, maturesAt), 'day')} left`,
+    note: `day ${String(dayNow)} of ${String(termDays)}`,
+    caption: `${plural(daysBetween(asOf, maturesAt), 'day')} left`,
     tone: 'active',
   };
 }
@@ -232,6 +263,12 @@ function metricsOf(loan: LoanResponse, asOf: number, side: PositionSide): Positi
   /* Never negative. Interest clamps at maturity, so past it the whole term
      has already accrued and there is nothing left to come. */
   const toCome = wholeTerm > soFar ? wholeTerm - soFar : 0n;
+  /* Integer arithmetic to a share of ten thousand, like every other
+     proportion in this product. Zero rather than full when a term costs
+     nothing, because a bar filled to the end would say the borrower has run
+     up an interest bill they have not. */
+  const interestFilledBasisPoints =
+    wholeTerm <= 0n ? 0 : Math.min(10_000, Number((soFar * 10_000n) / wholeTerm));
 
   return {
     currency,
@@ -239,6 +276,7 @@ function metricsOf(loan: LoanResponse, asOf: number, side: PositionSide): Positi
     interestSoFar: amount(soFar, currency),
     interestToCome: amount(toCome, currency),
     interestWholeTerm: amount(wholeTerm, currency),
+    interestFilledBasisPoints,
     /* The attention band is one narrow column with no header to carry a
        currency, so its figure keeps the code. */
     settlement:

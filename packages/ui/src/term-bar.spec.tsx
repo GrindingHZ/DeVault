@@ -26,6 +26,29 @@ describe('TermBar', () => {
     expect(container.querySelector('[style*="width"]')?.getAttribute('style')).toContain('100%');
   });
 
+  /* Two questions, two lines. "day 21 of 30" says where the term has got to
+     and "9 days left" says what that leaves, and a reader should not have to
+     subtract one from the other. */
+  it('carries both readings when there is a second one', () => {
+    render(
+      <TermBar elapsedBasisPoints={7000} note="day 21 of 30" caption="9 days left" tone="active" />,
+    );
+    expect(screen.getByText('day 21 of 30')).toBeTruthy();
+    expect(screen.getByText('9 days left')).toBeTruthy();
+    expect(screen.getByRole('progressbar').getAttribute('aria-valuetext')).toBe(
+      'day 21 of 30, 9 days left',
+    );
+  });
+
+  /* Nothing is left to count once grace has run out, so nothing is offered
+     as a second line rather than an empty one being reserved. */
+  it('renders one line when there is nothing more to say', () => {
+    render(<TermBar elapsedBasisPoints={10_000} note="grace has run out" tone="danger" />);
+    expect(screen.getByRole('progressbar').getAttribute('aria-valuetext')).toBe(
+      'grace has run out',
+    );
+  });
+
   it('never paints a negative width', () => {
     const { container } = render(
       <TermBar elapsedBasisPoints={-500} note="not started" tone="neutral" />,

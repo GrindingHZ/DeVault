@@ -289,11 +289,56 @@ describe('what a loan is worth', () => {
     });
   });
 
-  /* Twenty two days of a sixty day term, which is 36.67 percent. */
-  it('reports how far through the term it is', () => {
+  /* Twenty two days of a sixty day term, which is 36.67 percent.
+
+     The note counts the days out rather than only counting them down. A bar
+     answers "roughly how far"; a borrower wants the denominator, and reading
+     it off the length of a bar is not reading. */
+  it('reports how far through the term it is, out of how many days', () => {
     const term = positionOfBorrowedLoan(sixtyDays, now).term;
     expect(term?.elapsedBasisPoints).toBe(3667);
-    expect(term?.note).toBe('38 days left');
+    expect(term?.note).toBe('day 23 of 60');
+    expect(term?.caption).toBe('38 days left');
+  });
+
+  /* Counted from one. The day a loan is drawn down is its first day. */
+  it('calls the first day day one rather than day zero', () => {
+    const justStarted = Date.parse('2026-08-01T12:00:00.000Z');
+    expect(positionOfBorrowedLoan(sixtyDays, justStarted).term?.note).toBe('day 1 of 60');
+  });
+
+  /* The interest column draws the same reading as a bar. It comes from the
+     two figures beside it and not from the clock, which matters: what has
+     accrued is the server's own number, so a bar drawn from the browser's
+     idea of the time could contradict the figure printed under it. */
+  it('reports how much of the term interest has built up', () => {
+    const metrics = positionOfBorrowedLoan(sixtyDays, now).metrics;
+    /* 59.17 accrued of 118.35 over the whole term, which is just under half
+       and is the share the two printed figures state. */
+    expect(metrics?.interestFilledBasisPoints).toBe(4999);
+  });
+
+  it('shows an empty interest bar when nothing has accrued yet', () => {
+    const fresh = loan({
+      startedAt: '2026-08-01T12:00:00.000Z',
+      maturesAt: '2026-09-30T12:00:00.000Z',
+      graceEndsAt: '2026-10-07T12:00:00.000Z',
+      accruedInterest: money('0'),
+    });
+    expect(positionOfBorrowedLoan(fresh, now).metrics?.interestFilledBasisPoints).toBe(0);
+  });
+
+  /* Interest stops at maturity (rule L1), so the bar stops there too. A
+     share above ten thousand would paint a bill the borrower has not run
+     up. */
+  it('never fills the interest bar past the whole term', () => {
+    const overrun = loan({
+      startedAt: '2026-08-01T12:00:00.000Z',
+      maturesAt: '2026-09-30T12:00:00.000Z',
+      graceEndsAt: '2026-10-07T12:00:00.000Z',
+      accruedInterest: money('99999999'),
+    });
+    expect(positionOfBorrowedLoan(overrun, now).metrics?.interestFilledBasisPoints).toBe(10_000);
   });
 
   /* Interest stops at maturity (rule L1). A bar that kept filling through
@@ -302,12 +347,18 @@ describe('what a loan is worth', () => {
     const inGrace = Date.parse('2026-10-03T12:00:00.000Z');
     const term = positionOfBorrowedLoan(sixtyDays, inGrace).term;
     expect(term?.elapsedBasisPoints).toBe(10_000);
-    expect(term?.note).toBe('4 days of grace left');
+    /* The term is spent, so the count sits at its end and grace is what is
+       left to say. */
+    expect(term?.note).toBe('day 60 of 60');
+    expect(term?.caption).toBe('4 days of grace left');
   });
 
   it('says so once grace has run out', () => {
     const after = Date.parse('2026-10-20T12:00:00.000Z');
-    expect(positionOfBorrowedLoan(sixtyDays, after).term?.note).toBe('grace has run out');
+    const term = positionOfBorrowedLoan(sixtyDays, after).term;
+    expect(term?.note).toBe('grace has run out');
+    /* Nothing is left to count, so nothing is offered as a second line. */
+    expect(term?.caption).toBeNull();
   });
 
   it('never fills the bar before the loan starts', () => {

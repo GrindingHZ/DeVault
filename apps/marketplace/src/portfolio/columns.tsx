@@ -1,4 +1,4 @@
-import { Button, ItemPhotograph, Legend, StatusBadge, TermBar } from '@depawn/ui';
+import { Button, ItemPhotograph, Legend, Meter, StatusBadge, TermBar } from '@depawn/ui';
 import type { DataTableColumn } from '@depawn/ui';
 import type { ReactElement } from 'react';
 import type { Position, PositionSide } from './position';
@@ -89,18 +89,38 @@ function head(label: string): ReactElement {
   return <span className="whitespace-nowrap">{label}</span>;
 }
 
-/* Both interest figures in one cell: what has built up, over what the whole
-   term comes to. A number over its total is a progress reading, which is
-   what interest accruing actually is. */
+/* Both interest figures in one cell, over a bar: what has built up, out of
+   what the whole term comes to. A number over its total is a progress
+   reading, which is what interest accruing actually is, so it is drawn as
+   one.
+
+   The bar tracks the term bar two columns over, and that is the point rather
+   than a duplication. Accrual is linear in time (packages/ui/src/interest.ts)
+   and both readings come from the same server response, so a borrower seeing
+   the two fill together is seeing the mechanism: the bill grows because the
+   days pass. Each column still answers its own question without the reader
+   doing arithmetic across the table.
+
+   The share is computed from the two printed figures rather than from a
+   clock, so the length of the bar and the numbers under it cannot come
+   apart. */
 function InterestCell({ position }: { readonly position: Position }): ReactElement {
-  if (position.metrics === null) {
+  const metrics = position.metrics;
+  if (metrics === null) {
     return <Amount value={nothingToShow} />;
   }
   return (
-    <span className="flex flex-col items-start gap-0.5">
-      <Amount value={position.metrics.interestSoFar} />
+    <span className="flex w-24 flex-col gap-1">
+      <Meter
+        filledBasisPoints={metrics.interestFilledBasisPoints}
+        tone="active"
+        label="Interest accrued"
+        valueText={`${metrics.interestSoFar} of ${metrics.interestWholeTerm} ${metrics.currency}`}
+        testId="interest-bar"
+      />
+      <Amount value={metrics.interestSoFar} />
       <span className="whitespace-nowrap font-body text-xs text-ink-secondary">
-        {`of ${position.metrics.interestWholeTerm}`}
+        {`of ${metrics.interestWholeTerm}`}
       </span>
     </span>
   );
@@ -163,6 +183,7 @@ function termColumn(): DataTableColumn<Position> {
         <TermBar
           elapsedBasisPoints={position.term.elapsedBasisPoints}
           note={position.term.note}
+          caption={position.term.caption ?? undefined}
           tone={position.term.tone}
         />
       );

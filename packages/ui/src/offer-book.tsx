@@ -1,4 +1,5 @@
-import type { CSSProperties, ReactElement } from 'react';
+import { useId } from 'react';
+import type { CSSProperties, ReactElement, ReactNode } from 'react';
 import { EmptyState } from './empty-state';
 import type { MarketRole } from './market-delta';
 import { formatMoney } from './money';
@@ -26,8 +27,11 @@ export interface OfferBookProps {
   readonly offers: readonly OfferBookOffer[];
   readonly role: MarketRole;
   readonly currency: string;
-  readonly selectedOfferId?: string | null;
-  readonly onSelectOffer?: (offerId: string) => void;
+  /* Both optional together. A book with no way to choose from it renders no
+     controls at all, which is the lender's view: the offers are something
+     they are competing against rather than something they can take. */
+  readonly selectedOfferId?: string | null | undefined;
+  readonly onSelectOffer?: ((offerId: string) => void) | undefined;
 }
 
 /* Money is minor units in a string, so this is bigint and never a float. */
@@ -98,6 +102,10 @@ export function OfferBook({
   onSelectOffer,
 }: OfferBookProps): ReactElement {
   const rows = buildRows(offers);
+  /* Radios behave as one choice only when they share a name, and two books
+     on one screen must not share one. */
+  const groupName = useId();
+  const isSelectable = onSelectOffer !== undefined;
 
   if (rows.length === 0) {
     return (
@@ -120,14 +128,27 @@ export function OfferBook({
       {/* Capped and scrolled rather than left to grow. A book of forty would
           otherwise push the form that acts on it off the screen. */}
       <div className="max-h-72 overflow-y-auto">
-        <table className="w-full border-collapse text-xs tabular-nums">
+        <table className="w-full table-fixed border-collapse text-xs tabular-nums">
           <caption className="sr-only">
-            Offers on this listing, cheapest first. Rates are per annum.
+            {isSelectable
+              ? 'Offers on this listing, cheapest first. Rates are per annum. Choose one to accept it.'
+              : 'Offers on this listing, cheapest first. Rates are per annum.'}
           </caption>
+          {/* One column per heading. The rank and the rate shared a single
+              cell until P8h, which left four headings sitting over three
+              columns: every label from "Rate p.a." rightward named the
+              column to its left. A table cannot align what it cannot
+              count. */}
+          <colgroup>
+            <col className={isSelectable ? 'w-20' : 'w-10'} />
+            <col />
+            <col />
+            <col />
+          </colgroup>
           <thead className="sticky top-0 z-10 bg-surface-sunken">
             <tr className="text-ink-secondary">
-              <th scope="col" className="px-2 py-1 text-right font-body font-medium">
-                <span className="sr-only">Position</span>
+              <th scope="col" className="px-2 py-1 text-left font-body font-medium">
+                <span className="sr-only">{isSelectable ? 'Choose' : 'Position'}</span>
                 <span aria-hidden="true">#</span>
               </th>
               <th scope="col" className="px-2 py-1 text-left font-body font-medium">
@@ -142,70 +163,20 @@ export function OfferBook({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => {
-              const isSelected = selectedOfferId === row.offerId;
-              return (
-                <tr
-                  key={row.offerId}
-                  data-best={row.isBest ? 'true' : undefined}
-                  data-mine={row.isMine ? 'true' : undefined}
-                  data-selected={isSelected ? 'true' : undefined}
-                  className={`border-t border-edge ${isSelected ? 'bg-surface-sunken' : ''}`}
-                >
-                  <td className="p-0">
-                    <button
-                      type="button"
-                      onClick={() => onSelectOffer?.(row.offerId)}
-                      aria-pressed={isSelected}
-                      className={`flex w-full items-center gap-2 border-l-2 px-2 py-1 text-left transition-colors duration-control ease-enter hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-status-active ${
-                        row.isMine ? 'border-l-status-active' : 'border-l-transparent'
-                      }`}
-                    >
-                      <span className="w-5 shrink-0 text-right font-figure text-ink-secondary">
-                        {row.rank}
-                      </span>
-                      {row.isBest ? (
-                        <span aria-hidden="true" className="text-accent">
-                          {bestMarker}
-                        </span>
-                      ) : null}
-                      <span
-                        className={`font-figure ${
-                          row.isBest ? 'font-semibold text-accent' : 'text-ink-primary'
-                        }`}
-                      >
-                        {formatRate(row.rateBasisPoints).replace(' p.a.', '')}
-                      </span>
-                      {row.isMine ? (
-                        <span className="font-body text-status-active">you</span>
-                      ) : null}
-                    </button>
-                  </td>
-                  <td className="px-2 py-1 text-right font-figure text-ink-primary">
-                    {formatMoney({ minorUnits: row.repayable.toString(), currency })}
-                  </td>
-                  {/* The premium, with a bar behind it. A number alone does
-                      not show that half the book is bunched and the tail is
-                      not; a length does it without being read. */}
-                  <td className="relative px-2 py-1 text-right font-figure">
-                    <span
-                      aria-hidden="true"
-                      style={{ '--premium': `${String(row.premiumShare)}%` } as CSSProperties}
-                      className="pointer-events-none absolute inset-y-0 right-0 w-[var(--premium)] bg-edge-strong opacity-30"
-                    />
-                    <span
-                      className={`relative ${
-                        row.premium === 0n ? 'text-ink-secondary' : 'text-ink-primary'
-                      }`}
-                    >
-                      {row.premium === 0n
-                        ? noPremium
-                        : `+${formatMoney({ minorUnits: row.premium.toString(), currency })}`}
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
+            {rows.map((row) => (
+              <BookRowView
+                key={row.offerId}
+                row={row}
+                currency={currency}
+                groupName={groupName}
+                isSelectable={isSelectable}
+                /* Selection is meaningless without a way to change it. A
+                   lender arriving on a link that carries an offer id would
+                   otherwise see a row singled out and no way to see why. */
+                isSelected={isSelectable && selectedOfferId === row.offerId}
+                onSelectOffer={onSelectOffer}
+              />
+            ))}
           </tbody>
         </table>
       </div>
@@ -222,5 +193,126 @@ export function OfferBook({
         )}
       </p>
     </div>
+  );
+}
+
+function BookRowView({
+  row,
+  currency,
+  groupName,
+  isSelectable,
+  isSelected,
+  onSelectOffer,
+}: {
+  readonly row: BookRow;
+  readonly currency: string;
+  readonly groupName: string;
+  readonly isSelectable: boolean;
+  readonly isSelected: boolean;
+  /* Spelled with `undefined` because the package compiles under
+     `exactOptionalPropertyTypes`: an absent prop and a prop holding
+     undefined are different types, and the parent passes the second. */
+  readonly onSelectOffer?: ((offerId: string) => void) | undefined;
+}): ReactElement {
+  const choiceId = `${groupName}-${row.offerId}`;
+  const repayable = formatMoney({ minorUnits: row.repayable.toString(), currency });
+
+  /* Every cell in a selectable row labels that row's radio, so a pointer
+     anywhere along it chooses the offer while the radio stays the only
+     control. No click handler on a row, and nothing to reimplement for the
+     keyboard. */
+  function Choosable({ children }: { readonly children: ReactNode }): ReactElement {
+    if (!isSelectable) {
+      return <>{children}</>;
+    }
+    return (
+      <label htmlFor={choiceId} className="block cursor-pointer">
+        {children}
+      </label>
+    );
+  }
+
+  return (
+    <tr
+      data-best={row.isBest ? 'true' : undefined}
+      data-mine={row.isMine ? 'true' : undefined}
+      data-selected={isSelected ? 'true' : undefined}
+      className={[
+        'border-t border-edge transition-colors duration-control ease-enter',
+        isSelected ? 'bg-surface-sunken' : 'hover:bg-surface-sunken',
+      ].join(' ')}
+    >
+      <td
+        className={[
+          'border-l-2 px-2 py-1',
+          isSelected
+            ? 'border-l-accent'
+            : row.isMine
+              ? 'border-l-status-active'
+              : 'border-l-transparent',
+        ].join(' ')}
+      >
+        <span className="flex items-center gap-2">
+          {isSelectable ? (
+            <input
+              type="radio"
+              id={choiceId}
+              name={groupName}
+              checked={isSelected}
+              onChange={() => onSelectOffer?.(row.offerId)}
+              /* Named in full here rather than left to the cell labels, so a
+                 reader hears one sentence that stands on its own instead of
+                 four fragments. */
+              aria-label={`Offer ${String(row.rank)}, ${formatRate(row.rateBasisPoints)}, repay ${repayable}`}
+              className="h-4 w-4 shrink-0 cursor-pointer accent-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-status-active"
+            />
+          ) : null}
+          <Choosable>
+            <span className="font-figure text-ink-secondary">{row.rank}</span>
+          </Choosable>
+        </span>
+      </td>
+      <td className="px-2 py-1">
+        <Choosable>
+          <span className="flex items-center gap-1">
+            {row.isBest ? (
+              <span aria-hidden="true" className="text-accent">
+                {bestMarker}
+              </span>
+            ) : null}
+            <span
+              className={`font-figure ${
+                row.isBest ? 'font-semibold text-accent' : 'text-ink-primary'
+              }`}
+            >
+              {formatRate(row.rateBasisPoints).replace(' p.a.', '')}
+            </span>
+            {row.isMine ? <span className="font-body text-status-active">you</span> : null}
+          </span>
+        </Choosable>
+      </td>
+      <td className="px-2 py-1 text-right font-figure text-ink-primary">
+        <Choosable>{repayable}</Choosable>
+      </td>
+      {/* The premium, with a bar behind it. A number alone does not show that
+          half the book is bunched and the tail is not; a length does it
+          without being read. */}
+      <td className="relative px-2 py-1 text-right font-figure">
+        <span
+          aria-hidden="true"
+          style={{ '--premium': `${String(row.premiumShare)}%` } as CSSProperties}
+          className="pointer-events-none absolute inset-y-0 right-0 w-[var(--premium)] bg-edge-strong opacity-30"
+        />
+        <Choosable>
+          <span
+            className={`relative ${row.premium === 0n ? 'text-ink-secondary' : 'text-ink-primary'}`}
+          >
+            {row.premium === 0n
+              ? noPremium
+              : `+${formatMoney({ minorUnits: row.premium.toString(), currency })}`}
+          </span>
+        </Choosable>
+      </td>
+    </tr>
   );
 }

@@ -176,7 +176,9 @@ test('the demo runbook walks end to end exactly as docs/DEMO.md describes', asyn
   await borrowerPage.getByRole('link', { name: 'Portfolio' }).click();
   /* Past maturity and inside grace, so the loan is one of the few things the
      band raises. */
-  await expect(borrowerPage.getByTestId('attention-band')).toContainText('In grace');
+  await borrowerPage.getByTestId('attention-bell').click();
+  await expect(borrowerPage.getByTestId('attention-bell-panel')).toContainText('In grace');
+  await borrowerPage.keyboard.press('Escape');
   await borrowerPage.getByRole('button', { name: 'Repay', exact: true }).first().click();
   // Interest stopped at maturity, which the clock is now well past.
   await expect(borrowerPage.getByTestId('payoff-total')).toContainText('AUD');

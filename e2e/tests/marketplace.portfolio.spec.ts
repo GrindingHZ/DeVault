@@ -176,17 +176,21 @@ test('a lender reclaims an outbid hold from the attention band', async ({ page, 
   await signIn(page, loserEmail);
   await page.getByRole('link', { name: 'Portfolio' }).click();
 
-  await expect(page.getByTestId('total-attention')).toHaveText('1');
-  const band = page.getByTestId('attention-band');
-  await expect(band).toContainText('One kilogram gold bar');
-  await expect(band).toContainText('Outbid');
-  await expect(band).toContainText('AUD 2,500.00');
+  /* The count is in the header, so it is visible from every screen rather
+     than only from the one the reader had to remember to open. */
+  await expect(page.getByTestId('attention-count')).toHaveText('1');
+  await page.getByTestId('attention-bell').click();
 
-  await band.getByRole('button', { name: 'Reclaim funds' }).click();
-  /* The band empties itself. A screen that is quiet most days should look
-     quiet, so it renders nothing at all rather than an empty box. */
-  await expect(page.getByTestId('attention-band')).toHaveCount(0);
-  await expect(page.getByTestId('total-attention')).toHaveText('0');
+  const panel = page.getByTestId('attention-bell-panel');
+  await expect(panel).toContainText('One kilogram gold bar');
+  await expect(panel).toContainText('Outbid');
+  await expect(panel).toContainText('AUD 2,500.00');
+
+  await panel.getByRole('button', { name: 'Reclaim funds' }).click();
+  /* The bell goes quiet. A count that is zero shows no badge at all rather
+     than a nought, because a bell that always has a number on it is a bell
+     nobody reads. */
+  await expect(page.getByTestId('attention-count')).toHaveCount(0);
 
   await page.getByRole('link', { name: 'Wallet' }).click();
   await expect(page.getByTestId('available-balance')).toHaveText('AUD 3,000.00');

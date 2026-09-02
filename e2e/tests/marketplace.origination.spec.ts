@@ -167,10 +167,13 @@ test('a borrower accepts an offer and both sides see the loan', async ({
 
   // The losing hold is committed until its lender pulls it back (rule M8).
   await loserPage.getByRole('link', { name: 'Wallet' }).click();
-  await expect(loserPage.getByTestId('reclaim-banner')).toBeVisible();
+  await expect(loserPage.getByTestId('attention-count')).toHaveText('1');
   await expect(loserPage.getByTestId('held-balance')).toHaveText('AUD 2,500.00');
-  await loserPage.getByRole('link', { name: 'Reclaim your funds' }).click();
-  await loserPage.getByRole('button', { name: 'Reclaim funds' }).first().click();
+  await loserPage.getByTestId('attention-bell').click();
+  await loserPage
+    .getByTestId('attention-bell-panel')
+    .getByRole('button', { name: 'Reclaim funds' })
+    .click();
   await loserPage.getByRole('link', { name: 'Wallet' }).click();
   await expect(loserPage.getByTestId('available-balance')).toHaveText('AUD 3,000.00');
 

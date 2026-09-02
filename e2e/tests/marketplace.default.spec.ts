@@ -161,7 +161,9 @@ test('a lender takes the collateral once grace has run out', async ({ page, requ
 
   await signIn(page, lenderEmail);
   await page.getByRole('link', { name: 'Portfolio' }).click();
-  await expect(page.getByTestId('attention-band')).toContainText('Past grace');
+  await page.getByTestId('attention-bell').click();
+  await expect(page.getByTestId('attention-bell-panel')).toContainText('Past grace');
+  await page.keyboard.press('Escape');
   await page.getByTestId('side-lending').click();
   await page.getByRole('button', { name: 'Mark defaulted' }).first().click();
   await expect(page.getByTestId('my-loans')).toContainText('Defaulted');

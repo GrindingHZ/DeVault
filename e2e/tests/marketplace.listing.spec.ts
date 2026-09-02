@@ -155,7 +155,8 @@ test('the offer form blocks a principal above the ceiling', async ({ page, reque
   await page.getByTestId('my-listings').getByTestId('position-item').first().click();
   await page.waitForURL(/listing=/);
   const ceilingListingId = new URL(page.url()).searchParams.get('listing') ?? '';
-  await page.getByRole('button', { name: 'Log out' }).click();
+  await page.getByTestId('account-menu').click();
+  await page.getByTestId('log-out').click();
   await page.waitForURL('**/login');
   // A full reload gives the login form a clean mount; the logout redirect
   // and the home redirect can otherwise race the fills.

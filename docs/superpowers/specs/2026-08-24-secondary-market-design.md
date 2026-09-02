@@ -126,12 +126,21 @@ gets amended to say so, and Q-002's implementation note is corrected to match re
 
 ## The interface
 
-Marketplace app only. No new rail destination; Q-028 settled that argument.
+Marketplace app only. No new rail destination; Q-028 settled that argument. The secondary market
+is a dedicated page at `/listings/positions`, which keeps Browse lit in the rail, with the browse
+workspace and the positions page linking to each other as two faces of one Browse destination.
 
-**Browse.** The market browse screen gains a second tab, primary listings beside positions for
-sale. A sale row shows the item, principal, rate, maturity, interest accrued so far, current
-value, the ask, and the discount between them, because the discount is the product. Buying opens a
-confirm dialog that names exactly what is paid now and what is owed to the buyer at maturity.
+**The positions page.** One card per open sale: the item, principal, rate, maturity, interest
+accrued so far, current value, the ask, and the discount between them, because the discount is the
+product. The centre of each card is a value chart, a line from the principal at origination to the
+full payoff at maturity, with a marker where the loan stands today and a line at the ask. A buyer
+reads three numbers off it at a glance: what the position is worth now, what it will pay at
+maturity, and how far below both the ask sits. The browse endpoint returns every figure the chart
+needs (principal, rate, start, maturity, accrued, current value, maturity value, ask); the client
+only draws, it never computes money.
+
+Buying opens a confirm dialog that names exactly what is paid now and what is owed to the buyer at
+maturity.
 
 **Portfolio.** An ACTIVE lending position gains a "Sell position" action. The form shows the live
 current value as the cap while the seller types the ask. A listed position shows its ask and a

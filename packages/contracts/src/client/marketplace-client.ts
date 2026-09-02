@@ -66,7 +66,7 @@ export interface BrowseOptions {
   readonly cursor?: string;
   readonly category?: string;
   readonly maxLoanToValueBasisPoints?: number;
-  readonly sort?: 'newest' | 'rate' | 'closing';
+  readonly sort?: 'newest' | 'ltv' | 'closing';
 }
 
 export function browseListings(options: BrowseOptions = {}): Promise<ListingsPageResponse> {

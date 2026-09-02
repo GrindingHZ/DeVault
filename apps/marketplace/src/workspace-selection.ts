@@ -12,7 +12,7 @@ export const workspaceSearchSchema = z.object({
   listing: z.string().min(1).optional(),
   category: z.string().min(1).optional(),
   maxLoanToValue: z.coerce.number().int().positive().optional(),
-  sort: z.enum(['newest', 'rate', 'closing']).optional(),
+  sort: z.enum(['newest', 'ltv', 'closing']).optional(),
   density: z.enum(['rows', 'gallery']).optional(),
   /* Whose listings the rail is showing: other people's, the ones this reader
      has money against, or their own. It lives in the URL like every other

@@ -162,6 +162,58 @@ export function GalleryIcon(props: IconProps): ReactElement {
   );
 }
 
+/* The five categories a vault takes. Line drawings at the same weight as
+   every other icon here: a set of little pictures at different densities
+   reads as clip art rather than as a legend. */
+export function BullionIcon(props: IconProps): ReactElement {
+  return (
+    <Icon {...props}>
+      <path d="M6.5 9h11l1.5 4.5H5z" />
+      <path d="M3.5 20h17" />
+      <path d="M5 13.5h14v6.5H5z" />
+    </Icon>
+  );
+}
+
+export function WatchIcon(props: IconProps): ReactElement {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="5.5" />
+      <path d="M12 9.5V12l1.8 1.2" />
+      <path d="M9 6.6L9.4 3h5.2l.4 3.6M9 17.4L9.4 21h5.2l.4-3.6" />
+    </Icon>
+  );
+}
+
+export function JewelleryIcon(props: IconProps): ReactElement {
+  return (
+    <Icon {...props}>
+      <path d="M8 4h8l3 4.5-7 11-7-11z" />
+      <path d="M5 8.5h14M9.5 8.5L12 19.5l2.5-11L12 4z" />
+    </Icon>
+  );
+}
+
+export function CollectibleIcon(props: IconProps): ReactElement {
+  return (
+    <Icon {...props}>
+      <path d="M8 3h8v4a4 4 0 0 1-8 0z" />
+      <path d="M16 4.5h3v1.5a3 3 0 0 1-3 3M8 4.5H5V6a3 3 0 0 0 3 3" />
+      <path d="M12 11v4M9 20h6M10 15h4l.7 5h-5.4z" />
+    </Icon>
+  );
+}
+
+export function ArtIcon(props: IconProps): ReactElement {
+  return (
+    <Icon {...props}>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="1" />
+      <path d="M6.5 16l3.5-4.5 2.5 3 2-2.5 3 4z" />
+      <circle cx="9" cy="8.5" r="1.2" />
+    </Icon>
+  );
+}
+
 export function FilterIcon(props: IconProps): ReactElement {
   return (
     <Icon {...props}>

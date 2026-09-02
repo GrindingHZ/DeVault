@@ -83,14 +83,14 @@ export class PrismaMarketplaceQueries implements MarketplaceQueries {
         AND (
           ${cursor.id}::text IS NULL
           OR (${filter.sort} = 'newest' AND l.id < ${cursor.id})
-          OR (${filter.sort} = 'rate'
-              AND (l.max_annual_percentage_rate_basis_points, l.id) > (${cursor.value}::int, ${cursor.id}))
+          OR (${filter.sort} = 'ltv'
+              AND ((l.requested_principal_minor_units * 10000 / NULLIF(r.appraised_value_minor_units, 0)), l.id) > (${cursor.value}::int, ${cursor.id}))
           OR (${filter.sort} = 'closing'
               AND (l.expires_at, l.id) > (${cursor.at}::timestamp, ${cursor.id}))
         )
       ORDER BY
         CASE WHEN ${filter.sort} = 'newest' THEN l.id END DESC,
-        CASE WHEN ${filter.sort} = 'rate' THEN l.max_annual_percentage_rate_basis_points END ASC,
+        CASE WHEN ${filter.sort} = 'ltv' THEN (l.requested_principal_minor_units * 10000 / NULLIF(r.appraised_value_minor_units, 0)) END ASC,
         CASE WHEN ${filter.sort} = 'closing' THEN l.expires_at END ASC,
         l.id ASC
       LIMIT ${filter.limit + 1}
@@ -172,9 +172,16 @@ function decodeCursor(cursor: string | null): DecodedCursor {
   };
 }
 
+function loanToValueOf(row: BrowseRow): number {
+  if (row.appraised_value_minor_units <= 0n) {
+    return 0;
+  }
+  return Number((row.requested_principal_minor_units * 10_000n) / row.appraised_value_minor_units);
+}
+
 function encodeCursor(sort: BrowseSort, row: BrowseRow): string {
-  if (sort === 'rate') {
-    return `${row.id}|${row.max_annual_percentage_rate_basis_points}`;
+  if (sort === 'ltv') {
+    return `${row.id}|${loanToValueOf(row)}`;
   }
   if (sort === 'closing') {
     return `${row.id}|${row.expires_at.toISOString()}`;

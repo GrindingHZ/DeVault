@@ -249,5 +249,5 @@ function parseBasisPoints(value: string | undefined): number | null {
 }
 
 function parseSort(value: string | undefined): BrowseSort {
-  return value === 'rate' || value === 'closing' ? value : 'newest';
+  return value === 'ltv' || value === 'closing' ? value : 'newest';
 }

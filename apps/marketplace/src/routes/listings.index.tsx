@@ -142,10 +142,6 @@ function VaultFloor({ viewerAccountId }: { readonly viewerAccountId: string }): 
             onCategory={(value) =>
               update({ category: value === '' ? undefined : value, listing: undefined })
             }
-            maxLoanToValue={maxLoanToValue}
-            onMaxLoanToValue={(value) =>
-              update({ maxLoanToValue: value === '' ? undefined : Number(value) })
-            }
             scope={scope}
             onScope={(value) =>
               update({ scope: value === 'browse' ? undefined : value, listing: undefined })

@@ -36,7 +36,12 @@ export interface ListingsPage {
 /* Newest is the default and pages on the id alone. The other two order by a
    value that repeats across listings, so their cursor has to carry that value
    as well as the id or a page boundary would skip or repeat rows. */
-export type BrowseSort = 'newest' | 'rate' | 'closing';
+/* Sorting by the borrower's rate ceiling was offered as "lowest rate" and
+   was neither: the ceiling is the most a borrower will pay, not what the
+   market is charging, so the order had nothing to do with the rates on the
+   screen. What a lender actually compares is how much of the appraisal is
+   being borrowed against, which is the figure beside every row. */
+export type BrowseSort = 'newest' | 'ltv' | 'closing';
 
 export interface BrowseFilter {
   readonly cursor: string | null;

@@ -1,13 +1,18 @@
 import { itemCategories, nameForCategory } from '@depawn/contracts';
 import {
+  ArtIcon,
+  BullionIcon,
   Button,
   CheckIcon,
   Chip,
+  CollectibleIcon,
   FilterIcon,
   GalleryIcon,
+  JewelleryIcon,
   RowsIcon,
   Tab,
   TabStrip,
+  WatchIcon,
   focusRing,
 } from '@depawn/ui';
 import { useEffect, useRef, useState } from 'react';
@@ -20,7 +25,7 @@ import type { ReactElement, ReactNode } from 'react';
    look. Three answers to one question instead: other people's, the ones you
    have money against, and your own. */
 export type BrowseScope = 'browse' | 'offered' | 'listings';
-export type BrowseSort = 'newest' | 'rate' | 'closing';
+export type BrowseSort = 'newest' | 'ltv' | 'closing';
 export type BrowseDensity = 'rows' | 'gallery';
 
 export interface BrowseControlsProps {
@@ -28,14 +33,22 @@ export interface BrowseControlsProps {
   readonly onScope: (value: BrowseScope) => void;
   readonly category: string;
   readonly onCategory: (value: string) => void;
-  readonly maxLoanToValue: string;
-  readonly onMaxLoanToValue: (value: string) => void;
   readonly sort: BrowseSort;
   readonly onSort: (value: BrowseSort) => void;
   readonly density: BrowseDensity;
   readonly onDensity: (value: BrowseDensity) => void;
   readonly activeCount: number;
 }
+
+/* A picture beside each name. The categories are the one filter a reader
+   scans rather than reads, and five words in a column all look alike. */
+const categoryIcons: Record<string, ReactNode> = {
+  BULLION: <BullionIcon />,
+  WATCH: <WatchIcon />,
+  JEWELLERY: <JewelleryIcon />,
+  COLLECTIBLE: <CollectibleIcon />,
+  ART: <ArtIcon />,
+};
 
 const scopeTabs: readonly { readonly value: BrowseScope; readonly label: string }[] = [
   { value: 'browse', label: 'Browse items' },
@@ -146,10 +159,15 @@ export function BrowseControls(props: BrowseControlsProps): ReactElement {
           className="absolute right-2 top-full z-20 mt-1 w-64 rounded-md border border-edge-strong bg-surface-raised p-2 shadow-overlay"
         >
           <Group label="Sort by">
+            {/* "Lowest rate ceiling" sorted on the most a borrower is willing
+                to pay, which is not a rate anybody on this screen is being
+                offered: the order had nothing to do with the figures in the
+                rail. What a lender compares is how much of the appraisal is
+                being borrowed against, which is the figure on every row. */}
             {(
               [
                 ['newest', 'Newest first'],
-                ['rate', 'Lowest rate ceiling'],
+                ['ltv', 'Lowest loan to value'],
                 ['closing', 'Closing soonest'],
               ] as const
             ).map(([value, label]) => (
@@ -172,25 +190,9 @@ export function BrowseControls(props: BrowseControlsProps): ReactElement {
               <Choice
                 key={value}
                 label={nameForCategory(value)}
+                icon={categoryIcons[value]}
                 isChosen={props.category === value}
                 onClick={() => props.onCategory(value)}
-              />
-            ))}
-          </Group>
-
-          <Group label="Loan to value at most">
-            {(
-              [
-                ['', 'Any'],
-                ['3000', '30% or less'],
-                ['5000', '50% or less'],
-              ] as const
-            ).map(([value, label]) => (
-              <Choice
-                key={label}
-                label={label}
-                isChosen={props.maxLoanToValue === value}
-                onClick={() => props.onMaxLoanToValue(value)}
               />
             ))}
           </Group>
@@ -260,10 +262,12 @@ function Group({
 
 function Choice({
   label,
+  icon,
   isChosen,
   onClick,
 }: {
   readonly label: string;
+  readonly icon?: ReactNode;
   readonly isChosen: boolean;
   readonly onClick: () => void;
 }): ReactElement {
@@ -283,8 +287,15 @@ function Choice({
         isChosen ? 'text-ink-primary' : 'text-ink-secondary',
       ].join(' ')}
     >
-      {label}
-      {isChosen ? <span className="text-accent">{<CheckIcon />}</span> : null}
+      <span className="flex min-w-0 items-center gap-2">
+        {icon === undefined ? null : (
+          <span aria-hidden="true" className="shrink-0 text-ink-secondary">
+            {icon}
+          </span>
+        )}
+        <span className="truncate">{label}</span>
+      </span>
+      {isChosen ? <span className="shrink-0 text-accent">{<CheckIcon />}</span> : null}
     </button>
   );
 }

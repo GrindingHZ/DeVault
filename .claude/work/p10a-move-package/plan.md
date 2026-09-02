@@ -8,7 +8,7 @@ fixture file the TypeScript reads.
 
 - [x] feat(move): a usdc stand in coin for local networks
 - [x] feat(move): config with three capabilities, pause, and parameters
-- [ ] test(move): pause and parameters answer to the admin capability
+- [x] test(move): pause and parameters answer to the admin capability
 - [ ] feat(move): vault receipts issued and moved by the custodian
 - [ ] test(move): every receipt transition and its rejections
 - [ ] feat(move): custodial wallets, holds, and the payout that must be emptied

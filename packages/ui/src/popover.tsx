@@ -16,6 +16,11 @@ export interface PopoverProps {
   /* Where the panel lines up with the trigger. Right for anything near the
      end of a row, which is most of them. */
   readonly align?: 'left' | 'right';
+  /* Whether acting inside the panel closes it. True for a menu, where every
+     row is a command. False for a panel that is only there to be read: a
+     definition closing itself because somebody dragged across a word is a
+     panel fighting the reader. */
+  readonly closesOnAction?: boolean;
 }
 
 const gutter = 12;
@@ -39,6 +44,7 @@ export function Popover({
   children,
   width = 320,
   align = 'right',
+  closesOnAction = true,
 }: PopoverProps): ReactElement {
   const [isOpen, setIsOpen] = useState(false);
   const [anchor, setAnchor] = useState({ top: 0, left: 0, maxHeight: 0 });
@@ -127,7 +133,7 @@ export function Popover({
       data-testid={`${testId}-panel`}
       /* Anything inside that acts closes the panel, so a menu item does not
          leave a stale panel sitting over the change it just made. */
-      onClick={() => setIsOpen(false)}
+      onClick={closesOnAction ? () => setIsOpen(false) : undefined}
       style={{ top: anchor.top, left: anchor.left, width, maxHeight: anchor.maxHeight }}
       className={[
         'fixed z-50 rounded-lg border border-edge bg-surface-raised text-left shadow-overlay',

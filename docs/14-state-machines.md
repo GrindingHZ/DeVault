@@ -225,9 +225,14 @@ column at the cost of scheduled work in a process that has none, which is a Phas
 this one. The third is fixed, above. `CustodyReceipt.transferHolder` is a fourth, deliberately: it is
 the seam a Phase 3 object transfer lands on and nothing in Phase 1 should be reaching it.
 
-**4. Four state changes emit no event:** a cancelled listing, a superseded offer, a scheduled
-liquidation and an opened one. Every other transition that matters publishes one. `docs/08` has the
-Phase 3 indexer rebuilding state from events, so these are the four it would not see.
+**4. Five state changes emit no event:** a cancelled listing, a superseded offer, a scheduled
+liquidation, an opened one, and now a cancelled one. Every other transition that matters publishes
+one. `docs/08` has the Phase 3 indexer rebuilding state from events, so these are the five it would
+not see.
+
+The fifth is new, and deliberate for now: `cancel-liquidation` was written to match its three
+siblings rather than to be the one liquidation use case that publishes. Either all four gain an event
+or none does, and that decision belongs with the indexer in P9 rather than ahead of it.
 
 **5. The `docs/02` drawings were stale in three places. Fixed.** The receipt's `claimDefault` target
 and its liquidation burn, both argued out in Q-012 and never redrawn, and the liquidation `cancel`

@@ -5,6 +5,7 @@ import {
   PortfolioIcon,
   ReceiptIcon,
   WalletIcon,
+  pressableInset,
 } from '@depawn/ui';
 import { Link, useRouterState } from '@tanstack/react-router';
 import type { ReactElement, ReactNode } from 'react';
@@ -52,7 +53,9 @@ export function MarketRail(): ReactElement {
             key={destination.to}
             to={destination.to}
             aria-current={active ? 'page' : undefined}
-            className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-status-active"
+            /* The link takes the gesture, not the item inside it: the anchor
+               is what a reader points at and what takes focus. */
+            className={[pressableInset, 'rounded-sm'].join(' ')}
           >
             <NavRailItem icon={destination.icon} label={destination.label} isActive={active} />
           </Link>

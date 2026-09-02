@@ -50,11 +50,17 @@ function Relationship({ value }: { readonly value: CollateralRelationship }): Re
 }
 
 function AskingRate({ basisPoints }: { readonly basisPoints: number | null }): ReactElement {
+  /* Never wraps. The rail is resizable, and at its narrowest a two word
+     phrase broke onto a second line and pushed the row out of rhythm. */
   if (basisPoints === null) {
-    return <span className="font-mono text-xs text-ink-secondary">no offers</span>;
+    return (
+      <span className="shrink-0 whitespace-nowrap font-mono text-xs text-ink-secondary">
+        no offers
+      </span>
+    );
   }
   return (
-    <span className="font-mono text-xs text-ink-primary">
+    <span className="shrink-0 whitespace-nowrap font-mono text-xs font-semibold tabular-nums text-ink-primary">
       {formatRate(basisPoints).replace(' p.a.', '')}
     </span>
   );

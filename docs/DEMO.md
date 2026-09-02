@@ -59,23 +59,37 @@ Every account uses the password `demo-password-123`.
 | `ops@demo.test` | Operations | Runs the sale, holds the parameters and the pause switch |
 | `ada@demo.test` | Member | Borrower with an item to pledge |
 | `gita@demo.test` | Member | Lender with money to put to work |
-| `member@demo.test` | Member | An empty account, for showing a first run |
+| `member@demo.test` | Member | Holds both sides of the market, and is the account to open first |
 
 ### What the seed leaves behind
 
-- Eight receipts across all five categories, each with a photograph: one already released, four
-  pledged against loans, three still free
-- Three live listings, each with two competing offers on it
-- Three active loans, maturing in a fortnight, in six weeks, and in three months
-- A note sale in every state: one still listed at three percent under its value, one sold to a
-  third member, one withdrawn by its seller, one voided when its loan repaid under it
-- One loan repaid and its item already walked back out of the vault
-- One loan defaulted, its sale open, two bids standing against it
+Enough of everything that no screen in the product has to be described rather than shown. Sign in
+as `member@demo.test` first: that account is on both sides of the market, so one window has all of
+it.
 
-The clock is where the seed left it, roughly two months ahead of the wall clock, because a loan
-book with history cannot be built at one instant and a clock cannot be asked to run backwards. That
-is deliberate and consistent: the offset is written down, the api reads it at startup, and every
-date on every screen is measured against the same clock.
+- Thirty three receipts across all five categories, each with a photograph: in the vault, pledged
+  against loans, one collected, one asked for and still on the shelf, and two sold at auction
+- Live listings with a book on them, one nobody has offered on, one closing within the day, one
+  past its closing date, one cancelled and one never published
+- Loans at every distance from maturity: just drawn, halfway, due tomorrow, past maturity inside
+  grace, and past grace waiting for somebody to call it
+- A hold that lost and was never reclaimed, which is what the bell in the header points at
+- Loans repaid, defaulted, claimed by the lender, and sold at auction
+- A note sale in every state: two still listed, one sold to a third member, one withdrawn by its
+  seller, one voided when its loan repaid under it
+- Two auctions settled and one still taking bids
+- About four months of wallet history, with deposits, a withdrawal, money moving in and out of
+  holds, and interest accruing, so the capital chart has a shape rather than a step
+
+The clock is where the seed left it, which is roughly today. A loan book with history cannot be
+built at one instant, and the api's clock cannot be asked to run backwards, so the seed starts its
+clock four months in the past and plays the story forwards from there, finishing about where it
+began. The offset is written down, the api reads it at startup, and every date on every screen is
+measured against that one clock.
+
+Advancing the clock during the demo leaves the process ahead of the wall clock until it is reset or
+reseeded, which is why the end to end suite refuses to run against a process whose clock has
+drifted.
 
 `pnpm dev` starts the api in demo mode, which is what puts the clock control on the admin screen.
 `pnpm start` does not, and a deployed process has no such route at all.

@@ -196,16 +196,17 @@ describe('the demo seed', () => {
     expect(note?.holderAccountId).not.toBe(sold.sellerAccountId);
   });
 
-  /* The seed moves the clock to spread the book across weeks, and writes the
-     offset down so the process that serves the demo starts where the seed
-     finished. Read against that clock every date the seed wrote is in the
-     past, and the loans it left active have not matured. Read against the
-     wall clock they would all appear to start in the future, which is the
-     bug this asserts is absent. */
+  /* The seed spreads the book across months by starting its clock that far
+     in the past and playing forward, so the demo finishes on roughly the
+     real today rather than a season beyond it. Read against that clock every
+     date the seed wrote is in the past. Read against a clock that had run
+     forwards from now instead, every one of them would sit months in the
+     future, which is what a reader kept noticing. */
   it('hands the serving process a clock its own dataset makes sense against', async () => {
     const row = await prisma.demoClock.findUnique({ where: { id: 'DEMO' } });
     const seededNow = Date.now() + Number(row?.offsetMs ?? 0n);
-    expect(seededNow).toBeGreaterThan(Date.now());
+    // Today, give or take the minutes the seed itself took to run.
+    expect(Math.abs(seededNow - Date.now())).toBeLessThan(24 * 60 * 60 * 1000);
 
     for (const loan of await prisma.loan.findMany()) {
       expect(loan.startedAt.getTime()).toBeLessThanOrEqual(seededNow);
@@ -333,18 +334,25 @@ describe('a demo process serving the seeded dataset', () => {
     };
     expect(health.status).toBe('ok');
     expect(health.demoMode).toBe(true);
-    // It says so on the way out, which is how anything else notices.
-    expect(Date.parse(health.now)).toBeGreaterThan(Date.now() + 7 * 24 * 60 * 60 * 1000);
   });
 
   /* The whole point of writing the offset down. A process that read the
      system clock instead would see every seeded loan starting weeks in the
      future and the book would be nonsense. */
-  it('starts at the instant the seed finished at, not at real time', async () => {
+  /* The process takes its clock from the row the seed wrote rather than from
+     the wall. That used to be provable by the clock reading months ahead;
+     now that the seed lands on today the two agree, so what is worth
+     asserting is the pair of properties that actually matter: the demo opens
+     on today, and the clock is still the process's own to move. */
+  it('opens on today, with a clock it can still move', async () => {
+    const health = (await (await call('GET', '/health')).json()) as { now: string };
+    const opened = Date.parse(health.now);
+    expect(Math.abs(opened - Date.now())).toBeLessThan(24 * 60 * 60 * 1000);
+
     const advanced = await call('POST', '/test/clock/advance', { milliseconds: 1 });
     expect(advanced.status).toBe(201);
-    const now = Date.parse(((await advanced.json()) as { now: string }).now);
-    expect(now).toBeGreaterThan(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const moved = Date.parse(((await advanced.json()) as { now: string }).now);
+    expect(moved).toBeGreaterThanOrEqual(opened);
   });
 
   it('serves a loan book that makes sense against its own clock', async () => {

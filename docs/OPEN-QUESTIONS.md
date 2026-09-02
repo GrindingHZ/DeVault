@@ -229,7 +229,8 @@ system already works than trying to make the queue exactly once.
 ## Q-024: whether ordinary development should share the demo clock
 **Blocks:** nothing today
 **Currently implemented:** `pnpm dev` runs the api in demo mode, so it reads the offset the seed
-left in `demo_clock` and starts weeks ahead of the wall clock
+left in `demo_clock`, which the seed now lands on roughly the real today rather than months beyond
+it: the story starts its clock four months back and plays forwards
 **Needs:** whoever owns docs/11
 **Notes:** The demo needs this, because the seed and the serving process are two processes and the
 loan book only makes sense against the clock it was written under. Ordinary development inherits it

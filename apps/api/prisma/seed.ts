@@ -517,7 +517,19 @@ function identifierOf(payload: Record<string, unknown>): string {
 /* Every deadline in the dataset is measured against the api's clock, not the
    seed's. They part company the moment the seed advances time, and a listing
    dated from the seed's own clock would be born already expired. */
-let clockOffsetMs = 0;
+/* How far the story runs from its first day to its last. The seed starts the
+   clock this far in the past and plays forward, so the demo finishes at
+   roughly the real today rather than months beyond it.
+
+   Running forward from now was the obvious thing and it read badly: the
+   richer the story got, the further into the future the demo landed, until
+   every date on every screen was a season away from the reader's own. The
+   clock still only ever moves forwards while the api is running (flow 15);
+   the rewind is a single write the seed makes to an empty table before the
+   process that reads it has started. */
+const storyLengthDays = 123;
+
+let clockOffsetMs = -storyLengthDays * oneDay;
 
 function serverNow(): number {
   return Date.now() + clockOffsetMs;
@@ -555,6 +567,13 @@ async function main(): Promise<void> {
      database. Seeding on top of a previous run would double the loan book
      and leave the runbook describing a screen nobody can reproduce. */
   await emptyEveryTable(prisma);
+  /* Written before the api boots, because the clock adapter reads this row
+     once at startup and holds it. */
+  await prisma.demoClock.upsert({
+    where: { id: 'DEMO' },
+    create: { id: 'DEMO', offsetMs: BigInt(clockOffsetMs) },
+    update: { offsetMs: BigInt(clockOffsetMs) },
+  });
   await emptyStoredObjects(configuration.storageDirectory);
   const passwordHash = await hash(demoPassword);
 
@@ -826,6 +845,18 @@ async function buildDataset(origin: string): Promise<void> {
   const askedFor = await originateBetween(origin, at(2), cast.bruno, 1800, 14);
   await repay(origin, askedFor);
   await requestRedemption(origin, askedFor.borrower, at(2).id);
+
+  /* The story is supposed to end where it started from the reader's point of
+     view: on today. If an advance is added or removed without moving
+     storyLengthDays with it, the demo silently drifts into the future again,
+     which is the whole thing this arrangement exists to prevent. */
+  const daysAdrift = Math.round(clockOffsetMs / oneDay);
+  if (Math.abs(daysAdrift) > 1) {
+    throw new Error(
+      `the story advanced ${String(storyLengthDays + daysAdrift)} days but storyLengthDays says ` +
+        `${String(storyLengthDays)}, so the demo would end ${String(daysAdrift)} days from today`,
+    );
+  }
 
   process.stdout.write(
     `seeded ${String(receipts.length)} receipts across ${String(Object.keys(cast).length + 2)} members, ` +

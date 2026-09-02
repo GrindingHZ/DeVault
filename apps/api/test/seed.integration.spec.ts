@@ -77,8 +77,20 @@ describe('the demo seed', () => {
     expect(await prisma.liquidationBid.count({ where: { liquidationId: sale.id } })).toBe(2);
   });
 
-  it('leaves one position listed on the secondary market', async () => {
+  it('leaves a note sale in every state the market can produce', async () => {
     expect(await prisma.noteSale.count({ where: { status: 'OPEN' } })).toBe(1);
+    expect(await prisma.noteSale.count({ where: { status: 'SOLD' } })).toBe(1);
+    expect(await prisma.noteSale.count({ where: { status: 'WITHDRAWN' } })).toBe(1);
+    expect(await prisma.noteSale.count({ where: { status: 'VOIDED' } })).toBe(1);
+
+    // The sold note really changed hands: its holder is no longer the
+    // account that funded the loan, so repayment will pay the buyer.
+    const sold = await prisma.noteSale.findFirst({ where: { status: 'SOLD' } });
+    if (sold === null) {
+      throw new Error('the seed must leave a sold sale');
+    }
+    const note = await prisma.lenderNote.findUnique({ where: { id: sold.lenderNoteId } });
+    expect(note?.holderAccountId).not.toBe(sold.sellerAccountId);
   });
 
   /* The seed moves the clock to spread the book across weeks, and writes the

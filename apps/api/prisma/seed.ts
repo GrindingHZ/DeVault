@@ -437,8 +437,11 @@ async function buildDataset(origin: string): Promise<void> {
      therefore written last, after the clock has finished moving. */
 
   /* The completed cycle: borrowed, repaid, and the item walked back out of
-     the vault, so the demo can show the whole arc without waiting. */
+     the vault, so the demo can show the whole arc without waiting. Its note
+     is listed before the repayment lands, which is what leaves a VOIDED sale
+     in the seller's history: the loan closed under the listing. */
   const repaid = await originate(origin, receiptAt(0), 1800, 30);
+  await listPositionForSale(origin, repaid, 97n);
   await advance(clock, 5 * oneDay, staffAndOperations);
   await repay(origin, repaid);
   await redeem(origin, staff, repaid.borrower, receiptAt(0).id);
@@ -475,12 +478,24 @@ async function buildDataset(origin: string): Promise<void> {
     active.push(await originate(origin, receiptAt(2 + index), 1500 + index * 300, durationDays));
   }
 
-  /* One position on the secondary market, so the demo can show a lender
-     leaving early and a buyer reading the discount off the value chart. The
-     45 day loan has enough term left to make the picture worth drawing. */
-  const forSale = active[1];
-  if (forSale !== undefined) {
-    await listPositionForSale(origin, forSale, 97n);
+  /* Every sale outcome the secondary market can produce, one each, so a
+     portfolio and the market both have a scenario to show. The open sale
+     sits on the 45 day loan, which has enough term left to make the value
+     chart worth drawing; the sold one moves a live loan onto a buyer, so
+     repayment will visibly pay somebody who never made the offer. */
+  const stillListed = active[1];
+  if (stillListed !== undefined) {
+    await listPositionForSale(origin, stillListed, 97n);
+  }
+  const listedAndThoughtBetter = active[0];
+  if (listedAndThoughtBetter !== undefined) {
+    const saleId = await listPositionForSale(origin, listedAndThoughtBetter, 96n);
+    await withdrawPositionSale(origin, listedAndThoughtBetter, saleId);
+  }
+  const changedHands = active[2];
+  if (changedHands !== undefined) {
+    const saleId = await listPositionForSale(origin, changedHands, 97n);
+    await purchasePosition(origin, buyerFor(changedHands), saleId);
   }
 
   // Three listings taking offers, so the marketplace is not an empty table.
@@ -509,7 +524,7 @@ async function buildDataset(origin: string): Promise<void> {
   process.stdout.write(
     `seeded ${receipts.length} receipts, ${active.length} active loans, ` +
       `one repaid and redeemed, one in liquidation with two bids, ` +
-      `one position listed for sale\n`,
+      `and a note sale in every state: open, sold, withdrawn, voided\n`,
   );
 }
 
@@ -623,15 +638,15 @@ async function originate(
   return { loanId: identifierOf(accepted), borrower: receipt.borrower, lender: lenderEmail };
 }
 
-/* The ask in hundredths of the principal. The running loans are originated
-   after the clock has stopped moving, so nothing has accrued yet and the
-   principal is exactly the cap; asking under it is what puts a visible
-   discount on the positions page. */
+/* The ask in hundredths of the principal. Every loan this runs on is listed
+   the moment it is originated, before any clock jump, so nothing has accrued
+   yet and the principal is exactly the cap; asking under it is what puts a
+   visible discount on the Secondary Market page. */
 async function listPositionForSale(
   origin: string,
   loan: SeededLoan,
   hundredthsOfPrincipal: bigint,
-): Promise<void> {
+): Promise<string> {
   const lender = new DemoClient(origin);
   await lender.signIn(loan.lender, demoPassword);
   const lent = await lender.call('GET', '/me/loans?role=lender');
@@ -645,9 +660,39 @@ async function listPositionForSale(
     throw new Error('the lender must hold the loan being listed');
   }
   const ask = (BigInt(row.principal.minorUnits) * hundredthsOfPrincipal) / 100n;
-  await lender.call('POST', `/notes/${row.lenderNoteId}/sales`, {
+  const listed = await lender.call('POST', `/notes/${row.lenderNoteId}/sales`, {
     askPrice: money(ask.toString()),
   });
+  const sale = listed.sale as { id: string };
+  return sale.id;
+}
+
+async function withdrawPositionSale(
+  origin: string,
+  loan: SeededLoan,
+  saleId: string,
+): Promise<void> {
+  const lender = new DemoClient(origin);
+  await lender.signIn(loan.lender, demoPassword);
+  await lender.call('POST', `/sales/${saleId}/withdraw`, {});
+}
+
+async function purchasePosition(origin: string, buyerEmail: string, saleId: string): Promise<void> {
+  const buyer = new DemoClient(origin);
+  await buyer.signIn(buyerEmail, demoPassword);
+  await buyer.call('POST', `/sales/${saleId}/purchase`, {});
+}
+
+/* Somebody who is neither side of the loan, because the policy refuses both
+   and the dataset should show a genuine third party stepping in. */
+function buyerFor(loan: SeededLoan): string {
+  const candidate = [cast.chen, cast.dara, cast.farid].find(
+    (email) => email !== loan.borrower && email !== loan.lender,
+  );
+  if (candidate === undefined) {
+    throw new Error('the cast must hold somebody outside the loan');
+  }
+  return candidate;
 }
 
 async function repay(origin: string, loan: SeededLoan): Promise<void> {

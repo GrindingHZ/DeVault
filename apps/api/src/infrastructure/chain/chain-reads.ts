@@ -44,17 +44,24 @@ export async function boundedChainRead<T>(
 export async function waitUntilVisible(
   lookup: (signal: AbortSignal) => Promise<unknown>,
   label: string,
+  onSlow: (elapsedMs: number, lastAnswer: string) => void = () => undefined,
   patienceMs = 120_000,
   intervalMs = 250,
 ): Promise<number> {
   const started = Date.now();
   let lastAnswer = 'no answer yet';
+  let reported = false;
   while (Date.now() - started < patienceMs) {
     try {
       await boundedChainRead(label, lookup, 1, 5_000);
       return Date.now() - started;
     } catch (error: unknown) {
       lastAnswer = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    }
+    const elapsed = Date.now() - started;
+    if (!reported && elapsed > 10_000) {
+      reported = true;
+      onSlow(elapsed, lastAnswer);
     }
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }

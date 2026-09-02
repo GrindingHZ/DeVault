@@ -1,5 +1,5 @@
 import { describeSettlementPortContract } from '@depawn/test-support';
-import { afterEach, describe, it } from 'vitest';
+import { afterEach, describe, it, vi } from 'vitest';
 import { platformAccountIds } from '../src/domain/ledger/platform-accounts';
 import { UNIT_OF_WORK } from '../src/domain/ports/unit-of-work';
 import type { UnitOfWork } from '../src/domain/ports/unit-of-work';
@@ -23,6 +23,11 @@ afterEach(async () => {
     await expectLedgerBalances(harness.prisma).toSumToZero();
   }
 });
+
+/* A chain suite waits on the node, whose patience is two minutes per
+   transaction; the timeouts sit above it so a stall is reported with the
+   node's last answer rather than as a bare timeout. */
+vi.setConfig({ testTimeout: 180_000, hookTimeout: 300_000 });
 
 const reachable = await isLocalnetReachable();
 

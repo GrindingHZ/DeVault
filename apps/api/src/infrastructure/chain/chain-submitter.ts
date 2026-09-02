@@ -55,6 +55,10 @@ export class GrpcChainSubmitter implements ChainSubmitter {
     const waitedMs = await waitUntilVisible(
       (signal) => this.client.core.getTransaction({ digest: executed.digest, signal }),
       `transaction ${executed.digest}`,
+      (elapsedMs, lastAnswer) =>
+        this.logger.warn(
+          `transaction ${executed.digest} still not visible after ${elapsedMs}ms; the node answers: ${lastAnswer}`,
+        ),
     );
     if (waitedMs > 5_000) {
       this.logger.warn(`transaction ${executed.digest} took ${waitedMs}ms to become visible`);

@@ -18,6 +18,8 @@ function position(overrides: Partial<Position> = {}): Position {
     stage: 'Standing',
     tone: 'active',
     caption: 'Your money is still held, and earning nothing',
+    metrics: null,
+    pending: null,
     figure: null,
     action: null,
     needsAttention: false,

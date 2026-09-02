@@ -173,8 +173,10 @@ describe('an offer as a position', () => {
 });
 
 describe('a loan the reader owes', () => {
+  /* The table is borrowing only now, so "You borrowed" on every row was a
+     word the reader could not use. The rate is the fact that varies. */
   it('says what rate it is running at', () => {
-    expect(positionOfBorrowedLoan(loan(), now).caption).toBe('You borrowed at 18.00% p.a.');
+    expect(positionOfBorrowedLoan(loan(), now).caption).toBe('18.00% p.a.');
   });
 
   it('shows what settling today would cost', () => {
@@ -215,11 +217,92 @@ describe('a loan the reader owes', () => {
   });
 });
 
+/* The numbers the table is built out of. Everything here is arithmetic on
+   the loan plus the server's clock, so it is exactly testable. */
+describe('what a loan is worth', () => {
+  /* Thirty days into a sixty day term at 18.00% on 4,000.00. */
+  const sixtyDays = loan({
+    startedAt: '2026-08-01T12:00:00.000Z',
+    maturesAt: '2026-09-30T12:00:00.000Z',
+    graceEndsAt: '2026-10-07T12:00:00.000Z',
+    accruedInterest: money('5917'),
+  });
+
+  /* Bare figures. The loan tables name the currency once in the column
+     header, because twenty repetitions of "AUD" down a column pushed every
+     amount onto two lines. */
+  it('splits interest into what has accrued and what is still to come', () => {
+    const metrics = positionOfBorrowedLoan(sixtyDays, now).metrics;
+    expect(metrics?.currency).toBe('AUD');
+    expect(metrics?.interestSoFar).toBe('59.17');
+    expect(metrics?.interestToCome).toBe('59.18');
+  });
+
+  /* Two readings of one loan. The borrower is quoted what settling now
+     costs; the lender is quoted what comes back if it runs to term. */
+  it('settles a borrower at today and a lender at maturity', () => {
+    expect(positionOfBorrowedLoan(sixtyDays, now).metrics?.settlement).toEqual({
+      label: 'Owed today',
+      value: 'AUD 4,059.17',
+    });
+    expect(positionOfLentLoan(sixtyDays, now).metrics?.settlement).toEqual({
+      label: 'Value at maturity',
+      value: 'AUD 4,118.35',
+    });
+  });
+
+  /* Twenty two days of a sixty day term, which is 36.67 percent. */
+  it('reports how far through the term it is', () => {
+    const term = positionOfBorrowedLoan(sixtyDays, now).metrics?.term;
+    expect(term?.elapsedBasisPoints).toBe(3667);
+    expect(term?.note).toBe('38 days to maturity');
+  });
+
+  /* Interest stops at maturity (rule L1). A bar that kept filling through
+     grace would say the opposite of what the arithmetic does. */
+  it('holds the bar full through grace rather than overflowing', () => {
+    const inGrace = Date.parse('2026-10-03T12:00:00.000Z');
+    const term = positionOfBorrowedLoan(sixtyDays, inGrace).metrics?.term;
+    expect(term?.elapsedBasisPoints).toBe(10_000);
+    expect(term?.note).toBe('matured, 4 days of grace left');
+  });
+
+  it('says so once grace has run out', () => {
+    const after = Date.parse('2026-10-20T12:00:00.000Z');
+    expect(positionOfBorrowedLoan(sixtyDays, after).metrics?.term.note).toBe('grace has run out');
+  });
+
+  it('never fills the bar before the loan starts', () => {
+    const before = Date.parse('2026-07-01T12:00:00.000Z');
+    expect(positionOfBorrowedLoan(sixtyDays, before).metrics?.term.elapsedBasisPoints).toBe(0);
+  });
+
+  /* The server recomputes accrual against its own clock on every read, so a
+     repaid loan reports a whole term rather than what was paid (Q-029).
+     Showing that number would be showing a wrong one. */
+  it('shows no interest figure once a loan is closed', () => {
+    expect(positionOfBorrowedLoan(loan({ status: 'REPAID' }), now).metrics).toBeNull();
+    expect(positionOfLentLoan(loan({ status: 'LIQUIDATED' }), now).metrics).toBeNull();
+  });
+
+  /* A defaulted loan is past maturity, so its accrual is frozen and correct.
+     That one is worth showing. */
+  it('keeps the figures on a defaulted loan, where accrual has stopped', () => {
+    expect(positionOfLentLoan(loan({ status: 'DEFAULTED' }), now).metrics).not.toBeNull();
+  });
+
+  it('survives a term that makes no sense rather than dividing by zero', () => {
+    const broken = loan({ maturesAt: loan().startedAt });
+    expect(positionOfBorrowedLoan(broken, now).metrics?.term.elapsedBasisPoints).toBe(0);
+    expect(positionOfBorrowedLoan(broken, now).metrics?.interestToCome).toBe('0.00');
+  });
+});
+
 describe('a loan the reader is owed', () => {
   it('shows what it has earned so far', () => {
     const position = positionOfLentLoan(loan(), now);
     expect(position.stage).toBe('Earning');
-    expect(position.figure).toEqual({ label: 'Accrued', value: 'AUD 59.17' });
+    expect(position.figure).toEqual({ label: 'Earned so far', value: 'AUD 59.17' });
     expect(position.needsAttention).toBe(false);
   });
 

@@ -608,7 +608,7 @@ async function main(): Promise<void> {
   const { NestFactory } = await import('@nestjs/core');
   const cookieParser = (await import('cookie-parser')).default;
   const { AppModule } = await import('../src/app.module');
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule.forRuntime());
   app.use(cookieParser());
   app.setGlobalPrefix('api/v1');
   await app.listen(0);

@@ -7,7 +7,7 @@ import { MarketExpirySweep } from './modules/marketplace/application/market-expi
 import { loadConfiguration } from './config/configuration';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule.forRuntime());
   app.use(cookieParser());
   app.setGlobalPrefix('api/v1');
   // The drain runs in the serving process only. Tests call drainOnce

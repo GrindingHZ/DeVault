@@ -35,10 +35,20 @@ export interface ProviderOverride {
   readonly useValue: unknown;
 }
 
+export interface TestApplicationOptions {
+  /* Variables set before the module compiles and restored on close, for
+     suites that boot on a chain driver. */
+  readonly environment?: Readonly<Record<string, string>>;
+  /* Runs after the migrations and before the module compiles, for a suite
+     that has to publish a package and record it before the adapters boot. */
+  readonly prepare?: (databaseUrl: string) => Promise<void>;
+}
+
 /* Some suites need to watch a port rather than the real adapter, so the
    harness takes overrides instead of every suite building its own module. */
 export async function createTestApplication(
   overrides: readonly ProviderOverride[] = [],
+  options: TestApplicationOptions = {},
 ): Promise<TestApplication> {
   const container: StartedPostgreSqlContainer = await new PostgreSqlContainer('postgres:16')
     .withDatabase('depawn_test')
@@ -49,12 +59,20 @@ export async function createTestApplication(
   const databaseUrl = container.getConnectionUri();
   applyMigrations(databaseUrl);
   process.env.DATABASE_URL = databaseUrl;
+  const previousEnvironment = new Map<string, string | undefined>();
+  for (const [variable, value] of Object.entries(options.environment ?? {})) {
+    previousEnvironment.set(variable, process.env[variable]);
+    process.env[variable] = value;
+  }
+  if (options.prepare !== undefined) {
+    await options.prepare(databaseUrl);
+  }
 
   // 2026-01-01T00:00:00Z. A constant start keeps time-dependent tests
   // reproducible across runs.
   const clock = new FixedClockAdapter(Instant.fromEpochMilliseconds(1_767_225_600_000n));
 
-  let builder = Test.createTestingModule({ imports: [AppModule] })
+  let builder = Test.createTestingModule({ imports: [AppModule.forRuntime()] })
     .overrideProvider(CLOCK_PORT)
     .useValue(clock);
   for (const override of overrides) {
@@ -93,6 +111,13 @@ export async function createTestApplication(
     async close(): Promise<void> {
       await app.close();
       await container.stop();
+      for (const [variable, value] of previousEnvironment) {
+        if (value === undefined) {
+          delete process.env[variable];
+        } else {
+          process.env[variable] = value;
+        }
+      }
     },
   };
 }

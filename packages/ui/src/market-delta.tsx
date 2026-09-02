@@ -22,10 +22,6 @@ export interface MarketDeltaProps {
      still there, it is just spoken rather than printed: a row of figures has
      no room for a sentence under each one. */
   readonly compact?: boolean;
-  /* Only consulted for a lender reading a falling rate, which is the one
-     case where the words claim something about the reader rather than about
-     the market. Defaults to saying nothing about them. */
-  readonly viewerStanding?: BookStanding;
 }
 
 export function directionOf(current: number, previous: number | null): MarketDirection {
@@ -35,7 +31,13 @@ export function directionOf(current: number, previous: number | null): MarketDir
   return current < previous ? 'down' : 'up';
 }
 
-/* The one rule this component exists for. A rate falling is the borrower
+/* Movement over time, only. It was once handed the best rate in a book
+   against the second best, which is a spread rather than a movement: the two
+   are sorted, so the "direction" was down on every listing with two offers
+   and the arrow told a lender the same thing forever. Whatever describes a
+   book belongs in `BestRate`.
+
+   The one rule this component exists for. A rate falling is the borrower
    paying less and the lender being undercut: identical arithmetic, opposite
    news. Every trading screen paints falling red for everybody, which would
    tell half of this product's users the reverse of what happened to their own
@@ -57,22 +59,10 @@ const toneClasses: Record<MarketTone, string> = {
   flat: 'text-market-flat',
 };
 
-/* Where the reader stands in the book this delta describes, when it
-   describes a book at all.
-
-   The workspace feeds this the best standing rate against the one behind it,
-   which is a spread across the book rather than a movement over time. Read as
-   a movement, a falling number meant the lender had been undercut, and the
-   header said so to the lender holding the best offer while the table
-   underneath ranked them first and marked it "you". The reading has to know
-   whose offer leads before it can say anything about the reader. */
+/* Where a reader sits in an offer book. Not used by this component, which
+   only ever describes a movement: it lives here because `BestRate` next door
+   describes the same book and the two share the vocabulary. */
 export type BookStanding = 'leads' | 'behind' | 'absent';
-
-const lenderIsCheaper: Record<BookStanding, string> = {
-  leads: 'yours is the cheapest offer',
-  behind: 'you have been undercut',
-  absent: 'the cheapest offer leads the next',
-};
 
 /* Colour is never the only signal, so the movement is also stated in words.
    The words differ by role for the same reason the colour does. */
@@ -95,14 +85,10 @@ export function MarketDelta({
   role,
   label,
   compact = false,
-  viewerStanding = 'absent',
 }: MarketDeltaProps): ReactElement {
   const direction = directionOf(currentBasisPoints, previousBasisPoints);
   const tone = toneFor(direction, role);
-  const reading =
-    role === 'lender' && direction === 'down'
-      ? lenderIsCheaper[viewerStanding]
-      : readings[role][direction];
+  const reading = readings[role][direction];
 
   if (compact) {
     return (

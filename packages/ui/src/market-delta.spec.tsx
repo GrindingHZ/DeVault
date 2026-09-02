@@ -80,40 +80,8 @@ describe('MarketDelta', () => {
   /* Rule 3 in docs/DESIGN-BRIEF.md: colour is never the only signal. A reader
      who cannot separate the two greens still gets told what happened. */
   it('says what happened in words for a screen reader', () => {
-    render(
-      <MarketDelta
-        currentBasisPoints={1120}
-        previousBasisPoints={1200}
-        role="lender"
-        viewerStanding="behind"
-      />,
-    );
-    expect(screen.getByText(/undercut/i)).toBeTruthy();
-  });
-
-  /* The workspace feeds this the best standing rate against the one behind
-     it, which falls whenever there are two offers. Read as a movement that
-     told the lender holding the best offer they had been undercut, while the
-     table underneath ranked them first and marked it "you". */
-  it('does not tell the lender holding the best offer that they were undercut', () => {
-    render(
-      <MarketDelta
-        currentBasisPoints={1120}
-        previousBasisPoints={1200}
-        role="lender"
-        viewerStanding="leads"
-      />,
-    );
-    expect(screen.queryByText(/undercut/i)).toBeNull();
-    expect(screen.getByText(/cheapest offer/i)).toBeTruthy();
-  });
-
-  /* A reader with no offer in the book is told about the book, not about
-     themselves. */
-  it('says nothing about a reader who has not offered', () => {
     render(<MarketDelta currentBasisPoints={1120} previousBasisPoints={1200} role="lender" />);
-    expect(screen.queryByText(/undercut/i)).toBeNull();
-    expect(screen.queryByText(/^you /i)).toBeNull();
+    expect(screen.getByText(/undercut/i)).toBeTruthy();
   });
 
   it('renders flat with no arrow when there is nothing to compare against', () => {
@@ -140,13 +108,7 @@ describe('MarketDelta', () => {
 describe('MarketDelta, compact', () => {
   it('prints one line and speaks the rest', () => {
     const { container } = render(
-      <MarketDelta
-        compact
-        currentBasisPoints={1120}
-        previousBasisPoints={1200}
-        role="lender"
-        viewerStanding="behind"
-      />,
+      <MarketDelta compact currentBasisPoints={1120} previousBasisPoints={1200} role="lender" />,
     );
     expect(container.querySelector('[data-tone="adverse"]')).toBeTruthy();
     expect(screen.getByText('11.20%')).toBeTruthy();

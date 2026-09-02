@@ -12,7 +12,7 @@ import {
   Explain,
   ItemPhotograph,
   LoanToValue,
-  MarketDelta,
+  BestRate,
   Money,
   OfferBook,
   Rate,
@@ -168,12 +168,11 @@ function DetailBody({
           </p>
           {bestRate === null ? null : (
             <div className="mt-3">
-              <MarketDelta
-                currentBasisPoints={bestRate}
-                previousBasisPoints={secondRate}
+              <BestRate
+                basisPoints={bestRate}
                 role={role}
-                label="best rate offered"
                 viewerStanding={viewerStanding}
+                hasCompetition={secondRate !== null}
               />
             </div>
           )}

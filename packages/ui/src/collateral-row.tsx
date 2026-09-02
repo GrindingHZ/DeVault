@@ -62,7 +62,7 @@ function AskingRate({ basisPoints }: { readonly basisPoints: number | null }): R
     );
   }
   return (
-    <span className="shrink-0 whitespace-nowrap font-mono text-xs font-semibold tabular-nums text-ink-primary">
+    <span className="shrink-0 whitespace-nowrap font-figure text-xs font-semibold tabular-nums text-ink-primary">
       {formatRate(basisPoints).replace(' p.a.', '')}
     </span>
   );

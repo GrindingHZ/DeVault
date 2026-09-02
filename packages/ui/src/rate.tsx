@@ -14,7 +14,7 @@ export function formatRate(basisPoints: number): string {
 
 export function Rate({ basisPoints }: RateProps): ReactElement {
   return (
-    <span className="font-mono font-semibold tabular-nums text-ink-primary">
+    <span className="font-figure font-semibold tabular-nums text-ink-primary">
       {formatRate(basisPoints)}
     </span>
   );

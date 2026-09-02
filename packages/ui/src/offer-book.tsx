@@ -161,7 +161,7 @@ export function OfferBook({
                         row.isMine ? 'border-l-status-active' : 'border-l-transparent'
                       }`}
                     >
-                      <span className="w-5 shrink-0 text-right font-mono text-ink-secondary">
+                      <span className="w-5 shrink-0 text-right font-figure text-ink-secondary">
                         {row.rank}
                       </span>
                       {row.isBest ? (
@@ -170,7 +170,7 @@ export function OfferBook({
                         </span>
                       ) : null}
                       <span
-                        className={`font-mono ${
+                        className={`font-figure ${
                           row.isBest ? 'font-semibold text-accent' : 'text-ink-primary'
                         }`}
                       >
@@ -181,13 +181,13 @@ export function OfferBook({
                       ) : null}
                     </button>
                   </td>
-                  <td className="px-2 py-1 text-right font-mono text-ink-primary">
+                  <td className="px-2 py-1 text-right font-figure text-ink-primary">
                     {formatMoney({ minorUnits: row.repayable.toString(), currency })}
                   </td>
                   {/* The premium, with a bar behind it. A number alone does
                       not show that half the book is bunched and the tail is
                       not; a length does it without being read. */}
-                  <td className="relative px-2 py-1 text-right font-mono">
+                  <td className="relative px-2 py-1 text-right font-figure">
                     <span
                       aria-hidden="true"
                       style={{ '--premium': `${String(row.premiumShare)}%` } as CSSProperties}
@@ -215,7 +215,7 @@ export function OfferBook({
       <p className="flex flex-wrap items-baseline justify-between gap-x-3 border-t border-edge px-2 py-1 font-body text-xs text-ink-secondary">
         <span>{rows.length === 1 ? '1 offer' : `${String(rows.length)} offers`}</span>
         {best === undefined || worst === undefined || rows.length === 1 ? null : (
-          <span className="font-mono tabular-nums">
+          <span className="font-figure tabular-nums">
             {formatRate(best.rateBasisPoints).replace(' p.a.', '')} to{' '}
             {formatRate(worst.rateBasisPoints).replace(' p.a.', '')}
           </span>

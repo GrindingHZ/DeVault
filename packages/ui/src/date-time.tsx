@@ -71,7 +71,7 @@ export function DateTime({
   /* The machine readable value survives in the attribute, so anything that
      wants the instant rather than the rendering can still have it. */
   return (
-    <time dateTime={iso} className="font-mono tabular-nums">
+    <time dateTime={iso} className="font-figure tabular-nums">
       {formatted}
     </time>
   );

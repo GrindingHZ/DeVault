@@ -84,7 +84,7 @@ export function MarketDelta({
       <span
         data-tone={tone}
         data-direction={direction}
-        className={`inline-flex items-baseline gap-1 font-mono tabular-nums ${toneClasses[tone]}`}
+        className={`inline-flex items-baseline gap-1 font-figure tabular-nums ${toneClasses[tone]}`}
       >
         <span aria-hidden="true">{arrows[direction]}</span>
         <span>{formatPercentage(currentBasisPoints)}</span>
@@ -101,7 +101,7 @@ export function MarketDelta({
       <span
         data-tone={tone}
         data-direction={direction}
-        className={`inline-flex items-baseline gap-2 font-mono tabular-nums ${toneClasses[tone]}`}
+        className={`inline-flex items-baseline gap-2 font-figure tabular-nums ${toneClasses[tone]}`}
       >
         <span aria-hidden="true">{arrows[direction]}</span>
         <span>{formatPercentage(currentBasisPoints)}</span>

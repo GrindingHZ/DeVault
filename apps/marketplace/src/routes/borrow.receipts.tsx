@@ -267,7 +267,7 @@ function Total({
     <div>
       <dt className="font-body text-xs text-ink-secondary">{label}</dt>
       <dd
-        className={`mt-1 font-mono text-lg tabular-nums ${
+        className={`mt-1 font-figure text-lg tabular-nums ${
           tone === 'warning' ? 'text-status-warning' : 'text-ink-primary'
         }`}
       >

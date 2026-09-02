@@ -65,7 +65,7 @@ export function HoldingTile({
         {/* Status is a word, never only a colour (docs/DESIGN-BRIEF.md). */}
         <span
           data-testid={`redemption-${receipt.id}`}
-          className={`absolute inset-x-0 bottom-0 border-t bg-surface-sunken px-3 py-1 font-mono text-xs uppercase tracking-wide ${bandByTone[reading.tone]}`}
+          className={`absolute inset-x-0 bottom-0 border-t bg-surface-sunken px-3 py-1 font-body text-xs font-medium uppercase tracking-wide ${bandByTone[reading.tone]}`}
         >
           {reading.label}
         </span>
@@ -86,7 +86,7 @@ export function HoldingTile({
           {nameForCategory(receipt.itemCategory)}
         </span>
         <span
-          className={`font-mono text-sm tabular-nums text-ink-primary ${isSpent ? 'line-through' : ''}`}
+          className={`font-figure text-sm tabular-nums text-ink-primary ${isSpent ? 'line-through' : ''}`}
         >
           <Money value={receipt.appraisedValue} />
         </span>

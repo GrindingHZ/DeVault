@@ -24,6 +24,16 @@ export const loanResponseSchema = z.object({
   graceEndsAt: z.string(),
   lenderNoteHolderAccountId: z.string(),
   status: loanStatusSchema,
+  /* What this loan has earned so far, computed against the server's clock.
+
+     It cannot be worked out in the browser: a demo process runs its clock
+     weeks ahead (docs/10-flows.md flow 15), so the same arithmetic there
+     would answer a plausible figure that is not the one anybody is charged.
+
+     Named for what it is. A list figure is not a quote: repayment still
+     fetches one from the payoff endpoint, which carries a validUntil and
+     refuses a stale one. */
+  accruedInterest: moneySchema,
   originationSettlementRef: settlementRefSchema,
 });
 

@@ -236,7 +236,7 @@ function Line({
   return (
     <div className="flex items-baseline justify-between gap-3">
       <dt className="font-body text-xs text-ink-secondary">{label}</dt>
-      <dd className="font-mono text-sm tabular-nums text-ink-primary">{children}</dd>
+      <dd className="font-figure text-sm tabular-nums text-ink-primary">{children}</dd>
     </div>
   );
 }

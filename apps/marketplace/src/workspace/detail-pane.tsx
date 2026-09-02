@@ -249,7 +249,7 @@ function Figure({
       </dt>
       <dd
         data-testid={testId}
-        className="mt-0.5 font-mono text-base font-semibold tabular-nums text-ink-primary"
+        className="mt-0.5 font-figure text-base font-semibold tabular-nums text-ink-primary"
       >
         {children}
       </dd>
@@ -326,7 +326,7 @@ function OfferBookPanel({
         <div className="border-t border-edge p-3">
           {/* Two figures, never one. A total cost sitting beside a principal
               reads as the total to repay, which it is not. */}
-          <dl className="flex flex-col gap-1 font-mono text-xs">
+          <dl className="flex flex-col gap-1 font-figure text-xs">
             <div className="flex justify-between">
               <dt className="text-ink-secondary">Interest</dt>
               <dd className="text-ink-primary">

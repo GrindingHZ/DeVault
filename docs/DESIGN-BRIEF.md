@@ -28,9 +28,10 @@ fixed terminal in a lit room; a dark theme optimises for the wrong environment.
 | `--color-status-success` | `#15803d` | Completed and repaid states |
 | `--color-status-warning` | `#b45309` | Time pressure and at-risk states |
 | `--color-status-danger` | `#b91c1c` | Defaults, failures, destructive actions |
-| `--font-heading` | IBM Plex Sans | Headings |
-| `--font-body` | IBM Plex Sans | Body and UI copy |
-| `--font-mono` | IBM Plex Mono | Amounts, rates, ids, settlement references |
+| `--font-heading` | Source Sans 3 | Headings |
+| `--font-body` | Source Sans 3 | Body and UI copy |
+| `--font-figure` | Source Sans 3 | Amounts, rates, shares, counts, dates |
+| `--font-mono` | Source Code Pro | Identifiers only: references, hashes, seal numbers |
 | `--space-1` to `--space-8` | 0.25 to 2 rem | The only spacing scale |
 | `--radius-sm/md/lg` | 0.25/0.5/0.75 rem | Badges / inputs and buttons / cards |
 | `--density-row-height` | 2.5rem (3rem terminal) | Row and control heights |
@@ -46,6 +47,31 @@ fixed terminal in a lit room; a dark theme optimises for the wrong environment.
 | danger | none | none | DEFAULTED, LIQUIDATED | LIQUIDATED | none | drift |
 
 Every badge carries its state name as text; colour is never the only signal.
+
+## Typefaces, amended P8g
+
+Two families, four roles. The amendment permitting the change, the rejected candidates and the
+conditions it was made under are in `docs/13-design-system.md`.
+
+| Role | Token | Face | What it is for |
+|---|---|---|---|
+| Heading | `--font-heading` | Source Sans 3 | Page, section and dialog titles |
+| Body | `--font-body` | Source Sans 3 | UI copy, labels, prose, status words |
+| Figure | `--font-figure` | Source Sans 3 | Money, rates, loan to value, counts, dates, times |
+| Identifier | `--font-mono` | Source Code Pro | Receipt references, intake hashes, settlement references, seal numbers |
+
+**The rule that decides between figure and identifier.** Ask whether the reader compares the value
+to the one above it, or reads it one character at a time to quote it. A balance is compared, so it
+is a figure. A receipt reference is quoted, so it is an identifier. A monospace helps the second and
+hurts the first.
+
+**A label is neither.** A status word, a column header and a category name are body text. Setting
+them in a monospace was a habit, not a decision, and it is what made whole screens read as a
+terminal.
+
+**Alignment is not the caller's problem.** The `font-figure` utility carries
+`font-feature-settings: "tnum"`, so a column of figures lines up without anyone remembering to ask.
+Source Sans 3 also sets figures on one width by default, so the feature is a backstop.
 
 ## Typography scale
 

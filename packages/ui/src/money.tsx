@@ -96,7 +96,7 @@ function decimalSeparatorFor(locale: string): string {
 
 export function Money({ value, locale }: MoneyProps): ReactElement {
   return (
-    <span className="font-mono font-semibold tabular-nums text-ink-primary">
+    <span className="font-figure font-semibold tabular-nums text-ink-primary">
       {formatMoney(value, locale)}
     </span>
   );

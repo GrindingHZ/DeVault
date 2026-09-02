@@ -52,7 +52,7 @@ function Figure({
         {label}
         {explain}
       </span>
-      <span className="font-mono text-sm">{children}</span>
+      <span className="font-figure text-sm">{children}</span>
     </span>
   );
 }

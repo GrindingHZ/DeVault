@@ -22,9 +22,30 @@
   --color-status-warning: #b45309;
   --color-status-danger: #b91c1c;
 
-  --font-heading: 'IBM Plex Sans', system-ui, sans-serif;
-  --font-body: 'IBM Plex Sans', system-ui, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  /* Amended in P8g; see docs/13-design-system.md for the argument and the
+     conditions. Source Sans 3 is a humanist workhorse with open apertures and
+     round bowls, which is what makes a screen of figures read as calm rather
+     than as a terminal readout. */
+  --font-heading: 'Source Sans 3', system-ui, sans-serif;
+  --font-body: 'Source Sans 3', system-ui, sans-serif;
+
+  /* A figure is money, a rate, a share, a count, a date. It has to align down
+     a column, which is a job for tabular numerals rather than for a
+     monospace: Source Sans 3 sets figures on one width by default and honours
+     `tnum` on top, so a column lines up without the typewriter texture.
+
+     It holds the same value as the body face today and is still its own
+     token, because "the face the interface is set in" and "the face a
+     borrower reads their balance in" are different decisions and one should
+     be able to move without dragging the other. */
+  --font-figure: 'Source Sans 3', system-ui, sans-serif;
+
+  /* An identifier is read one character at a time: a receipt reference, an
+     intake hash, a settlement reference, a seal number. That is the job a
+     monospace is actually for, and it is the only job left to this token.
+     Source Code Pro is drawn against the same skeleton as Source Sans 3, so
+     a reference sitting beside a figure looks related rather than borrowed. */
+  --font-mono: 'Source Code Pro', ui-monospace, monospace;
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;

@@ -2,13 +2,15 @@ import type { LiquidationResponse, LoanResponse, PayoffQuoteResponse } from '@de
 import type { Liquidation } from '../../../domain/lending/liquidation';
 import type { LoanReadModel } from '../../../domain/ports/loan-queries.port';
 import type { PayoffQuote } from '../application/payoff-quote.query';
+import { calculateAccruedInterest } from '../../../domain/lending/interest-calculator';
+import { Instant } from '../../../domain/shared/instant';
 import { toMoneyDto, toSettlementRefDto } from '../../shared/http/money.mapper';
 
 export function isoOf(instant: { readonly epochMilliseconds: bigint }): string {
   return new Date(Number(instant.epochMilliseconds)).toISOString();
 }
 
-export function toLoanResponse(readModel: LoanReadModel): LoanResponse {
+export function toLoanResponse(readModel: LoanReadModel, now: Instant): LoanResponse {
   const { loan } = readModel;
   return {
     id: loan.id,
@@ -22,6 +24,18 @@ export function toLoanResponse(readModel: LoanReadModel): LoanResponse {
     graceEndsAt: isoOf(loan.graceEndsAt),
     lenderNoteHolderAccountId: readModel.lenderNoteHolderAccountId,
     status: loan.status,
+    /* The same function the payoff quote calls, not a second copy of the
+       arithmetic. If these two ever answered differently the list would be
+       lying, and quietly. */
+    accruedInterest: toMoneyDto(
+      calculateAccruedInterest(
+        loan.principal,
+        loan.annualPercentageRateBasisPoints,
+        loan.startedAt,
+        loan.maturesAt,
+        now,
+      ),
+    ),
     originationSettlementRef: toSettlementRefDto(loan.originationSettlementRef),
   };
 }

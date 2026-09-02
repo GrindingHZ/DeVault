@@ -128,7 +128,7 @@ function Figure({
         {label}
         {explain}
       </dt>
-      <dd className="mt-0.5 font-mono text-sm tabular-nums text-ink-primary">{children}</dd>
+      <dd className="mt-0.5 font-figure text-sm tabular-nums text-ink-primary">{children}</dd>
     </div>
   );
 }

@@ -87,7 +87,7 @@ function BalanceCards(): ReactElement {
             <dt className="font-body text-sm text-ink-secondary">Available</dt>
             <dd
               data-testid="available-balance"
-              className="font-mono text-lg font-semibold tabular-nums"
+              className="font-figure text-lg font-semibold tabular-nums"
             >
               <Money value={balanceQuery.data.available} />
             </dd>
@@ -100,7 +100,7 @@ function BalanceCards(): ReactElement {
               Held for offers
               <Explain termId="heldFunds" audience="lender" />
             </dt>
-            <dd data-testid="held-balance" className="font-mono text-lg tabular-nums">
+            <dd data-testid="held-balance" className="font-figure text-lg tabular-nums">
               <Money value={balanceQuery.data.held} />
             </dd>
             <dd className="mt-0.5 font-body text-xs text-ink-secondary">

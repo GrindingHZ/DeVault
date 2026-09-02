@@ -79,10 +79,10 @@ export function Tape({
             selectedListingId === item.listingId ? 'bg-surface-raised' : ''
           }`}
         >
-          <span className="font-mono tabular-nums text-ink-secondary">{timeOf(item.at)}</span>
+          <span className="font-figure tabular-nums text-ink-secondary">{timeOf(item.at)}</span>
           <span className="max-w-48 truncate text-ink-primary">{item.itemDescription}</span>
           <span className="text-ink-secondary">{verbs[item.kind]}</span>
-          <span className="font-mono font-semibold tabular-nums text-ink-primary">
+          <span className="font-figure font-semibold tabular-nums text-ink-primary">
             {formatRate(item.rateBasisPoints).replace(' p.a.', '')}
           </span>
           <span className="text-ink-secondary">{formatMoney(item.amount)}</span>

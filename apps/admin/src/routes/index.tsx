@@ -109,7 +109,7 @@ function Figure({
       <p className="font-body text-xs text-ink-secondary">{label}</p>
       <p
         data-testid={testId}
-        className="mt-0.5 font-mono text-lg font-semibold tabular-nums text-ink-primary"
+        className="mt-0.5 font-figure text-lg font-semibold tabular-nums text-ink-primary"
       >
         {children}
       </p>
@@ -184,7 +184,7 @@ function ExposurePanel(): ReactElement {
           rows.map((row) => (
             <div key={row.vaultId} className="flex items-baseline justify-between gap-3">
               <span className="truncate font-mono text-sm text-ink-primary">{row.vaultId}</span>
-              <span className="shrink-0 font-mono text-sm text-ink-secondary">
+              <span className="shrink-0 font-figure text-sm text-ink-secondary">
                 <Percentage
                   basisPoints={shareOfLimit(row.exposure.minorUnits, row.insuredLimit.minorUnits)}
                 />

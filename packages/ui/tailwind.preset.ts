@@ -55,6 +55,11 @@ const preset: Omit<Config, 'content'> = {
       fontFamily: {
         heading: 'var(--font-heading)',
         body: 'var(--font-body)',
+        /* Tabular numerals ride along with the family, so a column of figures
+           cannot lose its alignment because one caller forgot a class. Same
+           reasoning as the reduced motion collapse in P8c: the guarantee
+           belongs to the token, not to whoever reaches for it. */
+        figure: ['var(--font-figure)', { fontFeatureSettings: '"tnum"' }],
         mono: 'var(--font-mono)',
       },
       borderRadius: {

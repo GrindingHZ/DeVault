@@ -65,7 +65,7 @@ export function LoansTable({
               key: 'principal',
               header: 'Principal',
               render: (loan: LoanResponse) => (
-                <span className="font-mono font-semibold tabular-nums">
+                <span className="font-figure font-semibold tabular-nums">
                   <Money value={loan.principal} />
                 </span>
               ),
@@ -81,7 +81,7 @@ export function LoansTable({
               key: 'started',
               header: 'Started',
               render: (loan: LoanResponse) => (
-                <span className="font-mono tabular-nums">{dayOf(loan.startedAt)}</span>
+                <span className="font-figure tabular-nums">{dayOf(loan.startedAt)}</span>
               ),
             },
             {
@@ -94,7 +94,7 @@ export function LoansTable({
                 </span>
               ),
               render: (loan: LoanResponse) => (
-                <span className="font-mono tabular-nums">{dayOf(loan.maturesAt)}</span>
+                <span className="font-figure tabular-nums">{dayOf(loan.maturesAt)}</span>
               ),
             },
             {
@@ -107,7 +107,7 @@ export function LoansTable({
                 </span>
               ),
               render: (loan: LoanResponse) => (
-                <span className="font-mono tabular-nums">{dayOf(loan.graceEndsAt)}</span>
+                <span className="font-figure tabular-nums">{dayOf(loan.graceEndsAt)}</span>
               ),
             },
             {

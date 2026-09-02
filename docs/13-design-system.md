@@ -281,6 +281,63 @@ between two table rows, which should recede, and the outline of a control a pers
 which WCAG 1.4.11 puts at 3:1. Those are different jobs. The dark scope is only where it became
 impossible to ignore.
 
+## Amendment, P8g: the typography split
+
+The families changed. This is the second amendment that is not additive, and the honest framing is
+that it is a P0.6 sized change to type rather than a P8c sized addition, taken deliberately and
+recorded here because it moves a value the freeze protects.
+
+**What changed.** IBM Plex Sans and IBM Plex Mono are out. Source Sans 3 carries headings, body and
+figures; Source Code Pro carries identifiers. A fourth token, `--font-figure`, joins the three that
+existed.
+
+**Why.** One token was doing three jobs, and it was the wrong token for two of them.
+
+`--font-mono` was set on every figure in the product: money, rates, loan to value, countdowns,
+timestamps, counts. A monospace earns its place when a reader compares characters in a string, and
+none of those are that. What they need is to line up down a column, which is what tabular numerals
+are for, and tabular numerals do not require a typewriter. The cost of using one anyway was that
+every screen with a number on it read as a terminal readout, and this product asks people to leave
+money with a pawnbroker.
+
+The same token was also on the things that genuinely are read character by character: receipt
+references, intake hashes, settlement references, seal numbers. Those keep it. This is the same
+shape as the `--color-border` split in P0.6, where one token was serving a hairline and a control
+boundary at two different contrast requirements. One name, two jobs, and the fix is two names.
+
+**Why these faces.** Source Sans 3 is a humanist workhorse with open apertures and round bowls,
+which reads calm at the sizes this product uses and does not carry the institutional edge Plex has.
+Source Code Pro is drawn against the same skeleton by the same hand, so a reference sitting next to
+a figure looks related rather than borrowed. Both are on Google Fonts, which is the only font host
+the apps load from.
+
+Rejected, and why: Public Sans sets figures much wider and more geometric, which costs column width
+in an order book and reads rigid; Figtree is soft but its numerals are brand shaped, and its `1` has
+no foot to hold a column; Inter and Space Grotesk are the defaults every generated interface reaches
+for. Keeping IBM Plex Sans for figures was the cheapest option and was rejected only after seeing
+it beside the others: its numerals are the most closed of the four.
+
+**How alignment is guaranteed.** `font-figure` is a Tailwind family that carries
+`font-feature-settings: "tnum"` with it, so a column cannot lose its alignment because one caller
+forgot a class. Same reasoning as the reduced motion collapse in P8c: the guarantee belongs to the
+token rather than to whoever reaches for it. Source Sans 3 also sets figures on one width by
+default, so the feature is a backstop rather than the only thing holding a table together. That was
+measured in a browser against the served webfont, not assumed from the specimen.
+
+The conditions this amendment was made under, which any future one should meet too:
+
+- **Nothing but the families moved.** The scale, the weights from P8f, the spacing, the radii and
+  every colour are untouched. No contrast ratio changes, because type does not carry colour.
+- **Roles, not descriptions.** `--font-figure` names the job. It holds the same value as
+  `--font-body` today and stays a separate token, because "the face the interface is set in" and
+  "the face a borrower reads their balance in" are two decisions and one should be able to move
+  without dragging the other.
+- **Every call site was classified, not swept.** A figure became `font-figure`, an identifier kept
+  `font-mono`, and a label that was monospace for no reason became body text. Anything still on
+  `font-mono` is a string somebody reads one character at a time.
+- **One change, not a licence.** The families are frozen again from here. Wanting a different one
+  is another amendment that has to argue for itself.
+
 ## Using the skill inside UI slices
 
 Allowed:

@@ -18,6 +18,8 @@ import type {
   RepaymentResponse,
 } from '@depawn/contracts';
 import type { Account } from '../../../domain/accounts/account';
+import { CLOCK_PORT } from '../../../domain/ports/clock.port';
+import type { ClockPort } from '../../../domain/ports/clock.port';
 import { LOAN_QUERIES } from '../../../domain/ports/loan-queries.port';
 import type { LoanQueries } from '../../../domain/ports/loan-queries.port';
 import { listingIdOf, loanIdOf, offerIdOf } from '../../../domain/shared/identifiers';
@@ -48,6 +50,7 @@ export class LendingController {
     private readonly markDefault: MarkDefaultUseCase,
     private readonly claimReceipt: ClaimReceiptUseCase,
     @Inject(LOAN_QUERIES) private readonly loanQueries: LoanQueries,
+    @Inject(CLOCK_PORT) private readonly clock: ClockPort,
   ) {}
 
   @Post('listings/:listingId/offers/:offerId/accept')
@@ -74,7 +77,8 @@ export class LendingController {
     @Query('role', new ZodValidationPipe(loanRoleSchema)) role: 'borrower' | 'lender',
   ): Promise<MyLoansResponse> {
     const loans = await this.loanQueries.listByParticipant(account.id, role);
-    return { items: loans.map(toLoanResponse) };
+    const now = this.clock.now();
+    return { items: loans.map((readModel) => toLoanResponse(readModel, now)) };
   }
 
   /* Loans are private to their parties; anyone else sees the same 404 as a
@@ -92,7 +96,7 @@ export class LendingController {
     ) {
       throw new NotFoundException();
     }
-    return toLoanResponse(readModel);
+    return toLoanResponse(readModel, this.clock.now());
   }
 
   @Post('loans/:loanId/default')
@@ -193,6 +197,6 @@ export class LendingController {
     if (readModel === null) {
       throw new Error(`Loan ${loanId} vanished after being written`);
     }
-    return toLoanResponse(readModel);
+    return toLoanResponse(readModel, this.clock.now());
   }
 }

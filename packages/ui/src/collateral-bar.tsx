@@ -48,7 +48,7 @@ export function CollateralBar({
     <figure className="m-0 flex flex-col gap-2">
       <figcaption className="flex items-baseline justify-between gap-4">
         <span className="font-body text-xs text-ink-secondary">Borrowed against the appraisal</span>
-        <span className="font-mono text-sm font-semibold tabular-nums text-ink-primary">
+        <span className="font-figure text-sm font-semibold tabular-nums text-ink-primary">
           {formatPercentage(loanToValueBasisPoints)}
         </span>
       </figcaption>
@@ -127,7 +127,7 @@ function Reading({
         {swatch}
       </span>
       <span className="font-body text-xs text-ink-secondary">{label}</span>
-      <span className="font-mono text-sm tabular-nums text-ink-primary">{children}</span>
+      <span className="font-figure text-sm tabular-nums text-ink-primary">{children}</span>
     </span>
   );
 }

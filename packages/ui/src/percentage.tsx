@@ -17,6 +17,8 @@ export interface PercentageProps {
 
 export function Percentage({ basisPoints }: PercentageProps): ReactElement {
   return (
-    <span className="font-mono tabular-nums text-ink-primary">{formatPercentage(basisPoints)}</span>
+    <span className="font-figure tabular-nums text-ink-primary">
+      {formatPercentage(basisPoints)}
+    </span>
   );
 }

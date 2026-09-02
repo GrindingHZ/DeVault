@@ -11,7 +11,7 @@ fixture file the TypeScript reads.
 - [x] test(move): pause and parameters answer to the admin capability
 - [x] feat(move): vault receipts issued and moved by the custodian
 - [x] test(move): every receipt transition and its rejections
-- [x] feat(move): custodial wallets, holds, and the payout that must be emptied
+- [x] feat(move): custodial wallets, holds, and the payout that must be emptied (landed inside the next commit after the hook refused a 73 character header)
 - [x] test(move): holds release exactly what they held and refund once
 - [x] feat(move): attest domain events beside the settlement that caused them
 - [x] feat(move): accrue interest with the borrower's rounding

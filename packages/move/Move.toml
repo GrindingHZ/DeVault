@@ -1,0 +1,8 @@
+[package]
+name = "depawn"
+edition = "2024"
+
+[dependencies]
+
+[addresses]
+depawn = "0x0"

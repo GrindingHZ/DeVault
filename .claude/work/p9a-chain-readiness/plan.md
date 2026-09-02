@@ -10,6 +10,6 @@ fixtures have one home, the package scaffold builds, and the api resolves the SD
 - [x] feat(ledger): refuse chain settlement until the adapter exists
 - [x] feat(custody): refuse chain custody until the adapter exists
 - [x] test(api): flipping a driver to chain fails at the port and nowhere else
-- [ ] test(domain): read interest and waterfall fixtures from a shared file
+- [x] test(domain): read interest and waterfall fixtures from a shared file
 - [ ] chore(move): scaffold the depawn package
 - [ ] chore(deps): add the sui sdk and resolve it the node way

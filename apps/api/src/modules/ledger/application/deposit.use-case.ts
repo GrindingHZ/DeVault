@@ -47,6 +47,7 @@ export class DepositUseCase {
           toAccountId: targetAccountId,
           amount: command.amount,
           reference: this.idGenerator.generate(),
+          reason: 'DEPOSIT',
         },
         context,
       );

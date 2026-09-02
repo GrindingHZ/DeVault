@@ -7,12 +7,12 @@
     "gracePeriodDays": 7,
     "statutoryHoldingDays": 30,
     "secondAppraisalThresholdMinor": 10000000,
-    "secondAppraisalThresholdDisplay": "AUD 100,000.00",
+    "secondAppraisalThresholdDisplay": "USD 100,000.00",
     "offerMinimumLiveMinutes": 10,
-    "currency": "AUD",
+    "currency": "USD",
     "vault": "VAULT-DEMO-1",
-    "vaultCity": "Sydney",
-    "policy": "POL-SYD-2026-0114"
+    "vaultCity": "New York",
+    "policy": "POL-NYC-2026-0114"
   },
   "loanToValueByCategory": {
     "Bullion": 60,
@@ -26,10 +26,10 @@
       "name": "Gold Coin",
       "category": "Bullion",
       "appraisedMinor": 520000,
-      "appraisedDisplay": "AUD 5,200.00",
+      "appraisedDisplay": "USD 5,200.00",
       "ltvPct": 60,
       "maxAdvanceMinor": 312000,
-      "maxAdvanceDisplay": "AUD 3,120.00",
+      "maxAdvanceDisplay": "USD 3,120.00",
       "serials": ["PM-2024-AU1-0084213"],
       "standIn": "bullion"
     },
@@ -37,10 +37,10 @@
       "name": "Signed Print",
       "category": "Art",
       "appraisedMinor": 380000,
-      "appraisedDisplay": "AUD 3,800.00",
+      "appraisedDisplay": "USD 3,800.00",
       "ltvPct": 30,
       "maxAdvanceMinor": 114000,
-      "maxAdvanceDisplay": "AUD 1,140.00",
+      "maxAdvanceDisplay": "USD 1,140.00",
       "serials": ["SBM-MAR-11-0442"],
       "standIn": "art"
     },
@@ -48,10 +48,10 @@
       "name": "Rolex Watch",
       "category": "Watch",
       "appraisedMinor": 1950000,
-      "appraisedDisplay": "AUD 19,500.00",
+      "appraisedDisplay": "USD 19,500.00",
       "ltvPct": 50,
       "maxAdvanceMinor": 975000,
-      "maxAdvanceDisplay": "AUD 9,750.00",
+      "maxAdvanceDisplay": "USD 9,750.00",
       "serials": ["CASE-9K42L118", "MOVEMENT-3235-77219"],
       "standIn": "watch"
     },
@@ -59,10 +59,10 @@
       "name": "Gold Bracelet",
       "category": "Jewellery",
       "appraisedMinor": 1140000,
-      "appraisedDisplay": "AUD 11,400.00",
+      "appraisedDisplay": "USD 11,400.00",
       "ltvPct": 45,
       "maxAdvanceMinor": 513000,
-      "maxAdvanceDisplay": "AUD 5,130.00",
+      "maxAdvanceDisplay": "USD 5,130.00",
       "serials": ["CRT-LV17-QK4482"],
       "standIn": "jewellery"
     },
@@ -70,10 +70,10 @@
       "name": "Pokemon Card",
       "category": "Collectible",
       "appraisedMinor": 890000,
-      "appraisedDisplay": "AUD 8,900.00",
+      "appraisedDisplay": "USD 8,900.00",
       "ltvPct": 35,
       "maxAdvanceMinor": 311500,
-      "maxAdvanceDisplay": "AUD 3,115.00",
+      "maxAdvanceDisplay": "USD 3,115.00",
       "serials": ["PSA-98412236"],
       "standIn": "collectible"
     },
@@ -81,10 +81,10 @@
       "name": "Gold Bar",
       "category": "Bullion",
       "appraisedMinor": 1680000,
-      "appraisedDisplay": "AUD 16,800.00",
+      "appraisedDisplay": "USD 16,800.00",
       "ltvPct": 60,
       "maxAdvanceMinor": 1008000,
-      "maxAdvanceDisplay": "AUD 10,080.00",
+      "maxAdvanceDisplay": "USD 10,080.00",
       "serials": ["PAMP-C401882"],
       "standIn": "bullion"
     },
@@ -92,10 +92,10 @@
       "name": "Omega Watch",
       "category": "Watch",
       "appraisedMinor": 1100000,
-      "appraisedDisplay": "AUD 11,000.00",
+      "appraisedDisplay": "USD 11,000.00",
       "ltvPct": 50,
       "maxAdvanceMinor": 550000,
-      "maxAdvanceDisplay": "AUD 5,500.00",
+      "maxAdvanceDisplay": "USD 5,500.00",
       "serials": ["CASE-88214477"],
       "standIn": "watch"
     },
@@ -103,10 +103,10 @@
       "name": "Diamond Ring",
       "category": "Jewellery",
       "appraisedMinor": 1260000,
-      "appraisedDisplay": "AUD 12,600.00",
+      "appraisedDisplay": "USD 12,600.00",
       "ltvPct": 45,
       "maxAdvanceMinor": 567000,
-      "maxAdvanceDisplay": "AUD 5,670.00",
+      "maxAdvanceDisplay": "USD 5,670.00",
       "serials": ["GIA-2185640021"],
       "standIn": "jewellery"
     },
@@ -114,10 +114,10 @@
       "name": "Chanel Bag",
       "category": "Collectible",
       "appraisedMinor": 950000,
-      "appraisedDisplay": "AUD 9,500.00",
+      "appraisedDisplay": "USD 9,500.00",
       "ltvPct": 35,
       "maxAdvanceMinor": 332500,
-      "maxAdvanceDisplay": "AUD 3,325.00",
+      "maxAdvanceDisplay": "USD 3,325.00",
       "serials": ["CHN-28114906"],
       "standIn": "collectible"
     },
@@ -125,10 +125,10 @@
       "name": "Silver Bar",
       "category": "Bullion",
       "appraisedMinor": 320000,
-      "appraisedDisplay": "AUD 3,200.00",
+      "appraisedDisplay": "USD 3,200.00",
       "ltvPct": 60,
       "maxAdvanceMinor": 192000,
-      "maxAdvanceDisplay": "AUD 1,920.00",
+      "maxAdvanceDisplay": "USD 1,920.00",
       "serials": ["PM-2023-AG10-4471"],
       "standIn": "bullion"
     },
@@ -136,10 +136,10 @@
       "name": "Pearl Necklace",
       "category": "Jewellery",
       "appraisedMinor": 680000,
-      "appraisedDisplay": "AUD 6,800.00",
+      "appraisedDisplay": "USD 6,800.00",
       "ltvPct": 45,
       "maxAdvanceMinor": 306000,
-      "maxAdvanceDisplay": "AUD 3,060.00",
+      "maxAdvanceDisplay": "USD 3,060.00",
       "serials": ["PRL-88-0192"],
       "standIn": "jewellery"
     },
@@ -147,10 +147,10 @@
       "name": "Oil Painting",
       "category": "Art",
       "appraisedMinor": 720000,
-      "appraisedDisplay": "AUD 7,200.00",
+      "appraisedDisplay": "USD 7,200.00",
       "ltvPct": 30,
       "maxAdvanceMinor": 216000,
-      "maxAdvanceDisplay": "AUD 2,160.00",
+      "maxAdvanceDisplay": "USD 2,160.00",
       "serials": [],
       "standIn": "art"
     }
@@ -159,55 +159,55 @@
     "_note": "Demonstration book against the Rolex listing. Lenders shown by reference only. Interest is principal x rate x 30 / 365, computed at render, never hard-coded.",
     "listing": "Rolex Watch",
     "principalMinor": 975000,
-    "principalDisplay": "AUD 9,750.00",
+    "principalDisplay": "USD 9,750.00",
     "termDays": 30,
     "offers": [
       {
         "ratePctPerYear": 15.4,
         "amountMinor": 975000,
-        "amountDisplay": "AUD 9,750.00",
+        "amountDisplay": "USD 9,750.00",
         "lender": "LNDR-4417",
         "arrivesAtStage": 0
       },
       {
         "ratePctPerYear": 16.8,
         "amountMinor": 975000,
-        "amountDisplay": "AUD 9,750.00",
+        "amountDisplay": "USD 9,750.00",
         "lender": "LNDR-2098",
         "arrivesAtStage": 0
       },
       {
         "ratePctPerYear": 18.2,
         "amountMinor": 600000,
-        "amountDisplay": "AUD 6,000.00",
+        "amountDisplay": "USD 6,000.00",
         "lender": "LNDR-8831",
         "arrivesAtStage": 0
       },
       {
         "ratePctPerYear": 21.0,
         "amountMinor": 975000,
-        "amountDisplay": "AUD 9,750.00",
+        "amountDisplay": "USD 9,750.00",
         "lender": "LNDR-1174",
         "arrivesAtStage": 0
       },
       {
         "ratePctPerYear": 24.5,
         "amountMinor": 425000,
-        "amountDisplay": "AUD 4,250.00",
+        "amountDisplay": "USD 4,250.00",
         "lender": "LNDR-6602",
         "arrivesAtStage": 0
       },
       {
         "ratePctPerYear": 14.9,
         "amountMinor": 975000,
-        "amountDisplay": "AUD 9,750.00",
+        "amountDisplay": "USD 9,750.00",
         "lender": "LNDR-3390",
         "arrivesAtStage": 1
       },
       {
         "ratePctPerYear": 14.2,
         "amountMinor": 975000,
-        "amountDisplay": "AUD 9,750.00",
+        "amountDisplay": "USD 9,750.00",
         "lender": "LNDR-7725",
         "arrivesAtStage": 2
       }
@@ -219,12 +219,12 @@
     },
     "settlementAtBestRate": {
       "ratePctPerYear": 14.2,
-      "advanceDisplay": "AUD 9,750.00",
+      "advanceDisplay": "USD 9,750.00",
       "originationFeeDisplay": "\u2212AUD 195.00",
-      "youReceiveDisplay": "AUD 9,555.00",
-      "interestDisplay": "AUD 113.79",
-      "totalRepayableDisplay": "AUD 9,863.79",
-      "costOfLoanDisplay": "AUD 308.79"
+      "youReceiveDisplay": "USD 9,555.00",
+      "interestDisplay": "USD 113.79",
+      "totalRepayableDisplay": "USD 9,863.79",
+      "costOfLoanDisplay": "USD 308.79"
     }
   },
   "heroClauses": [
@@ -242,13 +242,13 @@
     {
       "numeral": "( 002 )",
       "heading": "We appraise, photograph and seal it.",
-      "body": "Serial numbers are read off the object and recorded. Above AUD 100,000.00 a second independent appraisal is required before anything is listed.",
+      "body": "Serial numbers are read off the object and recorded. Above USD 100,000.00 a second independent appraisal is required before anything is listed.",
       "identifiers": ["CASE-9K42L118", "MOVEMENT-3235-77219"]
     },
     {
       "numeral": "( 003 )",
       "heading": "You get a receipt.",
-      "body": "One receipt, one sealed item, one insured position under policy POL-SYD-2026-0114. The receipt is the thing you borrow against. The object does not move again until you redeem it."
+      "body": "One receipt, one sealed item, one insured position under policy POL-NYC-2026-0114. The receipt is the thing you borrow against. The object does not move again until you redeem it."
     },
     {
       "numeral": "( 004 )",
@@ -269,11 +269,11 @@
         "label": "Receipt",
         "status": "Sealed",
         "statusColor": "#8b9aab",
-        "body": "Photographed, sealed, and insured under policy POL-SYD-2026-0114. The intake record is hashed at this point, so nothing about the object can be quietly edited later.",
+        "body": "Photographed, sealed, and insured under policy POL-NYC-2026-0114. The intake record is hashed at this point, so nothing about the object can be quietly edited later.",
         "fields": [
           {
             "label": "Appraised",
-            "value": "AUD 19,500.00"
+            "value": "USD 19,500.00"
           },
           {
             "label": "Lends up to",
@@ -286,7 +286,7 @@
           },
           {
             "label": "Policy",
-            "value": "POL-SYD-2026-0114",
+            "value": "POL-NYC-2026-0114",
             "mono": true
           }
         ]
@@ -299,7 +299,7 @@
         "fields": [
           {
             "label": "Requested",
-            "value": "AUD 9,750.00"
+            "value": "USD 9,750.00"
           },
           {
             "label": "Offers standing",
@@ -333,7 +333,7 @@
           },
           {
             "label": "You receive",
-            "value": "AUD 9,555.00"
+            "value": "USD 9,555.00"
           },
           {
             "label": "Term",
@@ -354,12 +354,12 @@
           },
           {
             "label": "Interest accrued",
-            "value": "AUD 0.00 \u2192 AUD 113.79",
+            "value": "USD 0.00 \u2192 USD 113.79",
             "animated": true
           },
           {
             "label": "Total repayable",
-            "value": "AUD 9,863.79"
+            "value": "USD 9,863.79"
           },
           {
             "label": "Grace after maturity",
@@ -375,11 +375,11 @@
         "fields": [
           {
             "label": "Repaid",
-            "value": "AUD 9,863.79"
+            "value": "USD 9,863.79"
           },
           {
             "label": "Cost of the loan",
-            "value": "AUD 308.79"
+            "value": "USD 308.79"
           },
           {
             "label": "Item",
@@ -426,17 +426,17 @@
       "heading": "Maturity",
       "headingColor": "#e6edf3",
       "dotColor": "#2ea043",
-      "body": "Repayment is due. Pay AUD 9,863.79 and the seal is broken the same day."
+      "body": "Repayment is due. Pay USD 9,863.79 and the seal is broken the same day."
     },
     {
-      "mark": "DAY 31\u201337",
+      "mark": "DAY 31-37",
       "heading": "Grace period",
       "headingColor": "#d29922",
       "dotColor": "#d29922",
       "body": "Seven days. The receipt reads at risk, not defaulted, and the item is not for sale during this window."
     },
     {
-      "mark": "DAY 37\u201367",
+      "mark": "DAY 37-67",
       "heading": "Statutory holding",
       "headingColor": "#f85149",
       "dotColor": "#f85149",
@@ -459,7 +459,7 @@
     {
       "heading": "Money is an integer",
       "body": "Minor units, never a float. Where a division does not come out evenly, it truncates in the borrower's favour, and that is a decision rather than an accident.",
-      "illustration": "986379 \u2192 AUD 9,863.79"
+      "illustration": "986379 \u2192 USD 9,863.79"
     },
     {
       "heading": "A double click cannot pay twice",
@@ -469,7 +469,7 @@
   ],
   "sectionCopy": {
     "heroEyebrow": "A pawn shop with a public order book",
-    "heroFactLine": "Vault VAULT-DEMO-1, Sydney. Rate ceiling 48% per year. Origination fee 2%.",
+    "heroFactLine": "Vault VAULT-DEMO-1, New York. Rate ceiling 48% per year. Origination fee 2%.",
     "heroCta": "See the order book",
     "howHeading": "Five steps, in order, and none of them are optional.",
     "howLede": "Thirty days is the term. The only thing that varies is the rate, and you do not set it, and neither do we.",
@@ -478,7 +478,7 @@
     "bookFootnote": "Demonstration book. Lenders are shown by reference only. An offer stays live for at least ten minutes and may not price above 48% per year.",
     "bookFigureNote": "Interest and total repayable are different numbers and people confuse them, so both are shown. Nothing compounds inside the term.",
     "lifeEyebrow": "The life of one receipt",
-    "vaultHeading": "Eight objects, sealed, in Sydney.",
+    "vaultHeading": "Eight objects, sealed, in New York.",
     "vaultLede": "Every one of them is a real position with a real appraisal behind it. Pick one to see what it borrows against.",
     "standInCaption": "DRAWN STAND-IN \u00b7 SEALED, NOT PHOTOGRAPHED HERE",
     "liquidityHeading": "We lend against 60 percent of a gold bar and 30 percent of a painting.",
@@ -488,14 +488,14 @@
     "custodyHeading": "This is not a pool, and it is not a protocol. Somebody is physically holding the watch.",
     "custodyLede": "Every loan on the book is secured by one identified object in one insured vault, and every dollar that moves is written twice in a ledger that will not let the two sides disagree.",
     "custodyCardHeading": "Custody is a physical fact",
-    "custodyCardBody": "The object is appraised, photographed, sealed and stored at VAULT-DEMO-1 in Sydney under policy POL-SYD-2026-0114. The intake record is hashed at the moment it is written, so it can be shown to a lender later and proved unedited.",
+    "custodyCardBody": "The object is appraised, photographed, sealed and stored at VAULT-DEMO-1 in New York under policy POL-NYC-2026-0114. The intake record is hashed at the moment it is written, so it can be shown to a lender later and proved unedited.",
     "holdCardHeading": "Your offer holds money, it does not spend it",
     "holdCardBody": "Placing an offer puts a hold on your balance. If you are outbid, the hold is yours to reclaim, and you release it yourself. Nothing moves your money without you asking for it, and every state change is recorded with who did it.",
     "chainEyebrow": "Built to move on chain",
     "chainParagraph": "Money, custody, identity and time each sit behind an interface. The ledger does not know whether a payment cleared through a bank or a chain, and the rules that decide what you owe do not change when that answer changes. Settling on Sui is a change of adapter. The loan book will not notice.",
     "footerClose": "Bring the object. Take the cheapest offer.",
     "footerMarkCaption": "The ledger, custody, and the name",
-    "footerFinePrint": "DeVault operates as a pawnbroker. Vault VAULT-DEMO-1, Sydney.",
+    "footerFinePrint": "DeVault operates as a pawnbroker. Vault VAULT-DEMO-1, New York.",
     "footerDemoNote": "Figures shown are for the seeded demonstration book.",
     "wordmark": "DEVAULT"
   },

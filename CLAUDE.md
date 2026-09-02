@@ -42,6 +42,7 @@ Read in this order. Each is normative, not advisory.
 | `docs/11-execution-pipeline.md` | The autonomous loop, stage gates, hooks, how to run it |
 | `docs/12-writing-and-commits.md` | Commit format and prose rules, both machine checked |
 | `docs/13-design-system.md` | UI UX Pro Max, token freeze rule, visual regression |
+| `docs/14-state-machines.md` | Every status graph, its transitions and effects, as documented and as coded |
 | `docs/DESIGN-BRIEF.md` | The chosen tokens and their intended use, written in P0.5 |
 | `docs/DEMO.md` | The runbook: what to run, who to sign in as, what to click, what to say |
 | `DOCUMENTATION.md` | The short write up: approach, decisions, flows, architecture, use of AI |

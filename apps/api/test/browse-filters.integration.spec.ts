@@ -27,9 +27,9 @@ describe('browsing the marketplace', () => {
       data: {
         id: vaultId,
         name: 'Browse vault',
-        city: 'Sydney',
+        city: 'New York',
         insuredLimitMinorUnits: 100_000_000_000n,
-        currency: 'AUD',
+        currency: 'USD',
       },
     });
     const email = `borrower-${randomUUID().slice(0, 8)}@browse.test`;
@@ -65,7 +65,7 @@ describe('browsing the marketplace', () => {
         holderAccountId: borrowerAccountId,
         intakeRecordHash: `hash-browse-${suffix}`,
         appraisedValueMinorUnits: seed.appraised,
-        currency: 'AUD',
+        currency: 'USD',
         appraisedAt: new Date(0),
         appraiserId: 'S1',
         itemCategory: seed.category,
@@ -81,7 +81,7 @@ describe('browsing the marketplace', () => {
         borrowerAccountId,
         receiptId,
         requestedPrincipalMinorUnits: seed.principal,
-        currency: 'AUD',
+        currency: 'USD',
         maxAnnualPercentageRateBasisPoints: seed.maxRateBasisPoints,
         requestedDurationMs: 30n * BigInt(oneDay),
         expiresAt: new Date(
@@ -162,7 +162,11 @@ describe('browsing the marketplace', () => {
     expect((await browse('?maxLoanToValueBasisPoints=5000')).items).toHaveLength(2);
   });
 
-  it('sorts by rate ceiling and by closing soonest', async () => {
+  /* The three sorts the endpoint actually serves. It used to serve a fourth,
+     by rate ceiling, and this test went on asking for it long after the sort
+     was dropped: an unknown value falls back to newest rather than being
+     refused, so the request kept returning 200 and the wrong order. */
+  it('sorts by loan to value, by closing soonest, and by newest', async () => {
     await listingFrom(
       {
         category: 'BULLION',
@@ -177,7 +181,7 @@ describe('browsing the marketplace', () => {
       {
         category: 'BULLION',
         appraised: 500_000n,
-        principal: 100_000n,
+        principal: 250_000n,
         maxRateBasisPoints: 1200,
         expiresInDays: 3,
       },
@@ -187,21 +191,37 @@ describe('browsing the marketplace', () => {
       {
         category: 'BULLION',
         appraised: 500_000n,
-        principal: 100_000n,
+        principal: 150_000n,
         maxRateBasisPoints: 1800,
         expiresInDays: 6,
       },
       3,
     );
 
-    expect((await browse('?sort=rate')).items.map((item) => item.id)).toEqual([
+    // Least borrowed against the appraisal first: 2000, 3000, 5000 basis points.
+    expect((await browse('?sort=ltv')).items.map((item) => item.id)).toEqual([
+      'L-BROWSE-0001',
+      'L-BROWSE-0003',
+      'L-BROWSE-0002',
+    ]);
+    // Running out first: three days, six, nine.
+    expect((await browse('?sort=closing')).items.map((item) => item.id)).toEqual([
       'L-BROWSE-0002',
       'L-BROWSE-0003',
       'L-BROWSE-0001',
     ]);
-    expect((await browse('?sort=closing')).items.map((item) => item.id)).toEqual([
-      'L-BROWSE-0002',
+    expect((await browse('?sort=newest')).items.map((item) => item.id)).toEqual([
       'L-BROWSE-0003',
+      'L-BROWSE-0002',
+      'L-BROWSE-0001',
+    ]);
+
+    /* A sort nobody serves lands on the default rather than on an error, the
+       same posture the marketplace takes with a hand edited link. Pinned so
+       the fallback is a decision rather than a thing that quietly happens. */
+    expect((await browse('?sort=rate')).items.map((item) => item.id)).toEqual([
+      'L-BROWSE-0003',
+      'L-BROWSE-0002',
       'L-BROWSE-0001',
     ]);
   });

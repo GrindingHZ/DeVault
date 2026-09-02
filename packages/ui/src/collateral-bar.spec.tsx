@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { CollateralBar } from './collateral-bar';
 
-const money = (minorUnits: string) => ({ minorUnits, currency: 'AUD' });
+const money = (minorUnits: string) => ({ minorUnits, currency: 'USD' });
 
 describe('CollateralBar', () => {
   it('states the two amounts a reader can act on', () => {
@@ -14,8 +14,8 @@ describe('CollateralBar', () => {
         loanToValueBasisPoints={3636}
       />,
     );
-    expect(screen.getByText('AUD 11,000.00')).toBeTruthy();
-    expect(screen.getByText('AUD 4,000.00')).toBeTruthy();
+    expect(screen.getByText('USD 11,000.00')).toBeTruthy();
+    expect(screen.getByText('USD 4,000.00')).toBeTruthy();
   });
 
   /* The limit stays as the line on the bar. As a figure it was money nobody
@@ -29,7 +29,7 @@ describe('CollateralBar', () => {
         loanToValueBasisPoints={3636}
       />,
     );
-    expect(screen.queryByText('AUD 5,500.00')).toBeNull();
+    expect(screen.queryByText('USD 5,500.00')).toBeNull();
   });
 
   /* Since lenders compete on rate alone, nobody can use the room under the
@@ -72,8 +72,8 @@ describe('CollateralBar', () => {
       />,
     );
     const bar = screen.getByRole('img');
-    expect(bar.getAttribute('aria-label')).toContain('AUD 4,000.00 borrowed');
-    expect(bar.getAttribute('aria-label')).toContain('AUD 11,000.00');
+    expect(bar.getAttribute('aria-label')).toContain('USD 4,000.00 borrowed');
+    expect(bar.getAttribute('aria-label')).toContain('USD 11,000.00');
   });
 
   it('never divides by an appraisal of nothing', () => {

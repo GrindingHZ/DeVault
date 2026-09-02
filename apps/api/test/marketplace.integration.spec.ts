@@ -7,9 +7,9 @@ import { expectLedgerBalances } from './ledger-assertions';
 
 const vaultId = 'VAULT-MKT-1';
 const password = 'a-long-enough-password';
-const amount = (minorUnits: string): { minorUnits: string; currency: 'AUD' } => ({
+const amount = (minorUnits: string): { minorUnits: string; currency: 'USD' } => ({
   minorUnits,
-  currency: 'AUD',
+  currency: 'USD',
 });
 
 describe('marketplace', () => {
@@ -29,9 +29,9 @@ describe('marketplace', () => {
       data: {
         id: vaultId,
         name: 'Marketplace vault',
-        city: 'Sydney',
+        city: 'New York',
         insuredLimitMinorUnits: 100_000_000n,
-        currency: 'AUD',
+        currency: 'USD',
       },
     });
   });
@@ -81,7 +81,7 @@ describe('marketplace', () => {
         holderAccountId: account.id,
         intakeRecordHash: `hash-${suffix}`,
         appraisedValueMinorUnits: 500_000n,
-        currency: 'AUD',
+        currency: 'USD',
         appraisedAt: new Date(0),
         appraiserId: 'S1',
         itemCategory: 'BULLION',
@@ -255,6 +255,20 @@ describe('marketplace', () => {
 
     const offers = await server().get('/api/v1/me/offers').set('Cookie', lenderCookies).expect(200);
     expect(offers.body.items[0].status).toBe('SUPERSEDED');
+    // Money still out there, and the row says so.
+    expect(offers.body.items[0].isHoldHeld).toBe(true);
+
+    /* Both halves announced. A cancellation used to move the listing and
+       every offer on it while saying nothing, so a Phase 3 indexer folding
+       events would have shown the listing live and the offers standing long
+       after both had stopped (docs/14-state-machines.md finding 4). */
+    const published = await harness.prisma.outboxEvent.findMany({
+      where: { type: { in: ['ListingCancelled', 'OfferSuperseded'] } },
+    });
+    expect(published.map((one) => one.type).sort()).toEqual([
+      'ListingCancelled',
+      'OfferSuperseded',
+    ]);
 
     // The hold is still committed until the lender reclaims (rule M8).
     const heldBefore = await server()
@@ -279,6 +293,16 @@ describe('marketplace', () => {
     expect(await harness.prisma.ledgerTransaction.count({ where: { kind: 'REFUND_HOLD' } })).toBe(
       1,
     );
+
+    /* The offer keeps its status, because superseded is what happened to it,
+       so the hold is the only thing that can say the money is home. Without
+       this the screen went on offering to reclaim what it already had. */
+    const afterReclaim = await server()
+      .get('/api/v1/me/offers')
+      .set('Cookie', lenderCookies)
+      .expect(200);
+    expect(afterReclaim.body.items[0].status).toBe('SUPERSEDED');
+    expect(afterReclaim.body.items[0].isHoldHeld).toBe(false);
 
     const balance = await server()
       .get('/api/v1/me/balance')

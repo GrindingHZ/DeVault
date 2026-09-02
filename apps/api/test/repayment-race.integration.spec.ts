@@ -8,14 +8,14 @@ import { createTestApplication } from './create-test-application';
 import type { TestApplication } from './create-test-application';
 import { expectLedgerBalances } from './ledger-assertions';
 
-const aud = currencyOf('AUD');
+const usd = currencyOf('USD');
 const vaultId = 'VAULT-RRACE-1';
 const password = 'a-long-enough-password';
 const oneDay = 24n * 60n * 60n * 1000n;
 const raceRounds = 20;
-const amount = (minorUnits: string): { minorUnits: string; currency: 'AUD' } => ({
+const amount = (minorUnits: string): { minorUnits: string; currency: 'USD' } => ({
   minorUnits,
-  currency: 'AUD',
+  currency: 'USD',
 });
 
 describe('repayment race and staleness', () => {
@@ -56,9 +56,9 @@ describe('repayment race and staleness', () => {
       data: {
         id: vaultId,
         name: 'Race vault',
-        city: 'Sydney',
+        city: 'New York',
         insuredLimitMinorUnits: 100_000_000n,
-        currency: 'AUD',
+        currency: 'USD',
       },
     });
   }
@@ -93,7 +93,7 @@ describe('repayment race and staleness', () => {
         holderAccountId: borrower.accountId,
         intakeRecordHash: `hash-rrace-${round}`,
         appraisedValueMinorUnits: 500_000n,
-        currency: 'AUD',
+        currency: 'USD',
         appraisedAt: new Date(0),
         appraiserId: 'S1',
         itemCategory: 'BULLION',
@@ -109,7 +109,7 @@ describe('repayment race and staleness', () => {
         borrowerAccountId: borrower.accountId,
         receiptId,
         requestedPrincipalMinorUnits: 250_000n,
-        currency: 'AUD',
+        currency: 'USD',
         maxAnnualPercentageRateBasisPoints: 2400,
         requestedDurationMs: 30n * oneDay,
         expiresAt: new Date(Number(harness.clock.now().epochMilliseconds) + 86_400_000),
@@ -150,7 +150,7 @@ describe('repayment race and staleness', () => {
     const stale = await repayLoan.execute({
       loanId: loanIdOf(loan.loanId),
       requestedBy: accountIdOf(loan.borrower.accountId),
-      payment: Money.of(250_000n, aud),
+      payment: Money.of(250_000n, usd),
       quotedAt,
     });
     expect(stale.ok).toBe(false);
@@ -164,7 +164,7 @@ describe('repayment race and staleness', () => {
     const fresh = await repayLoan.execute({
       loanId: loanIdOf(loan.loanId),
       requestedBy: accountIdOf(loan.borrower.accountId),
-      payment: Money.of(251_232n, aud),
+      payment: Money.of(251_232n, usd),
       quotedAt: harness.clock.now(),
     });
     expect(fresh.ok).toBe(true);
@@ -182,7 +182,7 @@ describe('repayment race and staleness', () => {
         repayLoan.execute({
           loanId: loanIdOf(loan.loanId),
           requestedBy: accountIdOf(loan.borrower.accountId),
-          payment: Money.of(250_000n, aud),
+          payment: Money.of(250_000n, usd),
           quotedAt,
         });
       const results = await Promise.all([repayOnce(), repayOnce()]);

@@ -31,12 +31,35 @@ describe('TermBar', () => {
      subtract one from the other. */
   it('carries both readings when there is a second one', () => {
     render(
-      <TermBar elapsedBasisPoints={7000} note="day 21 of 30" caption="9 days left" tone="active" />,
+      <TermBar
+        elapsedBasisPoints={7000}
+        note="day 21 of 30"
+        caption={{ value: '9 days', trail: 'left' }}
+        tone="active"
+      />,
     );
     expect(screen.getByText('day 21 of 30')).toBeTruthy();
-    expect(screen.getByText('9 days left')).toBeTruthy();
+    /* The quantity carries the weight and the grammar around it does not, so
+       the two are separate elements rather than one string. */
+    expect(screen.getByText('9 days')).toBeTruthy();
     expect(screen.getByRole('progressbar').getAttribute('aria-valuetext')).toBe(
       'day 21 of 30, 9 days left',
+    );
+  });
+
+  /* Spoken as one sentence even though it is printed as two pieces: an
+     assistive reader gets the whole phrase, not a bare number. */
+  it('speaks a caption with no trailing words cleanly', () => {
+    render(
+      <TermBar
+        elapsedBasisPoints={0}
+        note="closes in"
+        caption={{ value: '7 days', trail: '' }}
+        tone="active"
+      />,
+    );
+    expect(screen.getByRole('progressbar').getAttribute('aria-valuetext')).toBe(
+      'closes in, 7 days',
     );
   });
 

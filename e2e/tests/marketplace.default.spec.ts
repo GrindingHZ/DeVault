@@ -45,7 +45,7 @@ async function issueReceiptFor(request: APIRequestContext, borrowerEmail: string
   await request.post(`${apiBase}/intakes/${intakeId}/appraisals`, {
     headers: { 'idempotency-key': randomUUID() },
     data: {
-      value: { minorUnits: '500000', currency: 'AUD' },
+      value: { minorUnits: '500000', currency: 'USD' },
       method: 'spot times weight',
       comparableReferences: 'LBMA',
     },
@@ -73,7 +73,7 @@ async function fundAccount(
   });
   const deposit = await request.post(`${apiBase}/me/deposits`, {
     headers: { 'idempotency-key': randomUUID() },
-    data: { email, amount: { minorUnits, currency: 'AUD' } },
+    data: { email, amount: { minorUnits, currency: 'USD' } },
   });
   expect(deposit.status()).toBe(201);
   await request.post(`${apiBase}/auth/logout`);
@@ -91,7 +91,7 @@ async function originateLoan(
     headers: { 'idempotency-key': randomUUID() },
     data: {
       receiptId,
-      requestedPrincipal: { minorUnits: '250000', currency: 'AUD' },
+      requestedPrincipal: { minorUnits: '250000', currency: 'USD' },
       maxAnnualPercentageRateBasisPoints: 2400,
       requestedDurationMs: 30 * oneDay,
       requestedLifetimeMs: 3_600_000,
@@ -108,7 +108,7 @@ async function originateLoan(
   const offer = await request.post(`${apiBase}/listings/${listingId}/offers`, {
     headers: { 'idempotency-key': randomUUID() },
     data: {
-      principal: { minorUnits: '250000', currency: 'AUD' },
+      principal: { minorUnits: '250000', currency: 'USD' },
       annualPercentageRateBasisPoints: 1800,
       durationMs: 30 * oneDay,
       expiresAt,

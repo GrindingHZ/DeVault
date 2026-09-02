@@ -82,7 +82,7 @@ function Amount({
 const nothingToShow = '-';
 
 /* Headers carry no currency. It is stated once above the table instead: a
-   "(AUD)" on each of three money columns cost about a hundred pixels of
+   "(USD)" on each of three money columns cost about a hundred pixels of
    width and pushed the action button off the side, which is a poor trade for
    repeating something that never changes down the page. */
 function head(label: string): ReactElement {
@@ -173,9 +173,13 @@ function termColumn(): DataTableColumn<Position> {
       if (position.term.elapsedBasisPoints === null) {
         return (
           /* Wraps. "closes in 14 days" on one line was as wide as the bar
-             it stands in for, and the column is not worth that. */
-          <span className="block w-24 font-body text-xs text-ink-secondary">
-            {position.term.note}
+             it stands in for, and the column is not worth that. Only the
+             quantity is emphasised: "closes in" is the grammar. */
+          <span className="block w-24 py-1 font-body text-xs text-ink-secondary">
+            {position.term.note}{' '}
+            {position.term.caption === null ? null : (
+              <span className="font-semibold text-ink-primary">{position.term.caption.value}</span>
+            )}
           </span>
         );
       }

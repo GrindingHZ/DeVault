@@ -113,9 +113,17 @@ export class CloseLiquidationUseCase {
           context,
         );
 
-        // The receipt may sit with the borrower or with a lender who already
-        // claimed it, and burnForLiquidation allows both live states (Q-012).
-        await this.custody.burnReceipt(loan.receiptId, 'LIQUIDATION', context);
+        /* The receipt may sit with the borrower or with a lender who already
+           claimed it, and burnForLiquidation allows both live states (Q-012).
+           Whoever held it, the sale ends their title and starts the buyer's:
+           the winner paid for the item and has to hold something that says so,
+           or they own a thing no screen in the product can name and no flow
+           can release (Q-006). */
+        const reissued = await this.custody.reissueToBuyer(
+          loan.receiptId,
+          closed.value.winningBid.bidderAccountId,
+          context,
+        );
         const liquidated = loan.markLiquidated();
         if (!liquidated.ok) {
           return liquidated;
@@ -131,6 +139,15 @@ export class CloseLiquidationUseCase {
               proceeds: closed.value.winningBid.amount,
               distributions: [...distributions],
             },
+            /* The buyer's title, which is a new receipt and has to announce
+               itself as one. An indexer that saw the sale and not the issuance
+               would rebuild a vault holding an item nobody owns. */
+            {
+              type: 'ReceiptIssued',
+              receiptId: reissued.id,
+              vaultId: reissued.vaultId,
+              appraisedValue: reissued.appraisedValue,
+            },
           ],
           context,
         );
@@ -145,6 +162,9 @@ export class CloseLiquidationUseCase {
             after: {
               winningBidId: closed.value.winningBid.id,
               settlementRef: settlementRef.reference,
+              // What the buyer walks away holding, so the record says where
+              // the item went and not only where the money did.
+              reissuedReceiptId: reissued.id,
             },
           },
           context,

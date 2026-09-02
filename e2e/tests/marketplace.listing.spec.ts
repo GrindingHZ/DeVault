@@ -46,7 +46,7 @@ async function issueReceiptFor(request: APIRequestContext, borrowerEmail: string
   await request.post(`${apiBase}/intakes/${intakeId}/appraisals`, {
     headers: { 'idempotency-key': randomUUID() },
     data: {
-      value: { minorUnits: '500000', currency: 'AUD' },
+      value: { minorUnits: '500000', currency: 'USD' },
       method: 'spot times weight',
       comparableReferences: 'LBMA',
     },
@@ -74,7 +74,7 @@ async function fundAccount(
   });
   const deposit = await request.post(`${apiBase}/me/deposits`, {
     headers: { 'idempotency-key': randomUUID() },
-    data: { email, amount: { minorUnits, currency: 'AUD' } },
+    data: { email, amount: { minorUnits, currency: 'USD' } },
   });
   expect(deposit.status()).toBe(201);
   await request.post(`${apiBase}/auth/logout`);
@@ -124,13 +124,13 @@ test('a receipt becomes a listing and takes a funded offer', async ({ page, brow
   await expect(lenderPage.getByTestId(`listing-${listingId}`)).toBeVisible();
   await lenderPage.goto(`/listings/${listingId}`);
 
-  await expect(lenderPage.getByTestId('max-principal')).toHaveText('AUD 3,000.00');
+  await expect(lenderPage.getByTestId('max-principal')).toHaveText('USD 3,000.00');
   await lenderPage.getByTestId('offer-rate').fill('18.00');
   await lenderPage.getByTestId('offer-submit').click();
   await expect(lenderPage.getByTestId('offer-book')).toContainText('18.00%');
 
   await lenderPage.getByRole('link', { name: 'Wallet' }).click();
-  await expect(lenderPage.getByTestId('held-balance')).toHaveText('AUD 2,500.00');
+  await expect(lenderPage.getByTestId('held-balance')).toHaveText('USD 2,500.00');
   await lenderContext.close();
 });
 

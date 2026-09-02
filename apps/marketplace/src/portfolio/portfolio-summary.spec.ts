@@ -12,14 +12,15 @@ function loan(overrides: Partial<LoanResponse> = {}): LoanResponse {
     itemDescription: 'Omega Speedmaster',
     hasPhotograph: true,
     borrowerAccountId: 'ada',
-    principal: { minorUnits: '400000', currency: 'AUD' },
+    principal: { minorUnits: '400000', currency: 'USD' },
     annualPercentageRateBasisPoints: 1800,
     startedAt: '2026-08-01T12:00:00.000Z',
     maturesAt: '2026-08-31T12:00:00.000Z',
     graceEndsAt: '2026-09-07T12:00:00.000Z',
     lenderNoteHolderAccountId: 'gita',
+    lenderNoteId: 'NOTE1',
     status: 'ACTIVE',
-    accruedInterest: { minorUnits: '5917', currency: 'AUD' },
+    accruedInterest: { minorUnits: '5917', currency: 'USD' },
     originationSettlementRef: {
       kind: 'ledger',
       reference: 'SR1',
@@ -46,6 +47,9 @@ function attentionPosition(): Position {
     term: null,
     photographSrc: null,
     amount: '2,500.00',
+    lenderNoteId: null,
+    noteSale: null,
+    bid: null,
     action: { label: 'Reclaim funds', kind: 'reclaim' },
     needsAttention: true,
   };
@@ -87,7 +91,7 @@ describe('totalsOf', () => {
   });
 
   it('splits interest into what has accrued and what is still to come', () => {
-    const half = loan({ accruedInterest: { minorUnits: '2000', currency: 'AUD' } });
+    const half = loan({ accruedInterest: { minorUnits: '2000', currency: 'USD' } });
     const totals = totalsOf({ ...empty, loans: [half] });
     expect(totals.interestSoFarMinorUnits).toBe(2000n);
     expect(totals.interestToComeMinorUnits).toBe(wholeTerm - 2000n);
@@ -97,7 +101,7 @@ describe('totalsOf', () => {
      already accrued its whole term and nothing is left to come. Subtracting
      naively would have produced a negative figure on screen. */
   it('never reports negative interest still to come', () => {
-    const past = loan({ accruedInterest: { minorUnits: '99999', currency: 'AUD' } });
+    const past = loan({ accruedInterest: { minorUnits: '99999', currency: 'USD' } });
     expect(totalsOf({ ...empty, loans: [past] }).interestToComeMinorUnits).toBe(0n);
   });
 
@@ -105,7 +109,7 @@ describe('totalsOf', () => {
      the whole term, because that is what comes back if it runs to maturity.
      The same loan, two figures, and the side is what picks between them. */
   it('settles a borrower at today and a lender at maturity', () => {
-    const half = loan({ accruedInterest: { minorUnits: '2000', currency: 'AUD' } });
+    const half = loan({ accruedInterest: { minorUnits: '2000', currency: 'USD' } });
     const borrowing = totalsOf({ loans: [half], positions: [], side: 'borrowing' });
     const lending = totalsOf({ loans: [half], positions: [], side: 'lending' });
     expect(borrowing.settlementMinorUnits).toBe(402000n);
@@ -117,8 +121,8 @@ describe('totalsOf', () => {
     const totals = totalsOf({
       ...empty,
       loans: [
-        loan({ principal: { minorUnits: huge, currency: 'AUD' } }),
-        loan({ id: 'LN2', principal: { minorUnits: huge, currency: 'AUD' } }),
+        loan({ principal: { minorUnits: huge, currency: 'USD' } }),
+        loan({ id: 'LN2', principal: { minorUnits: huge, currency: 'USD' } }),
       ],
     });
     expect(totals.principalMinorUnits).toBe(BigInt(huge) * 2n);
@@ -129,7 +133,7 @@ describe('totalsOf', () => {
   });
 
   it('takes the currency from the loans it counted', () => {
-    expect(totalsOf({ ...empty, loans: [loan()] }).currency).toBe('AUD');
+    expect(totalsOf({ ...empty, loans: [loan()] }).currency).toBe('USD');
   });
 
   it('reports no currency when every loan was excluded', () => {
@@ -148,7 +152,7 @@ describe('totalsOf', () => {
   it('scales the term interest with the length of the term', () => {
     const sixty = loan({
       maturesAt: new Date(Date.parse('2026-08-01T12:00:00.000Z') + 60 * oneDay).toISOString(),
-      accruedInterest: { minorUnits: '0', currency: 'AUD' },
+      accruedInterest: { minorUnits: '0', currency: 'USD' },
     });
     const total = totalsOf({ ...empty, loans: [sixty] }).interestToComeMinorUnits;
     expect(total).toBe(11835n);

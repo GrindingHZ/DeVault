@@ -2,8 +2,10 @@ import { formatAmount, formatMoney, formatRate, interestOver } from '@depawn/ui'
 import type { StatusTone } from '@depawn/ui';
 import type {
   LoanResponse,
+  MyBidResponse,
   MyListingResponse,
   MyOfferResponse,
+  NoteSaleSummary,
   RedemptionStatusDto,
 } from '@depawn/contracts';
 import { isTerminal, toneOf } from './stages';
@@ -20,7 +22,16 @@ import type { StageName } from './stages';
 export type PositionSide = 'borrowing' | 'lending';
 
 export type PositionActionKind =
-  'publish' | 'accept' | 'withdraw' | 'reclaim' | 'repay' | 'default' | 'collect' | 'claim';
+  | 'publish'
+  | 'accept'
+  | 'withdraw'
+  | 'reclaim'
+  | 'repay'
+  | 'default'
+  | 'collect'
+  | 'claim'
+  | 'sell'
+  | 'withdrawSale';
 
 export interface PositionAction {
   readonly label: string;
@@ -47,9 +58,18 @@ export interface TermProgress {
   readonly note: string;
   /* What that leaves, when there is anything to leave. Two lines rather than
      one, because "day 21 of 30" and "9 days left" are different questions
-     and a reader should not have to subtract to answer the second. */
-  readonly caption: string | null;
+     and a reader should not have to subtract to answer the second.
+
+     Split, so the quantity carries the weight and the grammar around it does
+     not: "9 days" is the fact, "left" is the sentence it sits in. */
+  readonly caption: TermPhrase | null;
   readonly tone: StatusTone;
+}
+
+/* A quantity and the words around it, so only the quantity is emphasised. */
+export interface TermPhrase {
+  readonly value: string;
+  readonly trail: string;
 }
 
 /* The numbers a loan turns on. Only a loan has them: a listing has no term
@@ -130,6 +150,14 @@ export interface Position {
   readonly photographSrc: string | null;
   /* Null for anything that is not a listing or an offer. */
   readonly pending: PendingFigures | null;
+  /* The claim a lent loan pays into, which is what a sale sells. Null on
+     every other kind of row. */
+  readonly lenderNoteId: string | null;
+  /* The open sale on this position, when one is standing. */
+  readonly noteSale: { readonly id: string; readonly askPrice: string } | null;
+  /* The bid this row is, and the sale it was placed on. Reclaiming needs
+     both, because a bid is addressed under its liquidation. */
+  readonly bid: { readonly id: string; readonly liquidationId: string } | null;
   readonly action: PositionAction | null;
   readonly needsAttention: boolean;
 }
@@ -154,7 +182,7 @@ function plural(count: number, noun: string): string {
 }
 
 /* Bare, because the loan tables name the currency once in the column header.
-   Twenty repetitions of "AUD" down a column is noise that pushed every
+   Twenty repetitions of "USD" down a column is noise that pushed every
    figure onto two lines. */
 function amount(minorUnits: bigint, currency: string): string {
   return formatAmount({ minorUnits: minorUnits.toString(), currency });
@@ -180,12 +208,17 @@ function closesIn(expiresAtIso: string, asOf: number): TermProgress {
   }
   const remaining = expiresAt - asOf;
   if (remaining < oneDay) {
-    return { elapsedBasisPoints: null, note: 'closes today', caption: null, tone: 'warning' };
+    return {
+      elapsedBasisPoints: null,
+      note: 'closes',
+      caption: { value: 'today', trail: '' },
+      tone: 'warning',
+    };
   }
   return {
     elapsedBasisPoints: null,
-    note: `closes in ${plural(daysBetween(asOf, expiresAt), 'day')}`,
-    caption: null,
+    note: 'closes in',
+    caption: { value: plural(daysBetween(asOf, expiresAt), 'day'), trail: '' },
     tone: 'active',
   };
 }
@@ -226,7 +259,7 @@ function termOf(loan: LoanResponse, asOf: number): TermProgress {
     return {
       elapsedBasisPoints: 10_000,
       note: `day ${String(termDays)} of ${String(termDays)}`,
-      caption: `${plural(daysBetween(asOf, graceEndsAt), 'day')} of grace left`,
+      caption: { value: plural(daysBetween(asOf, graceEndsAt), 'day'), trail: 'of grace left' },
       tone: 'warning',
     };
   }
@@ -235,7 +268,7 @@ function termOf(loan: LoanResponse, asOf: number): TermProgress {
     /* Short. The column is called Term, so "to maturity" was a phrase
        repeated on every row that pushed the action button off the side. */
     note: `day ${String(dayNow)} of ${String(termDays)}`,
-    caption: `${plural(daysBetween(asOf, maturesAt), 'day')} left`,
+    caption: { value: plural(daysBetween(asOf, maturesAt), 'day'), trail: 'left' },
     tone: 'active',
   };
 }
@@ -311,6 +344,9 @@ export function positionOfListing(listing: MyListingResponse, asOf: number): Pos
     listingId: listing.id,
     loanId: null,
     offerId: null,
+    lenderNoteId: null,
+    noteSale: null,
+    bid: null,
     metrics: null,
     photographSrc: photographOf(listing.receiptId, listing.hasPhotograph),
     amount: formatAmount(listing.requestedPrincipal),
@@ -335,21 +371,28 @@ export function positionOfListing(listing: MyListingResponse, asOf: number): Pos
   }
 
   if (listing.status === 'ACTIVE') {
+    /* Nothing expires a listing on a timer, so one past its date sits ACTIVE
+       with the date behind it. Acceptance refuses it (LISTING_EXPIRED), so
+       offering the button anyway is offering one that fails. */
+    const hasRunOut = Date.parse(listing.expiresAt) < asOf;
     return {
       ...base,
-      ...staged('Taking offers', 'borrowing'),
+      ...staged(hasRunOut ? 'Expired' : 'Taking offers', 'borrowing'),
       term: closesIn(listing.expiresAt, asOf),
-      caption:
-        listing.offerCount === 0
+      caption: hasRunOut
+        ? 'It ran out of time. List the item again to start over'
+        : listing.offerCount === 0
           ? 'Waiting for a lender'
           : `${plural(listing.offerCount, 'lender')} competing`,
       figure:
         listing.bestOfferRateBasisPoints === null
           ? { label: 'Best offer', value: 'none yet' }
           : { label: 'Best offer', value: rateOf(listing.bestOfferRateBasisPoints) },
-      /* Only offer-able when there is something to accept. A button that
-         opens an empty book is a button that wasted a click. */
-      action: listing.offerCount > 0 ? { label: 'Accept an offer', kind: 'accept' } : null,
+      /* Only offer-able when there is something to accept and time to accept
+         it in. A button that opens an empty book is a button that wasted a
+         click; one the server refuses is worse. */
+      action:
+        listing.offerCount > 0 && !hasRunOut ? { label: 'Accept an offer', kind: 'accept' } : null,
       needsAttention: false,
     };
   }
@@ -380,6 +423,9 @@ export function positionOfOffer(offer: MyOfferResponse, asOf: number): Position 
     listingId: offer.listingId,
     loanId: null,
     offerId: offer.id,
+    lenderNoteId: null,
+    noteSale: null,
+    bid: null,
     metrics: null,
     photographSrc: photographOf(offer.receiptId, offer.hasPhotograph),
     amount: formatAmount(offer.principal),
@@ -390,7 +436,13 @@ export function positionOfOffer(offer: MyOfferResponse, asOf: number): Position 
     },
   };
 
-  if (offer.status === 'PENDING') {
+  /* Nothing sweeps a pending offer into EXPIRED when its own date passes:
+     the status is written lazily, because acceptance refuses an expired
+     offer anyway and the api can afford to notice late. A screen cannot.
+     Read against the clock, an offer past its date is standing in name only
+     and its money is as stranded as an outbid hold. */
+  const hasRunOut = Date.parse(offer.expiresAt) < asOf;
+  if (offer.status === 'PENDING' && !hasRunOut) {
     return {
       ...base,
       ...staged('Standing', 'lending'),
@@ -404,11 +456,29 @@ export function positionOfOffer(offer: MyOfferResponse, asOf: number): Position 
 
   /* The one nobody ever finds. Money sitting in a hold that lost is earning
      nothing and will sit there until its owner asks for it back, because
-     refunds are pull and not push (docs/10-flows.md flow 9). */
-  if (offer.status === 'SUPERSEDED' || offer.status === 'EXPIRED') {
+     refunds are pull and not push (docs/10-flows.md flow 9).
+
+     Whether there is anything left to ask for comes from the hold rather
+     than from the status: reclaiming refunds the money and deliberately
+     leaves the offer superseded, so a row reading the status alone went on
+     asking for money that was already home, and the bell went on counting
+     it. */
+  if (offer.status === 'SUPERSEDED' || offer.status === 'EXPIRED' || hasRunOut) {
+    const stage = offer.status === 'SUPERSEDED' ? 'Outbid' : 'Expired';
+    if (!offer.isHoldHeld) {
+      return {
+        ...base,
+        ...staged(stage, 'lending'),
+        term: null,
+        caption: 'Your money is back in your balance',
+        figure: null,
+        action: null,
+        needsAttention: false,
+      };
+    }
     return {
       ...base,
-      ...staged(offer.status === 'SUPERSEDED' ? 'Outbid' : 'Expired', 'lending'),
+      ...staged(stage, 'lending'),
       term: null,
       caption: 'Your money is still held, and earning nothing',
       figure: { label: 'Held', value: formatMoney(offer.principal) },
@@ -433,6 +503,89 @@ export function positionOfOffer(offer: MyOfferResponse, asOf: number): Position 
   };
 }
 
+/* A bid on a collateral sale.
+
+   The only kind of committed money the portfolio never modelled. Bidding
+   holds funds exactly as offering does, and a beaten bid keeps holding them
+   until its owner pulls them back (rule M8). The reclaim endpoint has always
+   existed; nothing ever told a bidder there was anything to reclaim, so the
+   money sat in a hold that no screen could name. */
+export function positionOfBid(bid: MyBidResponse, asOf: number): Position {
+  const base = {
+    id: `bid-${bid.id}`,
+    side: 'lending' as const,
+    itemDescription: bid.itemDescription,
+    listingId: null,
+    loanId: null,
+    offerId: null,
+    lenderNoteId: null,
+    noteSale: null,
+    bid: { id: bid.id, liquidationId: bid.liquidationId },
+    metrics: null,
+    photographSrc: photographOf(bid.receiptId, bid.hasPhotograph),
+    amount: formatAmount(bid.amount),
+    pending: null,
+  };
+
+  /* Read against the clock rather than the status, the same as an offer: a
+     sale past its closing time is still BIDDING until somebody closes it,
+     and a row calling that live would be inviting the reader to wait for
+     something that has stopped. */
+  const hasClosed = bid.closesAt !== null && Date.parse(bid.closesAt) < asOf;
+
+  if (bid.liquidationStatus === 'BIDDING' && bid.isStanding && !hasClosed) {
+    return {
+      ...base,
+      ...staged('Bidding', 'lending'),
+      term: bid.closesAt === null ? null : closesIn(bid.closesAt, asOf),
+      caption: 'Yours is the high bid, and your money is held against it',
+      figure: { label: 'Your bid', value: formatMoney(bid.amount) },
+      action: null,
+      needsAttention: false,
+    };
+  }
+
+  /* Won, and the hold was spent paying the loan out rather than refunded.
+     Nothing left to do here: the item arrives under a receipt, which is a
+     row in My items. */
+  if (bid.liquidationStatus === 'SETTLED' && bid.isStanding) {
+    return {
+      ...base,
+      ...staged('Won', 'lending'),
+      term: null,
+      caption: 'You won the sale and your bid paid the loan out',
+      figure: null,
+      action: null,
+      needsAttention: false,
+    };
+  }
+
+  /* Beaten, or standing on a sale that closed without settling. Whether
+     there is anything left to ask for comes from the hold, never from the
+     bid: reclaiming refunds the money and writes nothing back, so a row
+     reading the bid alone would go on asking for money already home. */
+  if (!bid.isHoldHeld) {
+    return {
+      ...base,
+      ...staged('Outbid', 'lending'),
+      term: null,
+      caption: 'Your money is back in your balance',
+      figure: null,
+      action: null,
+      needsAttention: false,
+    };
+  }
+  return {
+    ...base,
+    ...staged('Outbid', 'lending'),
+    term: null,
+    caption: 'Your money is still held, and earning nothing',
+    figure: { label: 'Held', value: formatMoney(bid.amount) },
+    action: { label: 'Reclaim funds', kind: 'reclaim' },
+    needsAttention: true,
+  };
+}
+
 /* Whether the item behind a repaid loan has been asked for, and how far that
    has got. Null when no request exists yet.
 
@@ -443,6 +596,13 @@ export function positionOfBorrowedLoan(
   loan: LoanResponse,
   asOf: number,
   redemption: RedemptionStatusDto | null = null,
+  /* Whether the item behind this loan is actually there to be collected.
+     The loan cannot answer that: it only knows it was paid off. The item
+     may since have been listed again, pledged against a second loan, or
+     already collected under a different loan entirely, and in every one of
+     those cases the errand belongs somewhere else. Decided once per item by
+     `usePositions`, which can see the receipt and the listings. */
+  isItemCollectable = true,
 ): Position {
   const base = {
     id: `borrowed-${loan.id}`,
@@ -451,6 +611,9 @@ export function positionOfBorrowedLoan(
     listingId: null,
     loanId: loan.id,
     offerId: null,
+    lenderNoteId: null,
+    noteSale: null,
+    bid: null,
     metrics: metricsOf(loan, asOf, 'borrowing'),
     amount: formatAmount(loan.principal),
     pending: null,
@@ -507,6 +670,21 @@ export function positionOfBorrowedLoan(
         needsAttention: false,
       };
     }
+    if (!isItemCollectable) {
+      /* Paid off, and the item has moved on: listed again, pledged again, or
+         already walked out under another loan. The row is a record of a loan
+         that closed, and the item's own story is told by whichever row owns
+         it now. */
+      return {
+        ...base,
+        ...staged('Repaid', 'borrowing'),
+        term: null,
+        caption: 'Paid off in full',
+        figure: null,
+        action: null,
+        needsAttention: false,
+      };
+    }
     return {
       ...base,
       ...staged('Repaid', 'borrowing'),
@@ -526,7 +704,11 @@ export function positionOfBorrowedLoan(
       caption: 'You did not repay in time, and the lender may claim the item',
       figure: { label: 'Principal', value: formatMoney(loan.principal) },
       action: null,
-      needsAttention: true,
+      /* Bad news, and nothing the borrower can do about it: the lender takes
+         the collateral or the item goes to sale, and neither is a control on
+         this screen. A notification with no action behind it can never be
+         cleared, so it would sit on the bell for good. */
+      needsAttention: false,
     };
   }
 
@@ -541,7 +723,16 @@ export function positionOfBorrowedLoan(
   };
 }
 
-export function positionOfLentLoan(loan: LoanResponse, asOf: number): Position {
+/* Whether the reader already took the collateral. A claim does not change
+   the loan, which stays DEFAULTED for ever, so the loan alone cannot say. The
+   receipt can: claiming moves it into the claimant's name, which puts it in
+   their own inventory. */
+export function positionOfLentLoan(
+  loan: LoanResponse,
+  asOf: number,
+  hasClaimed = false,
+  openSale: NoteSaleSummary | null = null,
+): Position {
   const base = {
     id: `lent-${loan.id}`,
     side: 'lending' as const,
@@ -549,6 +740,10 @@ export function positionOfLentLoan(loan: LoanResponse, asOf: number): Position {
     listingId: null,
     loanId: loan.id,
     offerId: null,
+    lenderNoteId: loan.lenderNoteId,
+    noteSale:
+      openSale === null ? null : { id: openSale.id, askPrice: formatMoney(openSale.askPrice) },
+    bid: null,
     metrics: metricsOf(loan, asOf, 'lending'),
     amount: formatAmount(loan.principal),
     pending: null,
@@ -571,20 +766,46 @@ export function positionOfLentLoan(loan: LoanResponse, asOf: number): Position {
         needsAttention: true,
       };
     }
+    if (base.noteSale !== null) {
+      return {
+        ...base,
+        ...staged('Listed for sale', 'lending'),
+        term: termOf(loan, asOf),
+        caption: 'On the secondary market, waiting for a buyer',
+        figure: { label: 'Ask', value: base.noteSale.askPrice },
+        action: { label: 'Withdraw sale', kind: 'withdrawSale' },
+        needsAttention: false,
+      };
+    }
     return {
       ...base,
       ...staged('Earning', 'lending'),
       term: termOf(loan, asOf),
       caption: `${rateOf(loan.annualPercentageRateBasisPoints)} p.a.`,
       figure: { label: 'Earned so far', value: formatMoney(loan.accruedInterest) },
-      action: null,
+      action: { label: 'Sell position', kind: 'sell' },
       needsAttention: false,
     };
   }
 
   /* The lender's side of the same event the borrower reads as a disaster.
-     Here it is something to act on: the collateral can be claimed. */
+     Here it is something to act on: the collateral can be claimed.
+
+     Once. The server refuses a second claim with `RECEIPT_NOT_ENCUMBERED`,
+     which is correct and unreadable: the receipt is no longer securing
+     anything because the reader already took it. */
   if (loan.status === 'DEFAULTED') {
+    if (hasClaimed) {
+      return {
+        ...base,
+        ...staged('Claimed', 'lending'),
+        term: null,
+        caption: 'The item is in the vault under your name',
+        figure: null,
+        action: null,
+        needsAttention: false,
+      };
+    }
     return {
       ...base,
       ...staged('Defaulted', 'lending'),
@@ -621,10 +842,17 @@ export function positionOfLentLoan(loan: LoanResponse, asOf: number): Position {
 
 /* What the reader is still watching, as against what is behind them.
 
-   Terminal by stage, except that something still to do keeps a position in
-   view: a repaid loan whose item is sitting in a vault is finished as a loan
-   and unfinished as an errand, and burying it under a disclosure would hide
-   the only control that ends it. */
+   Purely a question of the stage now. It used to keep any position with an
+   action left on it in view as well, which read wrongly at the one place it
+   mattered: a loan that had been paid off in full sat among the live ones
+   because the item was still on a shelf. Paid off is finished, and the
+   errand that remains is an errand about an item rather than about a loan.
+   It is carried by My items and by the bell in the header, which is visible
+   from every screen rather than only from this one.
+
+   A stage that genuinely has more to happen says so by not being terminal,
+   which is why a defaulted loan whose collateral nobody has claimed stays
+   here. */
 export function isOpen(position: Position): boolean {
-  return !isTerminal(position.stage, position.side) || position.action !== null;
+  return !isTerminal(position.stage, position.side);
 }

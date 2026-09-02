@@ -4,6 +4,8 @@ import { LISTING_REPOSITORY } from '../../../domain/marketplace/listing-reposito
 import type { ListingRepository } from '../../../domain/marketplace/listing-repository';
 import { ListingNotFound } from '../../../domain/marketplace/listing-not-found';
 import { AUDIT_PORT } from '../../../domain/ports/audit.port';
+import { DOMAIN_EVENT_PUBLISHER } from '../../../domain/ports/domain-event-publisher.port';
+import type { DomainEventPublisher } from '../../../domain/ports/domain-event-publisher.port';
 import type { AuditPort } from '../../../domain/ports/audit.port';
 import { UNIT_OF_WORK } from '../../../domain/ports/unit-of-work';
 import type { UnitOfWork } from '../../../domain/ports/unit-of-work';
@@ -22,6 +24,7 @@ export class CancelListingUseCase {
     @Inject(UNIT_OF_WORK) private readonly unitOfWork: UnitOfWork,
     @Inject(LISTING_REPOSITORY) private readonly listings: ListingRepository,
     @Inject(AUDIT_PORT) private readonly audit: AuditPort,
+    @Inject(DOMAIN_EVENT_PUBLISHER) private readonly events: DomainEventPublisher,
   ) {}
 
   execute(
@@ -41,6 +44,25 @@ export class CancelListingUseCase {
         return cancelled;
       }
       await this.listings.save(cancelled.value.listing, context);
+      /* One per beaten offer rather than one carrying a list, because an
+         indexer folds events per aggregate and an offer is its own aggregate.
+         None of them says the money moved: it has not, and will not until its
+         owner pulls it. */
+      await this.events.publish(
+        [
+          {
+            type: 'ListingCancelled',
+            listingId: listing.id,
+            borrowerAccountId: command.requestedBy,
+          },
+          ...cancelled.value.supersededOfferIds.map((offerId) => ({
+            type: 'OfferSuperseded' as const,
+            offerId,
+            listingId: listing.id,
+          })),
+        ],
+        context,
+      );
       await this.audit.record(
         {
           actorType: 'ACCOUNT',

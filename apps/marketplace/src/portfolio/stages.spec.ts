@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import type { LoanResponse, MyListingResponse, MyOfferResponse } from '@depawn/contracts';
+import type {
+  LoanResponse,
+  MyBidResponse,
+  MyListingResponse,
+  MyOfferResponse,
+  NoteSaleSummary,
+} from '@depawn/contracts';
 import { meaningOf, stagesFor, toneOf } from './stages';
 import {
+  positionOfBid,
   positionOfBorrowedLoan,
   positionOfLentLoan,
   positionOfListing,
@@ -17,7 +24,7 @@ const now = Date.parse('2026-08-23T12:00:00.000Z');
 const oneDay = 24 * 60 * 60 * 1000;
 
 function money(minorUnits: string) {
-  return { minorUnits, currency: 'AUD' as const };
+  return { minorUnits, currency: 'USD' as const };
 }
 
 function listing(overrides: Partial<MyListingResponse> = {}): MyListingResponse {
@@ -53,6 +60,7 @@ function offer(overrides: Partial<MyOfferResponse> = {}): MyOfferResponse {
     itemDescription: 'Omega Speedmaster',
     receiptId: 'R1',
     hasPhotograph: true,
+    isHoldHeld: true,
     ...overrides,
   };
 }
@@ -70,6 +78,7 @@ function loan(overrides: Partial<LoanResponse> = {}): LoanResponse {
     maturesAt: '2026-09-30T12:00:00.000Z',
     graceEndsAt: '2026-10-07T12:00:00.000Z',
     lenderNoteHolderAccountId: 'gita',
+    lenderNoteId: 'NOTE1',
     status: 'ACTIVE',
     accruedInterest: money('5917'),
     originationSettlementRef: {
@@ -81,7 +90,45 @@ function loan(overrides: Partial<LoanResponse> = {}): LoanResponse {
   };
 }
 
+function bid(overrides: Partial<MyBidResponse> = {}): MyBidResponse {
+  return {
+    id: 'B1',
+    liquidationId: 'LQ1',
+    itemDescription: 'Omega Speedmaster',
+    receiptId: 'R1',
+    hasPhotograph: true,
+    amount: money('300000'),
+    placedAt: '2026-08-20T12:00:00.000Z',
+    liquidationStatus: 'BIDDING',
+    closesAt: '2026-09-23T12:00:00.000Z',
+    isStanding: true,
+    isHoldHeld: true,
+    ...overrides,
+  };
+}
+
 const wellPast = Date.parse('2026-11-30T12:00:00.000Z');
+
+const openSale: NoteSaleSummary = {
+  id: 'SALE1',
+  loanId: 'LN1',
+  lenderNoteId: 'NOTE1',
+  sellerAccountId: 'gita',
+  status: 'OPEN',
+  askPrice: money('380000'),
+  createdAt: '2026-08-20T12:00:00.000Z',
+  receiptId: 'R1',
+  itemDescription: 'Omega Speedmaster',
+  itemCategory: 'WATCH',
+  hasPhotograph: true,
+  principal: money('400000'),
+  annualPercentageRateBasisPoints: 1800,
+  startedAt: '2026-08-01T12:00:00.000Z',
+  maturesAt: '2026-09-30T12:00:00.000Z',
+  accruedInterest: money('5917'),
+  currentValue: money('405917'),
+  maturityValue: money('411780'),
+};
 
 /* Every branch of every mapper. If a new state is added and its stage is not
    in the legend, the type will refuse it, and if it is in the legend but on
@@ -103,10 +150,16 @@ const everyPosition: readonly Position[] = [
   positionOfBorrowedLoan(loan({ status: 'DEFAULTED' }), now),
   positionOfBorrowedLoan(loan({ status: 'LIQUIDATED' }), now),
   positionOfLentLoan(loan(), now),
+  positionOfLentLoan(loan(), now, false, openSale),
   positionOfLentLoan(loan(), wellPast),
   positionOfLentLoan(loan({ status: 'DEFAULTED' }), now),
+  positionOfLentLoan(loan({ status: 'DEFAULTED' }), now, true),
   positionOfLentLoan(loan({ status: 'REPAID' }), now),
   positionOfLentLoan(loan({ status: 'LIQUIDATED' }), now),
+  positionOfBid(bid(), now),
+  positionOfBid(bid({ isStanding: false }), now),
+  positionOfBid(bid({ liquidationStatus: 'SETTLED', isHoldHeld: false }), now),
+  positionOfBid(bid({ liquidationStatus: 'SETTLED', isStanding: false, isHoldHeld: false }), now),
 ].filter((one): one is Position => one !== null);
 
 describe('the status legend', () => {
@@ -147,6 +200,20 @@ describe('the status legend', () => {
          darken a stage's own tone. It must never brighten one. */
       if (position.tone !== 'warning') {
         expect(position.tone).toBe(toneOf(position.stage, position.side));
+      }
+    }
+  });
+
+  /* Attention is a claim that there is something to do, so there has to be
+     something to do. A defaulted loan used to ring the bell at a borrower
+     who has no control on the screen and never will, which is a count that
+     can never be cleared. */
+  it('never raises a position it gives the reader no way to act on', () => {
+    for (const position of everyPosition) {
+      if (position.needsAttention) {
+        expect(position.action, `${position.side} ${position.stage} asks with no control`).not.toBe(
+          null,
+        );
       }
     }
   });

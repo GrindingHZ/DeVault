@@ -28,6 +28,7 @@ import { useState } from 'react';
 import type { ReactElement } from 'react';
 import { currentAccountKeys, useCurrentAccount } from '../current-account';
 import { MarketShell, useFeedback } from '../market-shell';
+import { CapitalCard } from '../wallet/capital-card';
 import { walletKeys } from '../wallet-keys';
 
 export const Route = createFileRoute('/wallet')({
@@ -60,8 +61,9 @@ function WalletPage(): ReactElement | null {
       <Page>
         <PageHeader
           title="Wallet"
-          description="What you can spend, what is committed to offers, and every movement so far."
+          description="Everything you own, where it is working, and every movement so far."
         />
+        <CapitalCard />
         <BalanceCards />
         <WithdrawCard />
         <HistoryCard />
@@ -124,7 +126,7 @@ function WithdrawCard(): ReactElement {
 
   const withdrawMutation = useMutation({
     mutationFn: (minorUnits: string) =>
-      withdraw({ amount: { minorUnits, currency: 'AUD' } }, { idempotencyKey }),
+      withdraw({ amount: { minorUnits, currency: 'USD' } }, { idempotencyKey }),
     onSuccess: async () => {
       feedback.reportSuccess('The withdrawal went through.');
       setAmountInput('');
@@ -137,7 +139,10 @@ function WithdrawCard(): ReactElement {
   return (
     <Card title="Withdraw">
       <form
-        className="flex items-end gap-3"
+        /* Wraps. The amount field and the button together are wider than a
+           phone, and without this the button hung off the side and took the
+           whole page into a horizontal scroll. */
+        className="flex flex-wrap items-end gap-3"
         onSubmit={(event) => {
           event.preventDefault();
           const minorUnits = toMinorUnits(amountInput);
@@ -150,7 +155,7 @@ function WithdrawCard(): ReactElement {
         }}
       >
         <Field
-          label="Amount (AUD)"
+          label="Amount (USD)"
           data-testid="withdraw-amount"
           value={amountInput}
           onChange={(event) => setAmountInput(event.target.value)}

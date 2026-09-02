@@ -2,12 +2,18 @@ import {
   ApiError,
   createListing,
   fetchMyReceipts,
+  fetchMyListings,
   fetchMyRedemptionRequests,
   messageForError,
   publishListing,
   requestRedemption,
 } from '@depawn/contracts';
-import type { MoneyDto, ReceiptResponse, RedemptionRequestResponse } from '@depawn/contracts';
+import type {
+  MoneyDto,
+  MyListingResponse,
+  ReceiptResponse,
+  RedemptionRequestResponse,
+} from '@depawn/contracts';
 import {
   Button,
   Dialog,
@@ -23,7 +29,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Navigate, createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { z } from 'zod';
 import { useCurrentAccount } from '../current-account';
 import { HoldingDetail } from '../holdings/holding-detail';
@@ -101,6 +107,11 @@ function Holdings(): ReactElement {
     queryKey: receiptKeys.myRedemptions,
     queryFn: fetchMyRedemptionRequests,
   });
+  /* Listing an item does not move it and does not touch its receipt, so the
+     receipt alone cannot say whether one already stands against it. Without
+     this the screen offered to list something already listed, and the server
+     refused it with `RECEIPT_ALREADY_LISTED` after the click. */
+  const listingsQuery = useQuery({ queryKey: receiptKeys.myListings, queryFn: fetchMyListings });
   const [listingReceipt, setListingReceipt] = useState<ReceiptResponse | null>(null);
   const [redemptionError, setRedemptionError] = useState<string | null>(null);
   // Generated on mount and rotated per success (docs/05-frontend.md).
@@ -120,6 +131,62 @@ function Holdings(): ReactElement {
 
   function openItem(receiptId: string | undefined): void {
     void navigate({ search: () => (receiptId === undefined ? {} : { item: receiptId }) });
+  }
+
+  /* What a borrower can do with an item, and nothing they cannot.
+
+     An item already on the market is not listable again and the way to it is
+     the listing, not this screen. A draft goes to the portfolio instead: a
+     listing nobody can see is not on the browse rail to open. */
+  function actionsFor(receipt: ReceiptResponse): ReactNode {
+    if (receipt.status !== 'IN_VAULT') {
+      return undefined;
+    }
+    const listing = liveListingByReceipt.get(receipt.id);
+    if (listing?.status === 'ACTIVE') {
+      return (
+        <Button
+          variant="secondary"
+          className="whitespace-nowrap"
+          data-testid={`view-listing-${receipt.id}`}
+          onClick={() => void navigate({ to: '/listings', search: { listing: listing.id } })}
+        >
+          View listing
+        </Button>
+      );
+    }
+    if (listing?.status === 'DRAFT') {
+      return (
+        <Button
+          variant="secondary"
+          className="whitespace-nowrap"
+          data-testid={`finish-listing-${receipt.id}`}
+          onClick={() => void navigate({ to: '/portfolio', search: { side: 'borrowing' } })}
+        >
+          Finish listing
+        </Button>
+      );
+    }
+    return (
+      <>
+        <Button
+          variant="secondary"
+          data-testid={`list-${receipt.id}`}
+          onClick={() => setListingReceipt(receipt)}
+        >
+          List
+        </Button>
+        <Button
+          variant="secondary"
+          className="whitespace-nowrap"
+          data-testid={`redeem-${receipt.id}`}
+          onClick={() => redemptionMutation.mutate(receipt.id)}
+          disabled={redemptionMutation.isPending}
+        >
+          Ask for it back
+        </Button>
+      </>
+    );
   }
 
   if (receiptsQuery.isPending) {
@@ -148,6 +215,14 @@ function Holdings(): ReactElement {
   const redemptionByReceipt = new Map<string, RedemptionRequestResponse>(
     (redemptionsQuery.data?.items ?? []).map((item) => [item.receiptId, item]),
   );
+  /* Only a live one. A cancelled or expired listing leaves the item free to
+     list again, and a matched one belongs to a loan the receipt already
+     reports by being encumbered. */
+  const liveListingByReceipt = new Map<string, MyListingResponse>(
+    (listingsQuery.data?.items ?? [])
+      .filter((listing) => listing.status === 'DRAFT' || listing.status === 'ACTIVE')
+      .map((listing) => [listing.receiptId, listing]),
+  );
   const opened = receipts.find((receipt) => receipt.id === search.item);
 
   if (receipts.length === 0) {
@@ -159,7 +234,7 @@ function Holdings(): ReactElement {
     );
   }
 
-  const currency = receipts[0]?.appraisedValue.currency ?? 'AUD';
+  const currency = receipts[0]?.appraisedValue.currency ?? 'USD';
   const inVault = receipts.filter((receipt) => receipt.status === 'IN_VAULT');
   const securing = receipts.filter((receipt) => receipt.status === 'ENCUMBERED');
 
@@ -210,29 +285,9 @@ function Holdings(): ReactElement {
             key={receipt.id}
             receipt={receipt}
             redemption={redemptionByReceipt.get(receipt.id)}
+            listingStatus={liveListingByReceipt.get(receipt.id)?.status ?? null}
             onOpen={openItem}
-            actions={
-              receipt.status === 'IN_VAULT' ? (
-                <>
-                  <Button
-                    variant="secondary"
-                    data-testid={`list-${receipt.id}`}
-                    onClick={() => setListingReceipt(receipt)}
-                  >
-                    List
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    className="whitespace-nowrap"
-                    data-testid={`redeem-${receipt.id}`}
-                    onClick={() => redemptionMutation.mutate(receipt.id)}
-                    disabled={redemptionMutation.isPending}
-                  >
-                    Ask for it back
-                  </Button>
-                </>
-              ) : undefined
-            }
+            actions={actionsFor(receipt)}
           />
         ))}
       </div>
@@ -241,6 +296,7 @@ function Holdings(): ReactElement {
         <HoldingDetail
           receipt={opened}
           redemption={redemptionByReceipt.get(opened.id)}
+          listing={liveListingByReceipt.get(opened.id)}
           onClose={() => openItem(undefined)}
         />
       )}
@@ -323,7 +379,7 @@ function ListReceiptDialog({
       const listing = await createListing(
         {
           receiptId: receipt.id,
-          requestedPrincipal: { minorUnits: input.minorUnits, currency: 'AUD' },
+          requestedPrincipal: { minorUnits: input.minorUnits, currency: 'USD' },
           maxAnnualPercentageRateBasisPoints: input.maxRateBasisPoints,
           requestedDurationMs: input.durationDays * 24 * 60 * 60 * 1000,
           requestedLifetimeMs: listingLifetimeMs,
@@ -365,7 +421,7 @@ function ListReceiptDialog({
         }}
       >
         <Field
-          label="Requested principal (AUD)"
+          label="Requested principal (USD)"
           data-testid="list-principal"
           value={principalInput}
           onChange={(event) => setPrincipalInput(event.target.value)}

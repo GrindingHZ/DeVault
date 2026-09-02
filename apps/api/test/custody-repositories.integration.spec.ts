@@ -25,7 +25,7 @@ import { PrismaVaultRepository } from '../src/infrastructure/persistence/reposit
 import { createTestApplication } from './create-test-application';
 import type { TestApplication } from './create-test-application';
 
-const aud = currencyOf('AUD');
+const usd = currencyOf('USD');
 const vaultId = vaultIdOf('REPO-VAULT');
 
 describe('custody repositories', () => {
@@ -58,8 +58,8 @@ describe('custody repositories', () => {
         Vault.create({
           id: vaultId,
           name: 'Repo vault',
-          city: 'Sydney',
-          insuredLimit: Money.of(10_000_000n, aud),
+          city: 'New York',
+          insuredLimit: Money.of(10_000_000n, usd),
         }),
         context,
       ),
@@ -99,7 +99,7 @@ describe('custody repositories', () => {
       id: appraisalIdOf('REPO-AP1'),
       intakeId: intakeIdOf('REPO-I1'),
       appraiserId: staffIdOf('REPO-S1'),
-      value: Money.of(500_000n, aud),
+      value: Money.of(500_000n, usd),
       method: 'spot times weight',
       comparableReferences: 'LBMA',
       appraisedAt: Instant.fromEpochMilliseconds(1_700_000_000_000n),
@@ -111,7 +111,7 @@ describe('custody repositories', () => {
     expect(listed).toHaveLength(1);
     expect(listed[0]?.value.minorUnits).toBe(500_000n);
 
-    const sealed = withSeal.value.seal(listed, Money.of(1_000_000n, aud));
+    const sealed = withSeal.value.seal(listed, Money.of(1_000_000n, usd));
     expect(sealed.ok).toBe(true);
     if (!sealed.ok) {
       return;
@@ -134,7 +134,7 @@ describe('custody repositories', () => {
           vaultId,
           holderAccountId: accountIdOf('REPO-B2'),
           intakeRecordHash: 'hash-2',
-          appraisedValue: Money.of(100_000n, aud),
+          appraisedValue: Money.of(100_000n, usd),
           appraisedAt: Instant.fromEpochMilliseconds(1_700_000_000_000n),
           appraiserId: staffIdOf('REPO-S1'),
           itemCategory: 'BULLION',
@@ -167,7 +167,7 @@ describe('custody repositories', () => {
             vaultId,
             holderAccountId: accountIdOf(`REPO-B-${suffix}`),
             intakeRecordHash: `hash-${suffix}`,
-            appraisedValue: Money.of(minorUnits, aud),
+            appraisedValue: Money.of(minorUnits, usd),
             appraisedAt: Instant.fromEpochMilliseconds(1_700_000_000_000n),
             appraiserId: staffIdOf('REPO-S1'),
             itemCategory: 'BULLION',
@@ -193,7 +193,7 @@ describe('custody repositories', () => {
       adapter.burnReceipt(receiptIdOf(third), 'REDEMPTION', context),
     );
 
-    const exposure = await unitOfWork.run((context) => receipts.exposureOf(vaultId, aud, context));
+    const exposure = await unitOfWork.run((context) => receipts.exposureOf(vaultId, usd, context));
     expect(exposure.minorUnits).toBe(500_000n);
   });
 });

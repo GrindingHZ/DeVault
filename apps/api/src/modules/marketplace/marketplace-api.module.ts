@@ -6,6 +6,9 @@ import { PrismaListingRepository } from '../../infrastructure/persistence/reposi
 import { PrismaMarketQueries } from '../../infrastructure/persistence/queries/prisma-market-queries';
 import { PrismaMarketplaceQueries } from '../../infrastructure/persistence/queries/prisma-marketplace-queries';
 import { CancelListingUseCase } from './application/cancel-listing.use-case';
+import { ExpireListingUseCase } from './application/expire-listing.use-case';
+import { ExpireOfferUseCase } from './application/expire-offer.use-case';
+import { MarketExpirySweep } from './application/market-expiry.sweep';
 import { CreateListingUseCase } from './application/create-listing.use-case';
 import { ListingDetailQuery } from './application/listing-detail.query';
 import { MyListingsQuery } from './application/my-listings.query';
@@ -24,6 +27,9 @@ import { MemberMarketplaceController } from './http/member-marketplace.controlle
     CreateListingUseCase,
     PublishListingUseCase,
     CancelListingUseCase,
+    ExpireListingUseCase,
+    ExpireOfferUseCase,
+    MarketExpirySweep,
     PlaceOfferUseCase,
     WithdrawOfferUseCase,
     ReclaimHoldUseCase,

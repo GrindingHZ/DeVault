@@ -34,7 +34,7 @@ function formatterFor(locale: string, precision: DateTimePrecision): Intl.DateTi
 }
 
 function readerLocale(): string {
-  return typeof navigator === 'undefined' ? 'en-AU' : navigator.language;
+  return typeof navigator === 'undefined' ? 'en-US' : navigator.language;
 }
 
 /* An empty string rather than "Invalid Date". A screen that cannot read one

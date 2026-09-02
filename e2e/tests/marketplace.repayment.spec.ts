@@ -45,7 +45,7 @@ async function issueReceiptFor(request: APIRequestContext, borrowerEmail: string
   await request.post(`${apiBase}/intakes/${intakeId}/appraisals`, {
     headers: { 'idempotency-key': randomUUID() },
     data: {
-      value: { minorUnits: '500000', currency: 'AUD' },
+      value: { minorUnits: '500000', currency: 'USD' },
       method: 'spot times weight',
       comparableReferences: 'LBMA',
     },
@@ -73,7 +73,7 @@ async function fundAccount(
   });
   const deposit = await request.post(`${apiBase}/me/deposits`, {
     headers: { 'idempotency-key': randomUUID() },
-    data: { email, amount: { minorUnits, currency: 'AUD' } },
+    data: { email, amount: { minorUnits, currency: 'USD' } },
   });
   expect(deposit.status()).toBe(201);
   await request.post(`${apiBase}/auth/logout`);
@@ -91,7 +91,7 @@ async function originateLoan(
     headers: { 'idempotency-key': randomUUID() },
     data: {
       receiptId,
-      requestedPrincipal: { minorUnits: '250000', currency: 'AUD' },
+      requestedPrincipal: { minorUnits: '250000', currency: 'USD' },
       maxAnnualPercentageRateBasisPoints: 2400,
       requestedDurationMs: 30 * oneDay,
       requestedLifetimeMs: 3_600_000,
@@ -108,7 +108,7 @@ async function originateLoan(
   const offer = await request.post(`${apiBase}/listings/${listingId}/offers`, {
     headers: { 'idempotency-key': randomUUID() },
     data: {
-      principal: { minorUnits: '250000', currency: 'AUD' },
+      principal: { minorUnits: '250000', currency: 'USD' },
       annualPercentageRateBasisPoints: 1800,
       durationMs: 30 * oneDay,
       expiresAt,
@@ -166,8 +166,8 @@ test('a borrower repays a matured loan and the item comes back', async ({ page, 
   /* The quote opens under the table rather than on its own screen, so the
      borrower never loses sight of the rest of what they owe. */
   await page.getByRole('button', { name: 'Repay', exact: true }).click();
-  await expect(page.getByTestId('payoff-total')).toContainText('AUD 2,512.32');
-  await expect(page.getByTestId('payoff-interest')).toContainText('AUD 12.32');
+  await expect(page.getByTestId('payoff-total')).toContainText('USD 2,512.32');
+  await expect(page.getByTestId('payoff-interest')).toContainText('USD 12.32');
   await expect(page.getByTestId('payoff-countdown')).toContainText('seconds');
 
   await page.getByRole('button', { name: 'Repay and release the item' }).click();
@@ -178,5 +178,5 @@ test('a borrower repays a matured loan and the item comes back', async ({ page, 
 
   await page.getByRole('link', { name: 'Wallet' }).click();
   // 2450.00 disbursed plus 500.00 funded less the 2512.32 repaid.
-  await expect(page.getByTestId('available-balance')).toHaveText('AUD 437.68');
+  await expect(page.getByTestId('available-balance')).toHaveText('USD 437.68');
 });

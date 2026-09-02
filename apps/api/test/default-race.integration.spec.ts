@@ -12,9 +12,9 @@ const vaultId = 'VAULT-DRACE-1';
 const password = 'a-long-enough-password';
 const oneDay = 24n * 60n * 60n * 1000n;
 const raceRounds = 20;
-const amount = (minorUnits: string): { minorUnits: string; currency: 'AUD' } => ({
+const amount = (minorUnits: string): { minorUnits: string; currency: 'USD' } => ({
   minorUnits,
-  currency: 'AUD',
+  currency: 'USD',
 });
 
 describe('default and claim races', () => {
@@ -62,9 +62,9 @@ describe('default and claim races', () => {
       data: {
         id: vaultId,
         name: 'Race vault',
-        city: 'Sydney',
+        city: 'New York',
         insuredLimitMinorUnits: 100_000_000n,
-        currency: 'AUD',
+        currency: 'USD',
       },
     });
     const borrower = await loginAs(`borrower-${round}@drace.test`, 'MEMBER');
@@ -85,7 +85,7 @@ describe('default and claim races', () => {
         holderAccountId: borrower.accountId,
         intakeRecordHash: `hash-drace-${round}`,
         appraisedValueMinorUnits: 500_000n,
-        currency: 'AUD',
+        currency: 'USD',
         appraisedAt: new Date(0),
         appraiserId: 'S1',
         itemCategory: 'BULLION',
@@ -101,7 +101,7 @@ describe('default and claim races', () => {
         borrowerAccountId: borrower.accountId,
         receiptId,
         requestedPrincipalMinorUnits: 250_000n,
-        currency: 'AUD',
+        currency: 'USD',
         maxAnnualPercentageRateBasisPoints: 2400,
         requestedDurationMs: 30n * oneDay,
         expiresAt: new Date(Number(harness.clock.now().epochMilliseconds) + 86_400_000),

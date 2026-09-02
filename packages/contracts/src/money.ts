@@ -13,5 +13,5 @@ export type MoneyDto = z.infer<typeof moneySchema>;
    model carries currency everywhere so widening later is a schema change. */
 export const positiveMoneySchema = z.object({
   minorUnits: z.string().regex(/^[1-9]\d*$/),
-  currency: z.literal('AUD'),
+  currency: z.literal('USD'),
 });

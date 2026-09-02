@@ -7,7 +7,7 @@ import type { ReceiptEvent, ReceiptStatus } from './custody-receipt';
 import type { Result } from '../shared/result';
 import type { DomainError } from '../shared/domain-error';
 
-const aud = currencyOf('AUD');
+const usd = currencyOf('USD');
 
 function receiptIn(status: ReceiptStatus): CustodyReceipt {
   return CustodyReceipt.restore({
@@ -15,7 +15,7 @@ function receiptIn(status: ReceiptStatus): CustodyReceipt {
     vaultId: vaultIdOf('V1'),
     holderAccountId: accountIdOf('A1'),
     intakeRecordHash: 'hash',
-    appraisedValue: Money.of(500_000n, aud),
+    appraisedValue: Money.of(500_000n, usd),
     appraisedAt: Instant.fromEpochMilliseconds(1_700_000_000_000n),
     appraiserId: staffIdOf('S1'),
     itemCategory: 'BULLION',
@@ -105,7 +105,7 @@ describe('CustodyReceipt transitions', () => {
         vaultId: vaultIdOf('V1'),
         holderAccountId: accountIdOf('A1'),
         intakeRecordHash: 'hash',
-        appraisedValue: Money.of(1n, aud),
+        appraisedValue: Money.of(1n, usd),
         appraisedAt: Instant.fromEpochMilliseconds(0n),
         appraiserId: staffIdOf('S1'),
         itemCategory: 'BULLION',

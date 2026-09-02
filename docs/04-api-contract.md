@@ -41,7 +41,7 @@ exists.
   "error": {
     "code": "LOAN_TO_VALUE_EXCEEDED",
     "message": "Requested principal exceeds the maximum for this item category.",
-    "details": { "maxPrincipal": { "minorUnits": "300000", "currency": "AUD" } }
+    "details": { "maxPrincipal": { "minorUnits": "300000", "currency": "USD" } }
   }
 }
 ```
@@ -143,8 +143,26 @@ GET    /loans/:id/payoff-quote                    amount due as of now
 POST   /loans/:id/repay
 POST   /loans/:id/default                         note holder marks default after grace
 POST   /loans/:id/claim-receipt                   note holder takes the receipt
-POST   /notes/:id/transfer                        feature-flagged off by default
 ```
+
+### Secondary market
+
+The sale endpoints subsume the bare `POST /notes/:id/transfer` this contract once specced: a
+transfer without a payment leg is an assignment, not an exit, and it was never built. The whole
+group answers `NOTE_TRANSFER_DISABLED` while the `notesTransferable` parameter is off.
+
+```
+POST   /notes/:id/sales                           list the lender note at an ask
+POST   /sales/:id/withdraw                        seller withdraws an open sale
+POST   /sales/:id/purchase                        instant buy at the ask
+GET    /market/note-sales                         open sales with item, loan, and priced figures
+GET    /me/note-sales                             the caller's sales, open and settled
+```
+
+The ask is capped at the loan's current value, principal plus interest accrued so far, checked at
+listing time. A refused ask answers `ASK_EXCEEDS_CURRENT_VALUE` with `details.currentValue`, the
+way a stale payoff quote answers with the figure now due. The browse response prices every figure
+the value chart draws (current value, maturity value) so no client computes money.
 
 `payoff-quote` returns `{ principal, accruedInterest, total, quotedAt, validUntil }`. The client must
 send `quotedAt` back with the repayment so the server can detect a stale quote. Interest moves with
@@ -156,11 +174,21 @@ happen.
 ```
 POST   /loans/:id/liquidations                    OPERATIONS. Enforces the holding period.
 POST   /liquidations/:id/open
+POST   /liquidations/:id/cancel                   OPERATIONS. SCHEDULED only, reason required.
 GET    /liquidations?status=
 GET    /liquidations/:id
 POST   /liquidations/:id/bids
 POST   /liquidations/:id/close                    runs the waterfall, settles
+GET    /me/bids                                   the caller's bids and whether the money is held
+POST   /liquidations/:id/bids/:bidId/reclaim      reclaim a beaten hold
 ```
+
+Cancelling is refused once bidding has opened: an open sale holds every bidder's money and nothing
+refunds them in bulk. A cancelled sale frees the loan to be scheduled again.
+
+`GET /me/bids` carries `isHoldHeld` for the same reason `GET /me/offers` does. Reclaiming refunds the
+hold and writes nothing back to the bid, so the bid alone cannot say whether there is anything left
+to ask for, and a screen reading it alone goes on asking for money already home.
 
 ### Admin and operations
 
@@ -186,7 +214,7 @@ Idempotency-Key: 4f1a...
 Content-Type: application/json
 
 {
-  "principal": { "minorUnits": "250000", "currency": "AUD" },
+  "principal": { "minorUnits": "250000", "currency": "USD" },
   "annualPercentageRateBasisPoints": 1800,
   "durationMs": 2592000000,
   "expiresAt": "2026-09-01T00:00:00.000Z"
@@ -198,7 +226,7 @@ Content-Type: application/json
   "id": "01HY...",
   "listingId": "01HX...",
   "status": "PENDING",
-  "principal": { "minorUnits": "250000", "currency": "AUD" },
+  "principal": { "minorUnits": "250000", "currency": "USD" },
   "annualPercentageRateBasisPoints": 1800,
   "durationMs": 2592000000,
   "fundsHold": {
@@ -217,14 +245,14 @@ Accepting an offer:
   "loan": {
     "id": "01J1...",
     "status": "ACTIVE",
-    "principal": { "minorUnits": "250000", "currency": "AUD" },
+    "principal": { "minorUnits": "250000", "currency": "USD" },
     "annualPercentageRateBasisPoints": 1800,
     "startedAt": "2026-08-14T...",
     "maturesAt": "2026-09-13T...",
     "graceEndsAt": "2026-09-20T..."
   },
-  "disbursement": { "minorUnits": "245000", "currency": "AUD" },
-  "originationFee": { "minorUnits": "5000", "currency": "AUD" },
+  "disbursement": { "minorUnits": "245000", "currency": "USD" },
+  "originationFee": { "minorUnits": "5000", "currency": "USD" },
   "settlementRef": { "kind": "ledger", "reference": "01J2...", "settledAt": "2026-08-14T..." }
 }
 ```
@@ -248,6 +276,7 @@ LOAN_TO_VALUE_EXCEEDED  RATE_ABOVE_MAXIMUM
 LOAN_NOT_ACTIVE  LOAN_NOT_MATURED  GRACE_PERIOD_ACTIVE
 REPAYMENT_AMOUNT_INSUFFICIENT  PAYOFF_QUOTE_STALE
 HOLDING_PERIOD_ACTIVE  LIQUIDATION_NOT_OPEN  BID_BELOW_RESERVE
-NOTE_TRANSFER_DISABLED
+NOTE_TRANSFER_DISABLED  NOTE_SALE_NOT_OPEN  NOTE_ALREADY_LISTED
+ASK_EXCEEDS_CURRENT_VALUE  CANNOT_BUY_OWN_POSITION
 SYSTEM_PAUSED
 ```

@@ -63,7 +63,7 @@ interface Item {
 
 /* Position is a contract, not an ordering. buildDataset reads this list by
    index: 0 is borrowed, repaid and walked back out; 1 defaults and goes to
-   sale against a reserve of AUD 1,500; 2 to 4 carry the running loans;
+   sale against a reserve of USD 1,500; 2 to 4 carry the running loans;
    everything from 5 on stays on the marketplace taking offers. Moving an
    entry moves the story it is in, so add at the end rather than reordering.
 
@@ -80,13 +80,13 @@ const items: readonly Item[] = [
     appraisedMinorUnits: '520000',
     askMinorUnits: '250000',
     appraisalMethod: 'spot price at appraisal against 999.9 assay',
-    comparableReferences: 'Perth Mint published spot, plus retail premium',
+    comparableReferences: 'COMEX published spot, plus retail premium',
     serialNumbers: ['PM-2024-AU1-0084213'],
     tint: [212, 175, 84],
   },
   {
-    /* Position 1: defaults and is sold. Priced so the reserve of AUD 1,500
-       and the bids of AUD 1,800 and 2,100 read as a real result. */
+    /* Position 1: defaults and is sold. Priced so the reserve of USD 1,500
+       and the bids of USD 1,800 and 2,100 read as a real result. */
     description: 'Signed Print',
     category: 'ART',
     appraisedMinorUnits: '380000',
@@ -134,7 +134,7 @@ const items: readonly Item[] = [
     appraisedMinorUnits: '1680000',
     askMinorUnits: '700000',
     appraisalMethod: 'spot price at appraisal, assay card intact and matching',
-    comparableReferences: 'Perth Mint published spot, plus bar premium',
+    comparableReferences: 'COMEX published spot, plus bar premium',
     serialNumbers: ['PAMP-C401882'],
     tint: [216, 182, 96],
   },
@@ -198,6 +198,230 @@ const items: readonly Item[] = [
     serialNumbers: [],
     tint: [120, 96, 74],
   },
+];
+
+/* The rest of the catalogue, kept terse on purpose. Everything above is
+   written out because the runbook names those items; these exist so every
+   state a screen can be in has something real sitting in it, and an appraisal
+   method is a property of the category rather than of the individual object,
+   so it is written once per category rather than thirty times. */
+const methodsByCategory: Record<
+  Item['category'],
+  Pick<Item, 'appraisalMethod' | 'comparableReferences'>
+> = {
+  BULLION: {
+    appraisalMethod: 'spot price at appraisal against the stamped assay',
+    comparableReferences: 'published spot, plus the premium the form carries',
+  },
+  WATCH: {
+    appraisalMethod: 'comparable sales, movement and case inspected',
+    comparableReferences: 'sold listings, 90 day median for this reference',
+  },
+  JEWELLERY: {
+    appraisalMethod: 'stones certificated, metal assayed, setting inspected',
+    comparableReferences: 'auction results for comparable stones and metal weight',
+  },
+  COLLECTIBLE: {
+    appraisalMethod: 'authenticated and graded, condition photographed',
+    comparableReferences: 'graded population report and recent cleared sales',
+  },
+  ART: {
+    appraisalMethod: 'attribution checked, condition inspected unframed',
+    comparableReferences: 'comparable lots cleared at auction within a year',
+  },
+};
+
+interface TerseItem {
+  readonly description: string;
+  readonly category: Item['category'];
+  readonly appraisedMinorUnits: string;
+  readonly askMinorUnits: string;
+  readonly serial: string;
+  readonly tint: readonly [number, number, number];
+}
+
+const terseItems: readonly TerseItem[] = [
+  {
+    description: 'Krugerrand Set',
+    category: 'BULLION',
+    appraisedMinorUnits: '740000',
+    askMinorUnits: '400000',
+    serial: 'PM-2022-AU-77120',
+    tint: [206, 168, 78],
+  },
+  {
+    description: 'Platinum Bar',
+    category: 'BULLION',
+    appraisedMinorUnits: '980000',
+    askMinorUnits: '520000',
+    serial: 'PM-2021-PT-30188',
+    tint: [188, 192, 198],
+  },
+  {
+    description: 'Silver Coin Roll',
+    category: 'BULLION',
+    appraisedMinorUnits: '260000',
+    askMinorUnits: '120000',
+    serial: 'PM-2020-AG-99031',
+    tint: [172, 178, 186],
+  },
+  {
+    description: 'Cartier Tank',
+    category: 'WATCH',
+    appraisedMinorUnits: '1420000',
+    askMinorUnits: '520000',
+    serial: 'CASE-CT-4471902',
+    tint: [70, 76, 88],
+  },
+  {
+    description: 'Tudor Diver',
+    category: 'WATCH',
+    appraisedMinorUnits: '860000',
+    askMinorUnits: '340000',
+    serial: 'CASE-TD-2210447',
+    tint: [52, 66, 84],
+  },
+  {
+    description: 'Grand Seiko',
+    category: 'WATCH',
+    appraisedMinorUnits: '1080000',
+    askMinorUnits: '420000',
+    serial: 'CASE-GS-9F86112',
+    tint: [96, 102, 110],
+  },
+  {
+    description: 'Sapphire Pendant',
+    category: 'JEWELLERY',
+    appraisedMinorUnits: '690000',
+    askMinorUnits: '260000',
+    serial: 'GIA-4471120884',
+    tint: [96, 128, 190],
+  },
+  {
+    description: 'Emerald Studs',
+    category: 'JEWELLERY',
+    appraisedMinorUnits: '540000',
+    askMinorUnits: '200000',
+    serial: 'GIA-2210049971',
+    tint: [96, 168, 128],
+  },
+  {
+    description: 'Signet Ring',
+    category: 'JEWELLERY',
+    appraisedMinorUnits: '310000',
+    askMinorUnits: '120000',
+    serial: 'HM-LON-88214',
+    tint: [198, 166, 96],
+  },
+  {
+    description: 'Rookie Card',
+    category: 'COLLECTIBLE',
+    appraisedMinorUnits: '1240000',
+    askMinorUnits: '400000',
+    serial: 'PSA-77120448',
+    tint: [184, 112, 74],
+  },
+  {
+    description: 'First Edition',
+    category: 'COLLECTIBLE',
+    appraisedMinorUnits: '470000',
+    askMinorUnits: '160000',
+    serial: 'ISBN-0-7475-3269-9',
+    tint: [148, 122, 96],
+  },
+  {
+    description: 'Vintage Camera',
+    category: 'COLLECTIBLE',
+    appraisedMinorUnits: '380000',
+    askMinorUnits: '120000',
+    serial: 'LEI-M3-0784412',
+    tint: [88, 90, 94],
+  },
+  {
+    description: 'Bronze Study',
+    category: 'ART',
+    appraisedMinorUnits: '820000',
+    askMinorUnits: '240000',
+    serial: 'FND-88-0412',
+    tint: [142, 108, 76],
+  },
+  {
+    description: 'Ink Drawing',
+    category: 'ART',
+    appraisedMinorUnits: '290000',
+    askMinorUnits: '80000',
+    serial: 'STU-DR-1188',
+    tint: [176, 172, 164],
+  },
+  {
+    description: 'Silkscreen Print',
+    category: 'ART',
+    appraisedMinorUnits: '640000',
+    askMinorUnits: '180000',
+    serial: 'ED-44-OF-120',
+    tint: [206, 96, 108],
+  },
+  {
+    description: 'Gold Chain',
+    category: 'JEWELLERY',
+    appraisedMinorUnits: '450000',
+    askMinorUnits: '170000',
+    serial: 'HM-MIL-77410',
+    tint: [204, 172, 90],
+  },
+  {
+    description: 'Omega Constellation',
+    category: 'WATCH',
+    appraisedMinorUnits: '620000',
+    askMinorUnits: '240000',
+    serial: 'CASE-OC-1180922',
+    tint: [78, 84, 92],
+  },
+  {
+    description: 'Proof Sovereign',
+    category: 'BULLION',
+    appraisedMinorUnits: '350000',
+    askMinorUnits: '160000',
+    serial: 'PM-2019-AU-11284',
+    tint: [214, 180, 92],
+  },
+  {
+    description: 'Art Deco Brooch',
+    category: 'JEWELLERY',
+    appraisedMinorUnits: '580000',
+    askMinorUnits: '210000',
+    serial: 'GIA-9902114477',
+    tint: [150, 160, 190],
+  },
+  {
+    description: 'Comic Issue One',
+    category: 'COLLECTIBLE',
+    appraisedMinorUnits: '910000',
+    askMinorUnits: '300000',
+    serial: 'CGC-2011478',
+    tint: [190, 130, 90],
+  },
+  {
+    description: 'Watercolour Coast',
+    category: 'ART',
+    appraisedMinorUnits: '340000',
+    askMinorUnits: '95000',
+    serial: 'STU-WC-4471',
+    tint: [130, 168, 186],
+  },
+];
+
+const catalogue: readonly Item[] = [
+  ...items,
+  ...terseItems.map((terse) => ({
+    description: terse.description,
+    category: terse.category,
+    appraisedMinorUnits: terse.appraisedMinorUnits,
+    askMinorUnits: terse.askMinorUnits,
+    serialNumbers: [terse.serial],
+    tint: terse.tint,
+    ...methodsByCategory[terse.category],
+  })),
 ];
 
 /* The seed drives the same HTTP surface the three apps drive rather than
@@ -293,14 +517,26 @@ function identifierOf(payload: Record<string, unknown>): string {
 /* Every deadline in the dataset is measured against the api's clock, not the
    seed's. They part company the moment the seed advances time, and a listing
    dated from the seed's own clock would be born already expired. */
-let clockOffsetMs = 0;
+/* How far the story runs from its first day to its last. The seed starts the
+   clock this far in the past and plays forward, so the demo finishes at
+   roughly the real today rather than months beyond it.
+
+   Running forward from now was the obvious thing and it read badly: the
+   richer the story got, the further into the future the demo landed, until
+   every date on every screen was a season away from the reader's own. The
+   clock still only ever moves forwards while the api is running (flow 15);
+   the rewind is a single write the seed makes to an empty table before the
+   process that reads it has started. */
+const storyLengthDays = 123;
+
+let clockOffsetMs = -storyLengthDays * oneDay;
 
 function serverNow(): number {
   return Date.now() + clockOffsetMs;
 }
 
-function money(minorUnits: string): { minorUnits: string; currency: 'AUD' } {
-  return { minorUnits, currency: 'AUD' };
+function money(minorUnits: string): { minorUnits: string; currency: 'USD' } {
+  return { minorUnits, currency: 'USD' };
 }
 
 /* The end to end suite wants the fixed accounts and the vault and nothing
@@ -331,6 +567,13 @@ async function main(): Promise<void> {
      database. Seeding on top of a previous run would double the loan book
      and leave the runbook describing a screen nobody can reproduce. */
   await emptyEveryTable(prisma);
+  /* Written before the api boots, because the clock adapter reads this row
+     once at startup and holds it. */
+  await prisma.demoClock.upsert({
+    where: { id: 'DEMO' },
+    create: { id: 'DEMO', offsetMs: BigInt(clockOffsetMs) },
+    update: { offsetMs: BigInt(clockOffsetMs) },
+  });
   await emptyStoredObjects(configuration.storageDirectory);
   const passwordHash = await hash(demoPassword);
 
@@ -347,16 +590,16 @@ async function main(): Promise<void> {
     update: {},
     create: {
       id: vaultId,
-      name: 'Sydney vault',
-      city: 'Sydney',
+      name: 'New York vault',
+      city: 'New York',
       insuredLimitMinorUnits: 100_000_000n,
-      currency: 'AUD',
+      currency: 'USD',
     },
   });
 
   if (accountsOnly) {
     await prisma.$disconnect();
-    process.stdout.write('seeded the demo accounts and the Sydney vault\n');
+    process.stdout.write('seeded the demo accounts and the New York vault\n');
     return;
   }
 
@@ -387,125 +630,241 @@ interface Receipt {
   readonly ask: string;
 }
 
+const member = 'member@demo.test';
+const secondLender = 'lender@demo.test';
+
+/* The whole story, told forwards, because the demo clock only runs that way.
+
+   It is written as a timeline rather than as a list of fixtures for one
+   reason: almost every state worth showing is one that something reaches by
+   ageing. A loan halfway through its term, a hold that lost and was never
+   reclaimed, a sale voided by the repayment that landed under it, a wallet
+   whose balance actually moves: none of these can be written down, they have
+   to be lived through. The offsets below are therefore chosen backwards from
+   where the story should end, and executed forwards.
+
+   Everything member@demo.test owns is deliberate. That account is what the
+   runbook signs in as, and it used to own nothing at all: the entire loan
+   book belonged to the cast, so the first screen a reader saw was empty. It
+   now holds both sides of the market, which is what the product says an
+   account is anyway (Q-028). */
 async function buildDataset(origin: string): Promise<void> {
   const clock = new DemoClient(origin);
   const staff = new DemoClient(origin);
   const operations = new DemoClient(origin);
 
+  /* The cast only. The five fixed accounts are upserted before the api is
+     even started, and registering one of those again is a conflict. */
   for (const email of Object.values(cast)) {
     await new DemoClient(origin).call('POST', '/auth/register', { email, password: demoPassword });
   }
   await staff.signIn(staffEmail, demoPassword);
   await operations.signIn(operationsEmail, demoPassword);
-
-  const borrowers = [cast.ada, cast.bruno, cast.chen, cast.dara, cast.elena, cast.farid, cast.gita];
-  const receipts: Receipt[] = [];
-  for (const [index, item] of items.entries()) {
-    const borrower = borrowers[index % borrowers.length] ?? cast.ada;
-    receipts.push({
-      id: await issueReceipt(staff, borrower, item),
-      borrower,
-      ask: item.askMinorUnits,
-    });
-  }
-  const receiptAt = (index: number): Receipt => {
-    const receipt = receipts[index];
-    if (receipt === undefined) {
-      throw new Error(`the seed expects a receipt at position ${index}`);
-    }
-    return receipt;
-  };
-
-  /* Enough for every lender and bidder to cover what the story asks of them.
-     The binding case is the account that places the losing offer on all five
-     originations and then offers on two of the live listings: those holds sit
-     side by side, because a superseded hold stays held until its lender
-     reclaims it (flow 4). That account commits AUD 27,000 before anything is
-     returned, so the float has to clear it with room rather than exactly. */
-  for (const email of Object.values(cast)) {
-    await operations.call('POST', '/me/deposits', { email, amount: money('4000000') });
-  }
-
   const staffAndOperations = [
     [staff, staffEmail],
     [operations, operationsEmail],
   ] as const;
 
-  /* Order matters more than it looks. Everything that needs time to pass goes
-     first, because the clock only runs forwards: a loan originated before the
-     jumps would be aged out by them. The loans meant to be still running are
-     therefore written last, after the clock has finished moving. */
+  /* Who holds what. The reader's own items come first so the story can name
+     them by position, then the cast's, which are what the reader lends
+     against and browses. */
+  const castOwners = [
+    cast.ada,
+    cast.bruno,
+    cast.chen,
+    cast.dara,
+    cast.elena,
+    cast.farid,
+    cast.gita,
+  ];
+  const owners: readonly string[] = [
+    ...Array.from({ length: 16 }, () => member),
+    ...Array.from(
+      { length: 17 },
+      (_unused, index) => castOwners[index % castOwners.length] ?? cast.ada,
+    ),
+  ];
+  const receipts: Receipt[] = [];
+  for (const [index, item] of catalogue.entries()) {
+    const owner = owners[index] ?? cast.ada;
+    receipts.push({
+      id: await issueReceipt(staff, owner, item),
+      borrower: owner,
+      ask: item.askMinorUnits,
+    });
+  }
+  const at = (index: number): Receipt => {
+    const receipt = receipts[index];
+    if (receipt === undefined) {
+      throw new Error(`the seed expects a receipt at position ${String(index)}`);
+    }
+    return receipt;
+  };
 
-  /* The completed cycle: borrowed, repaid, and the item walked back out of
-     the vault, so the demo can show the whole arc without waiting. */
-  const repaid = await originate(origin, receiptAt(0), 1800, 30);
+  /* Enough for everyone to play their part with room to spare. The reader
+     gets the most because they are on both sides of eleven loans. */
+  for (const email of Object.values(cast)) {
+    await operations.call('POST', '/me/deposits', { email, amount: money('6000000') });
+  }
+  await operations.call('POST', '/me/deposits', { email: secondLender, amount: money('4000000') });
+  await operations.call('POST', '/me/deposits', { email: member, amount: money('8000000') });
+
+  /* Day zero. The oldest things in the book, so the wallet has somewhere to
+     start and the longest chart window has something in it. */
+  const collected = await originateBetween(origin, at(0), cast.ada, 1800, 30);
+  const settledLending = await originateBetween(origin, at(16), member, 2000, 30);
+
+  /* A hold that is about to lose. Refunds are pull and not push, so this is
+     the money nobody ever finds until the bell points at it (flow 9). */
+  const contested = await publishListing(origin, at(17), 21, 2600);
+  await placeOffer(origin, contested, member, 2400);
+
+  await advance(clock, oneDay, staffAndOperations);
+  await placeOffer(origin, contested, cast.elena, 1900);
+  await acceptBest(origin, at(17).borrower, contested);
+
+  await advance(clock, 4 * oneDay, staffAndOperations);
+  // A withdrawal, so the capital line has a step down in it as well as up.
+  await withdrawCash(origin, member, '500000');
+
+  await advance(clock, 25 * oneDay, staffAndOperations);
+  await repay(origin, collected);
+  await redeem(origin, staff, collected.borrower, at(0).id);
+
   await advance(clock, 5 * oneDay, staffAndOperations);
-  await repay(origin, repaid);
-  await redeem(origin, staff, repaid.borrower, receiptAt(0).id);
+  await repay(origin, settledLending);
 
-  /* The defaulted loan, mid sale with two bids against it. Fourteen days to
-     maturity plus seven of grace plus the statutory holding period is what
-     stands between origination and a sale that is allowed to happen. */
-  const defaulted = await originate(origin, receiptAt(1), 2400, 14);
+  /* Day forty. Loans that will not be repaid, so the book has defaults on
+     both sides of it and the wallet grows a band for money at risk. */
+  await advance(clock, 5 * oneDay, staffAndOperations);
+  await operations.call('POST', '/me/deposits', { email: member, amount: money('2000000') });
+  const claimable = await originateBetween(origin, at(18), member, 2400, 14);
+  const claimed = await originateBetween(origin, at(19), member, 2400, 14);
+  const lentAndSold = await originateBetween(origin, at(20), member, 2200, 14);
+  const lostToLender = await originateBetween(origin, at(3), cast.gita, 2400, 14);
+  const lostToSale = await originateBetween(origin, at(4), cast.dara, 2200, 14);
+
+  /* Day sixty two, past maturity and past grace on all five. */
   await advance(clock, 22 * oneDay, staffAndOperations);
-  const lender = new DemoClient(origin);
-  await lender.signIn(defaulted.lender, demoPassword);
-  await lender.call('POST', `/loans/${defaulted.loanId}/default`, {});
-  await advance(clock, 31 * oneDay, staffAndOperations);
-  const scheduled = await operations.call('POST', `/loans/${defaulted.loanId}/liquidations`, {
-    reservePrice: money('150000'),
-  });
-  const liquidationId = identifierOf(scheduled);
-  await operations.call('POST', `/liquidations/${liquidationId}/open`, {
-    biddingWindowMs: 7 * oneDay,
-  });
-  for (const [bidder, amount] of [
-    [cast.farid, '180000'],
-    [cast.gita, '210000'],
-  ] as const) {
-    const client = new DemoClient(origin);
-    await client.signIn(bidder, demoPassword);
-    await client.call('POST', `/liquidations/${liquidationId}/bids`, { amount: money(amount) });
+  await markDefaulted(origin, member, claimable.loanId);
+  await markDefaulted(origin, member, claimed.loanId);
+  await claimCollateral(origin, member, claimed.loanId);
+  await markDefaulted(origin, member, lentAndSold.loanId);
+  await markDefaulted(origin, cast.gita, lostToLender.loanId);
+  await claimCollateral(origin, cast.gita, lostToLender.loanId);
+  await markDefaulted(origin, cast.dara, lostToSale.loanId);
+
+  /* Day eighty. The loans that have to be past their grace by the end are
+     the oldest of the ones still running, so they are written first. */
+  await advance(clock, 18 * oneDay, staffAndOperations);
+  await originateBetween(origin, at(5), cast.ada, 1600, 30);
+  await originateBetween(origin, at(21), member, 2100, 30);
+
+  await advance(clock, 7 * oneDay, staffAndOperations);
+  await originateBetween(origin, at(6), cast.bruno, 1700, 30);
+
+  await advance(clock, 5 * oneDay, staffAndOperations);
+  await originateBetween(origin, at(22), member, 2300, 30);
+
+  /* Day ninety three. The statutory holding period has run on the day sixty
+     two defaults, so two sales can settle, and one is left taking bids. */
+  await advance(clock, oneDay, staffAndOperations);
+  await liquidate(origin, operations, lostToSale.loanId, '150000', ['180000', '210000'], true);
+  await liquidate(origin, operations, lentAndSold.loanId, '120000', ['140000', '165000'], true);
+  await liquidate(origin, operations, claimable.loanId, '130000', ['150000'], false);
+
+  await advance(clock, 4 * oneDay, staffAndOperations);
+  const lentMidway = await originateBetween(origin, at(23), member, 1900, 45);
+
+  await advance(clock, 3 * oneDay, staffAndOperations);
+  // A fortnight on it, so it is past its closing date by the end.
+  await publishListing(origin, at(7), 30, 2400, 14);
+
+  await advance(clock, 5 * oneDay, staffAndOperations);
+  await operations.call('POST', '/me/deposits', { email: member, amount: money('1000000') });
+
+  /* Everything that has to still be running at the end, placed so it lands
+     where the story wants it: halfway, due tomorrow, barely started. */
+  await advance(clock, 5 * oneDay, staffAndOperations);
+  await originateBetween(origin, at(8), cast.chen, 1800, 30);
+
+  await advance(clock, 2 * oneDay, staffAndOperations);
+  await originateBetween(origin, at(9), cast.elena, 2000, 14);
+
+  await advance(clock, 3 * oneDay, staffAndOperations);
+  const soldPosition = await originateBetween(origin, at(24), member, 2000, 30);
+  const withdrawnPosition = await originateBetween(origin, at(25), member, 2000, 30);
+  const voidedPosition = await originateBetween(origin, at(26), member, 2000, 14);
+  const soldSale = await listPositionForSale(origin, soldPosition, 97n);
+  await purchasePosition(origin, cast.chen, soldSale);
+  const withdrawnSale = await listPositionForSale(origin, withdrawnPosition, 96n);
+  await withdrawPositionSale(origin, withdrawnPosition, withdrawnSale);
+  await listPositionForSale(origin, voidedPosition, 98n);
+
+  await advance(clock, 7 * oneDay, staffAndOperations);
+  const lentEarly = await originateBetween(origin, at(27), member, 1700, 90);
+
+  await advance(clock, oneDay, staffAndOperations);
+  // Repaying under an open sale is what voids it (flow 18).
+  await repay(origin, voidedPosition);
+  await originateBetween(origin, at(10), cast.farid, 1500, 90);
+
+  /* The position on the market has run three weeks of its forty five, so the
+     principal and what it is worth today are far enough apart to draw. */
+  await listPositionForSale(origin, lentMidway, 97n);
+  await listPositionForSale(origin, lentEarly, 98n);
+
+  /* The live marketplace, published last so nothing here has aged out: one
+     with a book on it, one nobody has offered on, one closing within the
+     day, one the reader cancelled, and one never published at all. */
+  const busy = await publishListing(origin, at(11), 30, 2400);
+  await placeOffer(origin, busy, cast.ada, 2200);
+  await placeOffer(origin, busy, cast.bruno, 1950);
+  await placeOffer(origin, busy, secondLender, 1800);
+  await publishListing(origin, at(12), 45, 2600);
+  await publishListing(origin, at(13), 21, 2500, 1);
+  const cancelled = await publishListing(origin, at(14), 30, 2400);
+  await cancelListing(origin, at(14).borrower, cancelled);
+  await draftListing(origin, at(15), 30, 2400);
+
+  /* Other people's listings, which is what the reader browses, and two
+     offers of the reader's own left standing on them. */
+  for (const [index, receiptIndex] of [28, 29, 30, 31, 32].entries()) {
+    const listing = await publishListing(origin, at(receiptIndex), 30 + index * 15, 2400);
+    await placeOffer(origin, listing, cast.farid, 2100 - index * 50);
+    if (index < 2) {
+      await placeOffer(origin, listing, member, 1900 - index * 50);
+    }
   }
 
-  /* Three running loans at three distances from maturity, so the loan book
-     has a near term, a mid term, and a long one rather than a single date. */
-  const active: SeededLoan[] = [];
-  for (const [index, durationDays] of [14, 45, 90].entries()) {
-    active.push(await originate(origin, receiptAt(2 + index), 1500 + index * 300, durationDays));
-  }
+  /* The item the reader has repaid for and not yet walked out with, and the
+     one they have asked for but not collected. Both are errands rather than
+     positions, and the bell counts the first of them. */
+  const awaitingCollection = await originateBetween(origin, at(1), cast.ada, 1800, 14);
+  await repay(origin, awaitingCollection);
+  const askedFor = await originateBetween(origin, at(2), cast.bruno, 1800, 14);
+  await repay(origin, askedFor);
+  await requestRedemption(origin, askedFor.borrower, at(2).id);
 
-  // Three listings taking offers, so the marketplace is not an empty table.
-  for (const [index, receipt] of receipts.slice(5).entries()) {
-    const listingId = await publishListing(origin, receipt, 30);
-    await placeOffer(
-      origin,
-      listingId,
-      borrowers[(index + 2) % borrowers.length] ?? cast.ada,
-      1600,
+  /* The story is supposed to end where it started from the reader's point of
+     view: on today. If an advance is added or removed without moving
+     storyLengthDays with it, the demo silently drifts into the future again,
+     which is the whole thing this arrangement exists to prevent. */
+  const daysAdrift = Math.round(clockOffsetMs / oneDay);
+  if (Math.abs(daysAdrift) > 1) {
+    throw new Error(
+      `the story advanced ${String(storyLengthDays + daysAdrift)} days but storyLengthDays says ` +
+        `${String(storyLengthDays)}, so the demo would end ${String(daysAdrift)} days from today`,
     );
-    await placeOffer(
-      origin,
-      listingId,
-      borrowers[(index + 4) % borrowers.length] ?? cast.bruno,
-      2000,
-    );
   }
-
-  /* The offsets were the only way to spread a loan book across weeks, since a
-     clock that cannot run backwards cannot be asked for history. They are
-     deliberately not reset: in demo mode the offset is written down, so the
-     process that serves the demo is born at the same instant this one ends
-     at, and every date the seed wrote sits in its past. */
 
   process.stdout.write(
-    `seeded ${receipts.length} receipts, ${active.length} active loans, ` +
-      `one repaid and redeemed, one in liquidation with two bids\n`,
+    `seeded ${String(receipts.length)} receipts across ${String(Object.keys(cast).length + 2)} members, ` +
+      `loans at every stage, note sales open, sold, withdrawn and voided, ` +
+      `and about four months of wallet history\n`,
   );
 }
 
-/* Sessions expire against the same clock the seed is moving, so the two long
-   lived clients sign in again on the other side of every jump. */
 async function advance(
   clock: DemoClient,
   milliseconds: number,
@@ -539,7 +898,7 @@ async function issueReceipt(staff: DemoClient, borrowerEmail: string, item: Item
   const issued = await staff.call('POST', `/intakes/${intakeId}/issue-receipt`, {
     /* One policy covers the vault rather than the item, which is why every
        receipt issued here quotes the same reference. */
-    insurancePolicyReference: 'POL-SYD-2026-0114',
+    insurancePolicyReference: 'POL-NYC-2026-0114',
   });
   return identifierOf(issued);
 }
@@ -549,6 +908,10 @@ async function publishListing(
   receipt: Receipt,
   durationDays: number,
   maxRateBasisPoints = 2400,
+  /* How long it takes offers for, which is what decides whether it is still
+     live at the end of the story, closing within the day, or long past its
+     date. A fortnight unless the scene wants otherwise. */
+  lifetimeDays = 14,
 ): Promise<string> {
   const borrower = new DemoClient(origin);
   await borrower.signIn(receipt.borrower, demoPassword);
@@ -557,7 +920,7 @@ async function publishListing(
     requestedPrincipal: money(receipt.ask),
     maxAnnualPercentageRateBasisPoints: maxRateBasisPoints,
     requestedDurationMs: durationDays * oneDay,
-    requestedLifetimeMs: 14 * oneDay,
+    requestedLifetimeMs: lifetimeDays * oneDay,
   });
   const listingId = identifierOf(listing);
   await borrower.call('POST', `/listings/${listingId}/publish`, {});
@@ -590,28 +953,49 @@ interface SeededLoan {
   readonly lender: string;
 }
 
-async function originate(
+/* The ask in hundredths of the principal. Every loan this runs on is listed
+   the moment it is originated, before any clock jump, so nothing has accrued
+   yet and the principal is exactly the cap; asking under it is what puts a
+   visible discount on the Secondary Market page. */
+async function listPositionForSale(
   origin: string,
-  receipt: Receipt,
-  rateBasisPoints: number,
-  durationDays: number,
-): Promise<SeededLoan> {
-  /* The ceiling leaves room for the losing offer, so the demo shows a
-     borrower choosing rather than accepting the only thing on the table. */
-  const losingRate = rateBasisPoints + 300;
-  const listingId = await publishListing(origin, receipt, durationDays, losingRate);
-  const lenderEmail = receipt.borrower === cast.ada ? cast.gita : cast.ada;
-  await placeOffer(origin, listingId, cast.elena, losingRate);
-  const offerId = await placeOffer(origin, listingId, lenderEmail, rateBasisPoints);
+  loan: SeededLoan,
+  hundredthsOfPrincipal: bigint,
+): Promise<string> {
+  const lender = new DemoClient(origin);
+  await lender.signIn(loan.lender, demoPassword);
+  const lent = await lender.call('GET', '/me/loans?role=lender');
+  const rows = lent.items as readonly {
+    id: string;
+    lenderNoteId: string;
+    principal: { minorUnits: string };
+  }[];
+  const row = rows.find((item) => item.id === loan.loanId);
+  if (row === undefined) {
+    throw new Error('the lender must hold the loan being listed');
+  }
+  const ask = (BigInt(row.principal.minorUnits) * hundredthsOfPrincipal) / 100n;
+  const listed = await lender.call('POST', `/notes/${row.lenderNoteId}/sales`, {
+    askPrice: money(ask.toString()),
+  });
+  const sale = listed.sale as { id: string };
+  return sale.id;
+}
 
-  const borrower = new DemoClient(origin);
-  await borrower.signIn(receipt.borrower, demoPassword);
-  const accepted = await borrower.call(
-    'POST',
-    `/listings/${listingId}/offers/${offerId}/accept`,
-    {},
-  );
-  return { loanId: identifierOf(accepted), borrower: receipt.borrower, lender: lenderEmail };
+async function withdrawPositionSale(
+  origin: string,
+  loan: SeededLoan,
+  saleId: string,
+): Promise<void> {
+  const lender = new DemoClient(origin);
+  await lender.signIn(loan.lender, demoPassword);
+  await lender.call('POST', `/sales/${saleId}/withdraw`, {});
+}
+
+async function purchasePosition(origin: string, buyerEmail: string, saleId: string): Promise<void> {
+  const buyer = new DemoClient(origin);
+  await buyer.signIn(buyerEmail, demoPassword);
+  await buyer.call('POST', `/sales/${saleId}/purchase`, {});
 }
 
 async function repay(origin: string, loan: SeededLoan): Promise<void> {
@@ -639,6 +1023,155 @@ async function redeem(
   await staff.call('POST', `/redemption-requests/${requestId}/release`, {
     sealNumberBroken: `SEAL-${randomUUID().slice(0, 8)}`,
   });
+}
+
+/* One loan, from a named lender to the receipt's holder. The rate ceiling
+   leaves room above the winning rate, so every origination in the story also
+   leaves a losing offer behind it: a borrower choosing rather than accepting
+   the only thing on the table. */
+async function originateBetween(
+  origin: string,
+  receipt: Receipt,
+  lenderEmail: string,
+  rateBasisPoints: number,
+  durationDays: number,
+): Promise<SeededLoan> {
+  const losingRate = rateBasisPoints + 300;
+  const listingId = await publishListing(origin, receipt, durationDays, losingRate);
+  const loser = losingLenderFor(receipt.borrower, lenderEmail);
+  await placeOffer(origin, listingId, loser, losingRate);
+  const offerId = await placeOffer(origin, listingId, lenderEmail, rateBasisPoints);
+
+  const borrower = new DemoClient(origin);
+  await borrower.signIn(receipt.borrower, demoPassword);
+  const accepted = await borrower.call(
+    'POST',
+    `/listings/${listingId}/offers/${offerId}/accept`,
+    {},
+  );
+  return { loanId: identifierOf(accepted), borrower: receipt.borrower, lender: lenderEmail };
+}
+
+/* Somebody who is neither side of the loan, so the losing offer is a real
+   third party rather than the borrower bidding against themselves. */
+function losingLenderFor(borrowerEmail: string, lenderEmail: string): string {
+  const candidate = Object.values(cast).find(
+    (email) => email !== borrowerEmail && email !== lenderEmail,
+  );
+  if (candidate === undefined) {
+    throw new Error('the cast must hold somebody outside the loan');
+  }
+  return candidate;
+}
+
+/* Accepts the top of the book, which supersedes every other hold standing
+   against the listing. The book arrives ranked by what an offer actually
+   costs the borrower over the term, so its first row is the best one by the
+   product's own rule rather than by whichever rate looks smallest. */
+async function acceptBest(origin: string, borrowerEmail: string, listingId: string): Promise<void> {
+  const borrower = new DemoClient(origin);
+  await borrower.signIn(borrowerEmail, demoPassword);
+  const detail = await borrower.call('GET', `/listings/${listingId}`);
+  const book = detail.offerBook as readonly { id: string }[];
+  const best = book[0];
+  if (best === undefined) {
+    throw new Error('the listing must carry an offer to accept');
+  }
+  await borrower.call('POST', `/listings/${listingId}/offers/${best.id}/accept`, {});
+}
+
+async function draftListing(
+  origin: string,
+  receipt: Receipt,
+  durationDays: number,
+  maxRateBasisPoints: number,
+): Promise<string> {
+  const borrower = new DemoClient(origin);
+  await borrower.signIn(receipt.borrower, demoPassword);
+  const listing = await borrower.call('POST', '/listings', {
+    receiptId: receipt.id,
+    requestedPrincipal: money(receipt.ask),
+    maxAnnualPercentageRateBasisPoints: maxRateBasisPoints,
+    requestedDurationMs: durationDays * oneDay,
+    requestedLifetimeMs: 14 * oneDay,
+  });
+  return identifierOf(listing);
+}
+
+async function cancelListing(
+  origin: string,
+  borrowerEmail: string,
+  listingId: string,
+): Promise<void> {
+  const borrower = new DemoClient(origin);
+  await borrower.signIn(borrowerEmail, demoPassword);
+  await borrower.call('POST', `/listings/${listingId}/cancel`, {});
+}
+
+async function markDefaulted(
+  origin: string,
+  noteHolderEmail: string,
+  loanId: string,
+): Promise<void> {
+  const holder = new DemoClient(origin);
+  await holder.signIn(noteHolderEmail, demoPassword);
+  await holder.call('POST', `/loans/${loanId}/default`, {});
+}
+
+async function claimCollateral(
+  origin: string,
+  noteHolderEmail: string,
+  loanId: string,
+): Promise<void> {
+  const holder = new DemoClient(origin);
+  await holder.signIn(noteHolderEmail, demoPassword);
+  await holder.call('POST', `/loans/${loanId}/claim-receipt`, {});
+}
+
+/* Scheduled, opened, bid on, and settled or left taking bids. Operations
+   drives all of it, which is where the control actually lives. */
+async function liquidate(
+  origin: string,
+  operations: DemoClient,
+  loanId: string,
+  reserveMinorUnits: string,
+  bids: readonly string[],
+  settles: boolean,
+): Promise<void> {
+  const scheduled = await operations.call('POST', `/loans/${loanId}/liquidations`, {
+    reservePrice: money(reserveMinorUnits),
+  });
+  const liquidationId = identifierOf(scheduled);
+  await operations.call('POST', `/liquidations/${liquidationId}/open`, {
+    biddingWindowMs: 7 * oneDay,
+  });
+  const bidders = [cast.farid, cast.gita, cast.elena];
+  for (const [index, amount] of bids.entries()) {
+    const bidder = new DemoClient(origin);
+    await bidder.signIn(bidders[index % bidders.length] ?? cast.farid, demoPassword);
+    await bidder.call('POST', `/liquidations/${liquidationId}/bids`, { amount: money(amount) });
+  }
+  if (settles) {
+    await operations.call('POST', `/liquidations/${liquidationId}/close`, {});
+  }
+}
+
+async function withdrawCash(origin: string, email: string, minorUnits: string): Promise<void> {
+  const holder = new DemoClient(origin);
+  await holder.signIn(email, demoPassword);
+  await holder.call('POST', '/me/withdrawals', { amount: money(minorUnits) });
+}
+
+/* Asked for and not yet handed over, which is a stage of its own on the
+   receipt: staff verify identity and break the seal at the counter. */
+async function requestRedemption(
+  origin: string,
+  borrowerEmail: string,
+  receiptId: string,
+): Promise<void> {
+  const borrower = new DemoClient(origin);
+  await borrower.signIn(borrowerEmail, demoPassword);
+  await borrower.call('POST', `/receipts/${receiptId}/redemption-requests`, {});
 }
 
 main().catch((error: unknown) => {

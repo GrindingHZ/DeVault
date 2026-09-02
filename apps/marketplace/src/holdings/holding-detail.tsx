@@ -19,6 +19,8 @@ import { shortReference } from './holding-tile';
 export interface HoldingDetailProps {
   readonly receipt: ReceiptResponse;
   readonly redemption: RedemptionRequestResponse | undefined;
+  /* The live listing standing against this item, if there is one. */
+  readonly listing: { readonly id: string; readonly status: string } | undefined;
   readonly onClose: () => void;
 }
 
@@ -26,8 +28,13 @@ export interface HoldingDetailProps {
    a tile has room for. No request of its own: the receipt and the redemption
    are already on the screen behind it, so opening a record costs nothing and
    cannot fail separately from the page. */
-export function HoldingDetail({ receipt, redemption, onClose }: HoldingDetailProps): ReactElement {
-  const reading = custodyReadingFor(receipt.status, redemption?.status ?? null);
+export function HoldingDetail({
+  receipt,
+  redemption,
+  listing,
+  onClose,
+}: HoldingDetailProps): ReactElement {
+  const reading = custodyReadingFor(receipt.status, redemption?.status ?? null, listing?.status);
   const liquidity = liquidityNoteForCategory(receipt.itemCategory);
 
   return (
@@ -71,6 +78,24 @@ export function HoldingDetail({ receipt, redemption, onClose }: HoldingDetailPro
               steps={[...redemptionSteps]}
               currentIndex={redemptionStepIndex(redemption.status)}
             />
+          </section>
+        )}
+
+        {/* The way to the market from the item, which a borrower arriving
+            here from "Taking offers" is looking for. */}
+        {listing?.status !== 'ACTIVE' ? null : (
+          <section className="border-t border-edge pt-4">
+            <p className="font-body text-sm text-ink-secondary">
+              This item is on the market.{' '}
+              <Link
+                to="/listings"
+                search={{ listing: listing.id }}
+                data-testid={`open-listing-${receipt.id}`}
+                className="text-status-active underline"
+              >
+                See the offers standing against it
+              </Link>
+            </p>
           </section>
         )}
 

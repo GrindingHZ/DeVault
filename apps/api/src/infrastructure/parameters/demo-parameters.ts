@@ -25,6 +25,9 @@ export const demoParameters: ProtocolParameters = {
   liquidationFeeBasisPoints: 200,
   gracePeriodMs: 7n * 24n * 60n * 60n * 1000n,
   statutoryHoldingPeriodMs: 30n * 24n * 60n * 60n * 1000n,
-  dualAppraisalThreshold: Money.of(10_000_000n, currencyOf('AUD')),
-  notesTransferable: false,
+  dualAppraisalThreshold: Money.of(10_000_000n, currencyOf('USD')),
+  /* On for the demo so the secondary market has something to show. The
+     securities question (Q-002) governs production, where the switch ships
+     off until counsel answers; simulated balances carry no such question. */
+  notesTransferable: true,
 };

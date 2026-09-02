@@ -35,6 +35,7 @@ export class WithdrawUseCase {
             toAccountId: platformAccountIds.float,
             amount: command.amount,
             reference: this.idGenerator.generate(),
+            reason: 'WITHDRAW',
           },
           context,
         );

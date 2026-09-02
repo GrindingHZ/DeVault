@@ -24,6 +24,10 @@ export function shortReference(id: string): string {
 export interface HoldingTileProps {
   readonly receipt: ReceiptResponse;
   readonly redemption: RedemptionRequestResponse | undefined;
+  /* The live listing standing against this item, if there is one. A borrower
+     has to know before they press anything, which is why it reaches the band
+     rather than only the buttons. */
+  readonly listingStatus: string | null;
   readonly onOpen: (receiptId: string) => void;
   /* The two things a borrower can do with an item still in the vault. Passed
      in rather than raised from here, because both are mutations the screen
@@ -40,10 +44,11 @@ export interface HoldingTileProps {
 export function HoldingTile({
   receipt,
   redemption,
+  listingStatus,
   onOpen,
   actions,
 }: HoldingTileProps): ReactElement {
-  const reading = custodyReadingFor(receipt.status, redemption?.status ?? null);
+  const reading = custodyReadingFor(receipt.status, redemption?.status ?? null, listingStatus);
   /* An item that has left, or been sold, is still worth listing and still
      worth reading. It is simply no longer live, and says so by receding. */
   const isSpent = receipt.status === 'RELEASED' || receipt.status === 'LIQUIDATED';

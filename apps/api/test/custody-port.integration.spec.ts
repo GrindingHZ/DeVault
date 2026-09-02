@@ -10,7 +10,7 @@ import { PrismaCustodyReceiptRepository } from '../src/infrastructure/persistenc
 import { PrismaVaultRepository } from '../src/infrastructure/persistence/repositories/prisma-vault.repository';
 import { createTestApplication } from './create-test-application';
 
-const aud = currencyOf('AUD');
+const usd = currencyOf('USD');
 let commandCounter = 0;
 
 describeCustodyPortContract('database', async () => {
@@ -26,8 +26,8 @@ describeCustodyPortContract('database', async () => {
       Vault.create({
         id: vaultId,
         name: 'Contract vault',
-        city: 'Sydney',
-        insuredLimit: Money.of(100_000_000n, aud),
+        city: 'New York',
+        insuredLimit: Money.of(100_000_000n, usd),
       }),
       context,
     ),
@@ -42,7 +42,7 @@ describeCustodyPortContract('database', async () => {
         vaultId,
         holderAccountId: accountIdOf(`CONTRACT-BORROWER-${commandCounter}`),
         intakeRecordHash: `hash-${commandCounter}`,
-        appraisedValue: Money.of(500_000n, aud),
+        appraisedValue: Money.of(500_000n, usd),
         appraisedAt: Instant.fromEpochMilliseconds(1_700_000_000_000n),
         appraiserId: staffIdOf('CONTRACT-APPRAISER'),
         itemCategory: 'BULLION',

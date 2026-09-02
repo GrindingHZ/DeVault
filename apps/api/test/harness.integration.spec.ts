@@ -50,8 +50,8 @@ describe('test harness', () => {
   it('sums a balanced ledger to zero and the trigger rejects an unbalanced insert', async () => {
     await harness.prisma.ledgerAccount.createMany({
       data: [
-        { id: 'LA1', ownerType: 'USER', ownerId: 'U1', purpose: 'USER_AVAILABLE', currency: 'AUD' },
-        { id: 'LA2', ownerType: 'USER', ownerId: 'U1', purpose: 'USER_HELD', currency: 'AUD' },
+        { id: 'LA1', ownerType: 'USER', ownerId: 'U1', purpose: 'USER_AVAILABLE', currency: 'USD' },
+        { id: 'LA2', ownerType: 'USER', ownerId: 'U1', purpose: 'USER_HELD', currency: 'USD' },
       ],
     });
     await harness.prisma.ledgerTransaction.create({
@@ -65,7 +65,7 @@ describe('test harness', () => {
           accountId: 'LA1',
           direction: 'DEBIT',
           minorUnits: 2500n,
-          currency: 'AUD',
+          currency: 'USD',
         },
         {
           id: 'LE2',
@@ -73,7 +73,7 @@ describe('test harness', () => {
           accountId: 'LA2',
           direction: 'CREDIT',
           minorUnits: 2500n,
-          currency: 'AUD',
+          currency: 'USD',
         },
       ],
     });
@@ -90,7 +90,7 @@ describe('test harness', () => {
           accountId: 'LA2',
           direction: 'CREDIT',
           minorUnits: 1n,
-          currency: 'AUD',
+          currency: 'USD',
         },
       }),
     ).rejects.toThrow();
@@ -110,7 +110,7 @@ describe('test harness', () => {
           ownerType: 'USER',
           ownerId: 'UX',
           purpose: 'USER_AVAILABLE',
-          currency: 'AUD',
+          currency: 'USD',
         },
       });
       await harness.prisma.ledgerTransaction.create({
@@ -123,7 +123,7 @@ describe('test harness', () => {
           accountId: 'LAX',
           direction: 'CREDIT',
           minorUnits: 1n,
-          currency: 'AUD',
+          currency: 'USD',
         },
       });
       await expect(expectLedgerBalances(harness.prisma).toSumToZero()).rejects.toThrow();

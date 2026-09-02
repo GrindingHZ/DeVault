@@ -25,8 +25,11 @@ and prescribed record-keeping. The intake record schema may need mandated fields
 
 ## Q-002: is the lender note a financial product
 **Blocks:** whether note transfer ships enabled, and whether retail lenders can participate at all
-**Currently implemented:** notes are minted, the transfer endpoint exists, the `notesTransferable`
-feature flag is off
+**Currently implemented:** notes are minted and the P8h secondary market sells them: listing and
+purchase are both gated on the `notesTransferable` parameter and the note's own minted field. The
+demo parameters turn the switch on so the market has something to show; production defaults stay
+off. An earlier revision of this entry claimed a bare transfer endpoint existed; it never did, and
+the sale endpoints subsumed it (docs/04-api-contract.md)
 **Needs:** securities counsel
 **Notes:** A transferable, yield-bearing claim on a loan is close to the definition of a security in
 most regimes. This is the single largest legal question in the design.
@@ -53,10 +56,22 @@ single-appraisal
 
 ## Q-006: who takes physical delivery after liquidation
 **Blocks:** the final step of Flow 8
-**Currently implemented:** the winning bidder receives a newly issued receipt for the same item
-**Needs:** founder
+**Currently implemented:** the winning bidder receives a newly issued receipt for the same item,
+and collects it at the counter through flow 6. For most of the build this entry claimed that and
+the code did the opposite: `close-liquidation` burned the old receipt and issued none, so a buyer
+ended a settled sale holding no representation of the thing they paid for, checked against the
+seeded demo where both auction winners held zero receipts (docs/14-state-machines.md)
+**Needs:** nothing further
 **Notes:** The alternative is that we ship it, which introduces logistics, insurance in transit, and
 a delivery-dispute flow.
+
+**Resolved 2026-08-25:** implemented as recorded. `close-liquidation` now calls
+`CustodyPort.reissueToBuyer`, which burns the seller's receipt and issues the buyer one for the same
+item, in the same transaction. Every descriptive field carries over, the intake record hash included,
+so the buyer's receipt shows the same photograph and serial numbers the borrower's did. The receipt
+lands `IN_VAULT` under the buyer, which means collecting it is flow 6 with no special case. The
+database index on `intake_record_hash` became partial on the live statuses to allow it: the
+invariant that matters is one live receipt per item, and a burned receipt is history.
 
 ## Q-007: minimum offer lifetime
 **Blocks:** rule M6
@@ -226,7 +241,8 @@ system already works than trying to make the queue exactly once.
 ## Q-024: whether ordinary development should share the demo clock
 **Blocks:** nothing today
 **Currently implemented:** `pnpm dev` runs the api in demo mode, so it reads the offset the seed
-left in `demo_clock` and starts weeks ahead of the wall clock
+left in `demo_clock`, which the seed now lands on roughly the real today rather than months beyond
+it: the story starts its clock four months back and plays forwards
 **Needs:** whoever owns docs/11
 **Notes:** The demo needs this, because the seed and the serving process are two processes and the
 loan book only makes sense against the clock it was written under. Ordinary development inherits it
@@ -298,3 +314,29 @@ migration and a domain change rather than a display one. Worth doing: a lender's
 across settled loans is the one number this product cannot currently answer, and it is the number
 anybody comparing us to a savings account would ask for first. Until then a dash is the honest
 answer, because the alternative is a plausible number that is wrong.
+
+## Q-030: whether a listed item can be asked back without cancelling the listing
+**Blocks:** nothing today. The marketplace no longer offers it.
+**Currently implemented:** nothing on the server. `RequestRedemptionUseCase` checks that the receipt
+exists and that the caller holds it, then burns the receipt. It does not ask whether a live listing
+stands against that receipt, so a borrower could redeem an item that lenders are still bidding on and
+leave the listing pointing at a spent receipt.
+**Needs:** whoever owns docs/02
+**Notes:** Found while fixing the borrower inventory, which was offering "List" and "Ask for it back"
+on an item already listed. The listing button was refused by `ReceiptAlreadyListed`, so that half was
+merely rude; the redemption half would have gone through. The screen now hides both once a live
+listing stands, which closes the path a person can actually take, but a rule enforced only by a
+button is not enforced. The fix is a check in the use case, either refusing the redemption or
+cancelling the listing in the same transaction. Cancelling is the friendlier reading and is one
+transaction either way, since holds are released on cancellation already.
+
+## Q-030: may a borrower buy the note on their own loan
+**Blocks:** nothing today; the purchase policy refuses it with CANNOT_BUY_OWN_POSITION
+**Currently implemented:** no. Neither the seller nor the borrower may buy a listed position
+**Needs:** founder
+**Notes:** A borrower buying their own debt at a discount is a real instrument, a buyback, and it
+would let a borrower settle for less than the amount due whenever a lender wants out badly enough.
+That changes the economics every lender priced their offer against, so it is a product decision
+rather than an edge case. Mechanically it would work today: repayment pays the holder, and a
+borrower holding their own note would pay themselves. The narrowest reading keeps the two sides of
+a loan distinct until somebody decides otherwise.

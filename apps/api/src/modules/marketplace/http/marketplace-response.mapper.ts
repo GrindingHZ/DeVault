@@ -46,6 +46,7 @@ export function toMyOfferResponse(row: MyOfferRow, lenderAccountId: string): MyO
     itemDescription: row.itemDescription,
     receiptId: row.receiptId,
     hasPhotograph: row.hasPhotograph,
+    isHoldHeld: row.isHoldHeld,
   };
 }
 

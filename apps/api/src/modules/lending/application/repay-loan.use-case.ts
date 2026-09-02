@@ -4,6 +4,8 @@ import { LOAN_REPOSITORY } from '../../../domain/lending/loan-repository';
 import type { LoanRepository } from '../../../domain/lending/loan-repository';
 import type { RepaymentBreakdown } from '../../../domain/lending/loan';
 import { PayoffQuoteStale } from '../../../domain/lending/payoff-quote-stale';
+import { NOTE_SALE_REPOSITORY } from '../../../domain/lending/note-sale-repository';
+import type { NoteSaleRepository } from '../../../domain/lending/note-sale-repository';
 import { NotResourceOwner } from '../../../domain/marketplace/not-resource-owner';
 import { AUDIT_PORT } from '../../../domain/ports/audit.port';
 import type { AuditPort } from '../../../domain/ports/audit.port';
@@ -44,6 +46,7 @@ export class RepayLoanUseCase {
   constructor(
     @Inject(UNIT_OF_WORK) private readonly unitOfWork: UnitOfWork,
     @Inject(LOAN_REPOSITORY) private readonly loans: LoanRepository,
+    @Inject(NOTE_SALE_REPOSITORY) private readonly noteSales: NoteSaleRepository,
     @Inject(SETTLEMENT_PORT) private readonly settlement: SettlementPort,
     @Inject(CUSTODY_PORT) private readonly custody: CustodyPort,
     @Inject(DOMAIN_EVENT_PUBLISHER) private readonly events: DomainEventPublisher,
@@ -90,11 +93,26 @@ export class RepayLoanUseCase {
             toAccountId: noteHolder,
             amount: recorded.value.total,
             reference: loan.id,
+            reason: 'REPAY_LOAN',
           },
           context,
         );
         await this.loans.save(recorded.value.loan, context);
         await this.custody.releaseEncumbrance(loan.receiptId, context);
+
+        // A sale on a loan that just closed would advertise a claim that no
+        // longer pays, so it dies in the same transaction that closed the loan.
+        const openSale = await this.noteSales.findOpenByLoanId(loan.id, context);
+        if (openSale !== null) {
+          const voided = openSale.markVoided();
+          if (voided.ok) {
+            await this.noteSales.save(voided.value, context);
+            await this.events.publish(
+              [{ type: 'NoteSaleVoided', noteSaleId: openSale.id, loanId: loan.id }],
+              context,
+            );
+          }
+        }
 
         await this.events.publish(
           [

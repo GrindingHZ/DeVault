@@ -25,9 +25,9 @@ describe('intake flow', () => {
       data: {
         id: vaultId,
         name: 'Test vault',
-        city: 'Sydney',
+        city: 'New York',
         insuredLimitMinorUnits: 1_000_000n,
-        currency: 'AUD',
+        currency: 'USD',
       },
     });
   });
@@ -76,7 +76,7 @@ describe('intake flow', () => {
       .set('Cookie', staffCookies)
       .set('Idempotency-Key', randomUUID())
       .send({
-        value: { minorUnits: '500000', currency: 'AUD' },
+        value: { minorUnits: '500000', currency: 'USD' },
         method: 'spot times weight',
         comparableReferences: 'LBMA fix',
       })
@@ -213,7 +213,7 @@ describe('intake flow', () => {
       .set('Cookie', staffCookies)
       .set('Idempotency-Key', randomUUID())
       .send({
-        value: { minorUnits: '10000000', currency: 'AUD' },
+        value: { minorUnits: '10000000', currency: 'USD' },
         method: 'spot times weight',
         comparableReferences: 'LBMA fix',
       })
@@ -232,7 +232,7 @@ describe('intake flow', () => {
       .set('Cookie', secondStaffCookies)
       .set('Idempotency-Key', randomUUID())
       .send({
-        value: { minorUnits: '10000000', currency: 'AUD' },
+        value: { minorUnits: '10000000', currency: 'USD' },
         method: 'independent check',
         comparableReferences: 'LBMA fix',
       })

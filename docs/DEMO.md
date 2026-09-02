@@ -59,21 +59,37 @@ Every account uses the password `demo-password-123`.
 | `ops@demo.test` | Operations | Runs the sale, holds the parameters and the pause switch |
 | `ada@demo.test` | Member | Borrower with an item to pledge |
 | `gita@demo.test` | Member | Lender with money to put to work |
-| `member@demo.test` | Member | An empty account, for showing a first run |
+| `member@demo.test` | Member | Holds both sides of the market, and is the account to open first |
 
 ### What the seed leaves behind
 
-- Eight receipts across all five categories, each with a photograph: one already released, four
-  pledged against loans, three still free
-- Three live listings, each with two competing offers on it
-- Three active loans, maturing in a fortnight, in six weeks, and in three months
-- One loan repaid and its item already walked back out of the vault
-- One loan defaulted, its sale open, two bids standing against it
+Enough of everything that no screen in the product has to be described rather than shown. Sign in
+as `member@demo.test` first: that account is on both sides of the market, so one window has all of
+it.
 
-The clock is where the seed left it, roughly two months ahead of the wall clock, because a loan
-book with history cannot be built at one instant and a clock cannot be asked to run backwards. That
-is deliberate and consistent: the offset is written down, the api reads it at startup, and every
-date on every screen is measured against the same clock.
+- Thirty three receipts across all five categories, each with a photograph: in the vault, pledged
+  against loans, one collected, one asked for and still on the shelf, and two sold at auction
+- Live listings with a book on them, one nobody has offered on, one closing within the day, one
+  past its closing date, one cancelled and one never published
+- Loans at every distance from maturity: just drawn, halfway, due tomorrow, past maturity inside
+  grace, and past grace waiting for somebody to call it
+- A hold that lost and was never reclaimed, which is what the bell in the header points at
+- Loans repaid, defaulted, claimed by the lender, and sold at auction
+- A note sale in every state: two still listed, one sold to a third member, one withdrawn by its
+  seller, one voided when its loan repaid under it
+- Two auctions settled and one still taking bids
+- About four months of wallet history, with deposits, a withdrawal, money moving in and out of
+  holds, and interest accruing, so the capital chart has a shape rather than a step
+
+The clock is where the seed left it, which is roughly today. A loan book with history cannot be
+built at one instant, and the api's clock cannot be asked to run backwards, so the seed starts its
+clock four months in the past and plays the story forwards from there, finishing about where it
+began. The offset is written down, the api reads it at startup, and every date on every screen is
+measured against that one clock.
+
+Advancing the clock during the demo leaves the process ahead of the wall clock until it is reset or
+reseeded, which is why the end to end suite refuses to run against a process whose clock has
+drifted.
 
 `pnpm dev` starts the api in demo mode, which is what puts the clock control on the admin screen.
 `pnpm start` does not, and a deployed process has no such route at all.
@@ -89,7 +105,7 @@ Sign in as `staff@demo.test`. You are on **Intake**.
 2. Record the seal number. The draft now shows it and still refuses to be sealed.
 3. Attach a photo. It has to be a real JPEG or PNG: the bytes are checked rather than the file
    name, so a renamed script is refused. The evidence list then has one item.
-4. Record an appraisal of AUD 3,000.00. One appraisal is enough below the dual appraisal threshold,
+4. Record an appraisal of USD 3,000.00. One appraisal is enough below the dual appraisal threshold,
    and the screen says so.
 5. Seal the intake, then issue the receipt. You land on a receipt with a status of **IN VAULT**.
 
@@ -100,7 +116,7 @@ can borrow against, and in Phase 3 it is an object on chain.
 
 Sign in as `ada@demo.test` in the marketplace window.
 
-1. **My items** shows the receipt you just issued. List it: AUD 1,500.00 requested, a ceiling of
+1. **My items** shows the receipt you just issued. List it: USD 1,500.00 requested, a ceiling of
    24.00 percent, thirty days.
 2. Publish it. **Browse** now shows it alongside the three the seed left.
 
@@ -131,7 +147,23 @@ Say: one acceptance, one transaction. The hold on the lender's money, the moveme
 the fee, the loan, and both notes all commit together or not at all. That is why this maps to a
 single on chain transaction later.
 
-### 3. Time passes (admin, 1 minute)
+### 3. A lender exits early (marketplace, 2 minutes)
+
+Sign in as `bruno@demo.test`, or any member who is not a side of the six week loan.
+
+1. Open **Secondary Market** in the navigation rail. The seed left one position still listed: a
+   lender on the six week loan asking three percent under what the position is worth.
+2. Read the chart out loud. The solid line is what the position is worth as interest accrues, from
+   the principal at origination to the full payoff at maturity. The marker is today. The dashed
+   line is the ask, sitting under the value line, and the gap is what the buyer earns on top of
+   the remaining interest.
+3. Press **Buy this position** and confirm. The toast says repayment now pays you, the position
+   appears on your **Portfolio** lending side, and the seller's wallet shows the proceeds.
+
+Say: the loan does not know who is owed. It pays whoever holds the note, so selling the note is
+one transfer and one holder change in one transaction, and in Phase 3 it is one Move transaction.
+
+### 4. Time passes (admin, 1 minute)
 
 Sign in as `ops@demo.test`. Go to **Parameters**.
 
@@ -146,7 +178,7 @@ Sign in as `ops@demo.test`. Go to **Parameters**.
 
 Say: nothing here is a mock. The clock is the only thing being lied to, and only in a demo.
 
-### 4. The borrower repays (marketplace, 2 minutes)
+### 5. The borrower repays (marketplace, 2 minutes)
 
 As `ada@demo.test`:
 
@@ -163,7 +195,7 @@ In the vault console as `staff@demo.test`:
 
 Say: the item left the building, the receipt is spent, and every movement of money is in the ledger.
 
-### 5. The other borrower does not repay (admin, 3 minutes)
+### 6. The other borrower does not repay (admin, 3 minutes)
 
 As `ops@demo.test`, go to **Liquidations**. The seed left one sale already taking bids, with two
 bids standing.
@@ -176,11 +208,11 @@ bids standing.
 Say: the lender is paid first, the fee comes out of what is left, and the surplus goes back to the
 borrower. Not to us. That is the difference between a pawnbroker and a repossession.
 
-### 6. The things that keep it honest (admin, 1 minute)
+### 7. The things that keep it honest (admin, 1 minute)
 
 Still as `ops@demo.test`:
 
-1. **Reconciliation**: run one against the Sydney vault. It compares the physical count to the
+1. **Reconciliation**: run one against the New York vault. It compares the physical count to the
    records and the ledger to itself, and reports drift rather than fixing it quietly.
 2. **Parameters**: the fees, with a full history of every edit and who made it. Loan to value is
    set per category, which is why the vault lends against 60 percent of bullion and 30 percent of

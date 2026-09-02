@@ -340,6 +340,12 @@ Note that step 1 must remain available while the system is paused (rule S2).
 
 2. `POST /liquidations/:id/open` → `BIDDING`, sets `closesAt`.
 
+   Or `POST /liquidations/:id/cancel` with a reason → `CANCELLED`, if the sale should not run after
+   all: the borrower settled privately, the appraisal is disputed, the wrong loan was picked. Only
+   from `SCHEDULED`. Once bidding has opened, every bid holds somebody's money and nothing refunds
+   them in bulk, so an open sale is closed rather than called off. A cancelled sale frees the loan to
+   be scheduled again.
+
 3. `POST /liquidations/:id/bids`.
    > **─── transaction boundary ───**
    > Assert `BIDDING`, not closed, bid `>= reservePrice` and above the current high bid.
@@ -357,8 +363,15 @@ Note that step 1 must remain available while the system is paused (rule S2).
    > | 3 | Borrower | Surplus |
    > | 4 | Platform rounding | Remainder from integer division |
    >
-   > Burn the receipt → `LIQUIDATED`. Set the loan `LIQUIDATED`. Emit `LiquidationSettled`. The
-   > winning bidder gets a new receipt or takes physical delivery per your operating policy.
+   > Burn the receipt → `LIQUIDATED` and issue the winning bidder a new one for the same item,
+   > `IN_VAULT` under them. Set the loan `LIQUIDATED`. Emit `LiquidationSettled`.
+   >
+   > One custody operation, not two: the item never leaves the vault, only the paper changes hands,
+   > and Phase 3 destroys the old object and mints the new one in a single transaction. Every
+   > descriptive field carries over, the intake record hash included, so the buyer's receipt shows
+   > the same photograph and serial numbers the borrower's did. They collect it through flow 6 like
+   > anybody else holding a receipt, which is why it lands `IN_VAULT` rather than anywhere clever
+   > (Q-006).
 
 **Surplus returns to the borrower.** Whether this is legally required depends on jurisdiction and on
 whether the arrangement is a pawn or a secured loan. Returning it is both the safer posture and the
@@ -371,6 +384,7 @@ better product. Do not make it configurable.
 | Holding period not elapsed | 422 `HOLDING_PERIOD_ACTIVE` |
 | Bid below reserve | 422 `BID_BELOW_RESERVE` |
 | Bidding closed | 409 `LIQUIDATION_NOT_OPEN` |
+| Cancelling a sale that has opened | 409 `LIQUIDATION_NOT_SCHEDULED` |
 
 ### Test cases that must exist
 
@@ -381,14 +395,23 @@ nothing), and exactly equal (boundary). Each asserts distributions sum exactly t
 
 ## Flow 9: reclaiming a superseded hold
 
-**Actor:** lender
+**Actor:** lender or bidder
 
 `POST /me/offers/:offerId/reclaim`
 > **─── transaction boundary ───**
 > Assert the offer is `SUPERSEDED` or `EXPIRED` and the caller is the lender. `refundHold`. Mark the
 > hold reclaimed so a repeat is a no-op rather than a double refund.
 
+`POST /liquidations/:id/bids/:bidId/reclaim` is the same flow in the other market: a beaten bid holds
+money exactly as a beaten offer does, and pulling it back is the same single transaction.
+
 Small flow, and the one most likely to be forgotten. Test the double-reclaim case explicitly.
+
+**Both need a screen that can name the money, which is the half that was forgotten.** `GET /me/offers`
+and `GET /me/bids` each carry the hold state alongside the offer or bid, because reclaiming refunds
+the hold and writes nothing back: read the status alone and a row goes on asking for money that is
+already home, and the notification counting it can never be cleared. The portfolio raises a beaten
+offer or bid for attention only while `isHoldHeld`.
 
 ---
 
@@ -508,6 +531,35 @@ The parameters become a shared `Config` object mutated through an `AdminCap`. Th
 becomes a field the Move code reads against the on chain clock, and the history becomes the chain's
 own transaction history. Q-022 notes that a second api process would serve a stale copy until it
 restarted; the shared object removes the question rather than answering it.
+
+---
+
+## Flow 13a: sweeping what the clock decided
+
+**Actor:** the serving process, on a timer beside the outbox drain
+
+Listings and offers both carry a date, and until the sweep existed nothing wrote down that the date
+had passed. Every guard reads the clock, so nothing was ever accepted late; the cost was that EXPIRED
+was a status the database could hold and the product never wrote.
+
+1. Read the candidates: `ACTIVE` listings and `PENDING` offers with their `expiresAt` behind the
+   clock. Outside any write transaction, because they are candidates and not guarantees.
+2. Offers first, one transaction each. The offer goes `EXPIRED`, its own fate. The hold is untouched:
+   an offer that ran out is exactly as reclaimable as one that was beaten, and no more refunded.
+3. Listings second, one transaction each. The listing goes `EXPIRED` and supersedes whatever pending
+   offers remain, emitting one `OfferSuperseded` each. Their holds are untouched too.
+
+Each use case takes its own lock and re-reads against the clock, so a listing its borrower cancelled
+between step 1 and step 3 is refused rather than forced. Nothing about this flow moves money, which
+is why it carries no pause check: a listing does not stop having run out because the system is
+paused.
+
+### Failures
+
+| Condition | Result |
+|---|---|
+| The row stopped qualifying between the read and the write | refused, and the sweep counts it as untouched |
+| The whole sweep throws | logged, and the next tick tries again |
 
 ---
 
@@ -692,3 +744,58 @@ The read models behind the strip and the tape come from the indexer projection i
 Postgres. The panes do not change, because they already read a flat DTO from a query service rather
 than a hydrated aggregate.
 
+
+---
+
+## Flow 18: selling a position on the secondary market
+
+**Actor:** the lender note holder (seller), then any other member (buyer)
+**Precondition:** loan `ACTIVE`, `notesTransferable` on, the note minted transferable
+
+### Steps
+
+1. `POST /notes/:id/sales` with the ask.
+   > **─── transaction boundary ───**
+   > Resolve the loan through the note and lock the loan row. Assert the caller holds the note,
+   > the loan is `ACTIVE`, no other sale is `OPEN` on it, and the ask is at most
+   > `calculateAmountDue(now)`: the seller keeps what has accrued and forfeits the rest of the
+   > term, which is the buyer's reason to exist. Create the `NoteSale` `OPEN`. Emit
+   > `NoteListedForSale`.
+
+2. The positions page shows the sale with its priced figures: current value, maturity value, ask.
+   The browse response carries `asOf`, and the client draws without computing a single amount.
+
+3. `POST /sales/:id/purchase` from the buyer.
+   > **─── transaction boundary ───**
+   > Lock the loan row, the same lock repayment takes, so a purchase racing a repayment
+   > serialises. Re-read the sale, the loan, and the note. Assert the sale is `OPEN`, the loan
+   > `ACTIVE`, the holder still the seller, and the buyer neither the seller nor the borrower.
+   > `SettlementPort.transfer(buyer → seller, askPrice, 'SELL_NOTE')`. Mark the sale `SOLD`.
+   > Reassign the note holder to the buyer. Emit `NoteSold`.
+
+4. From here the loan behaves as if the buyer had funded it: repayment resolves the holder inside
+   its own transaction (flow 5) and pays the buyer; on default the claim is the buyer's (flow 7).
+
+`POST /sales/:id/withdraw` moves an `OPEN` sale to `WITHDRAWN`, seller only. Repayment and default
+marking void any `OPEN` sale on their loan inside their own transaction, so browse never shows a
+sale whose loan has closed.
+
+### Failures
+
+| Condition | Result |
+|---|---|
+| Transfers off, or the note minted non transferable | 422 `NOTE_TRANSFER_DISABLED` |
+| Ask above the current value | 422 `ASK_EXCEEDS_CURRENT_VALUE`, with the cap in `details` |
+| A sale already open on the note | 409 `NOTE_ALREADY_LISTED` |
+| Lister does not hold the note | 403 `FORBIDDEN` |
+| Sale withdrawn, sold, or voided before the purchase | 409 `NOTE_SALE_NOT_OPEN` |
+| Loan closed before the purchase | 409 `LOAN_NOT_ACTIVE` |
+| Buyer is the seller or the borrower | 422 `CANNOT_BUY_OWN_POSITION` |
+| Buyer cannot cover the ask | 422 `INSUFFICIENT_FUNDS` |
+
+### Phase 3
+
+`note_sale::purchase(sale, coin, &config, ctx)`: one PTB moves the coin to the seller and the
+`LenderNote` object to the buyer, and the cap check lives in the Move module. The note lacks
+public `store`, so the sale function inside the package is the only path that moves it, which is
+the on chain form of the same gate.

@@ -12,7 +12,7 @@ import type { ReceiptId, VaultId } from '../../../domain/shared/identifiers';
 import { Money, currencyOf } from '../../../domain/shared/money';
 import { transactionOf } from '../prisma-unit-of-work';
 
-const aud = currencyOf('AUD');
+const usd = currencyOf('USD');
 
 @Injectable()
 export class PrismaReconciliationRepository implements ReconciliationRepository {
@@ -49,9 +49,9 @@ export class PrismaReconciliationRepository implements ReconciliationRepository 
     return {
       transactions: rows.map((row) => ({
         ledgerTransactionId: row.transaction_id,
-        net: Money.of(row.net, aud),
+        net: Money.of(row.net, usd),
       })),
-      globalSum: Money.of(globalRows[0]?.total ?? 0n, aud),
+      globalSum: Money.of(globalRows[0]?.total ?? 0n, usd),
     };
   }
 

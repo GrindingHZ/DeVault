@@ -67,7 +67,7 @@ function DepositCard(): ReactElement {
       deposit(
         {
           ...(email.trim() === '' ? {} : { email: email.trim() }),
-          amount: { minorUnits, currency: 'AUD' },
+          amount: { minorUnits, currency: 'USD' },
         },
         { idempotencyKey },
       ),
@@ -102,7 +102,7 @@ function DepositCard(): ReactElement {
           onChange={(event) => setEmail(event.target.value)}
         />
         <Field
-          label="Amount (AUD)"
+          label="Amount (USD)"
           data-testid="deposit-amount"
           value={amountInput}
           onChange={(event) => setAmountInput(event.target.value)}

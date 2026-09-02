@@ -15,6 +15,7 @@ export const ledgerTransactionKindSchema = z.enum([
   'REFUND_HOLD',
   'ORIGINATE_LOAN',
   'REPAY_LOAN',
+  'SELL_NOTE',
   'SETTLE_LIQUIDATION',
   'WITHDRAW',
 ]);

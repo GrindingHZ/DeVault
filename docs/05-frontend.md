@@ -72,7 +72,7 @@ on mount, not on submit, so a double-click sends the same key twice and the serv
 Two primitives, used everywhere, never bypassed.
 
 ```tsx
-<Money value={loan.principal} />                  // AUD 2,500.00
+<Money value={loan.principal} />                  // USD 2,500.00
 <Rate basisPoints={loan.annualPercentageRateBasisPoints} />   // 18.00% p.a.
 ```
 
@@ -84,6 +84,7 @@ Two primitives, used everywhere, never bypassed.
 ```
 /                              landing, live listings
 /listings                      the workspace: browse, detail, offer book, spine, tape
+/secondary-market              open note sales, each with a value chart
 /listings/:listingId           redirects into /listings?listing=:listingId
 /portfolio                     every position on both sides, filtered by ?side=
 /borrow/receipts               my receipts, list one
@@ -96,7 +97,9 @@ Two primitives, used everywhere, never bypassed.
 /settings
 ```
 
-The navigation rail carries four destinations: Browse, Portfolio, My items, Wallet.
+The navigation rail carries five destinations: Browse, Secondary Market, Portfolio, My items,
+Wallet. The Secondary Market earns its place on the rail because it is a different market, not a
+different view of the reader's own things; the Q-028 consolidation was about role splits and holds.
 
 Screens that need care:
 
@@ -111,6 +114,14 @@ than silently retrying; the amount changed and the user must see it.
 
 **Reclaim funds.** A persistent banner when the account has superseded or expired holds. This is
 money the user cannot spend and does not know about. It should be impossible to miss.
+
+**Secondary Market.** Its own rail destination beside Browse. One card per open sale, and the centre of each
+card is a `ValueChart`: the solid line runs from the principal at origination to the full payoff at
+maturity, a marker pins today, and the dashed reference line is the ask. Every figure on the chart
+is priced by the server; the client draws and never computes money. Buying opens a dialog naming
+what is paid now and what the loan pays at maturity. Selling and withdrawing live on the
+portfolio's lending rows, where an active position offers `Sell position` and a listed one shows
+its ask beside `Withdraw sale`.
 
 ## The portfolio
 

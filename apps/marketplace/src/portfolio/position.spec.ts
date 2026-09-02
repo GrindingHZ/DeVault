@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import type { LoanResponse, MyListingResponse, MyOfferResponse } from '@depawn/contracts';
+import type {
+  LoanResponse,
+  MyBidResponse,
+  MyListingResponse,
+  MyOfferResponse,
+} from '@depawn/contracts';
 import {
   isOpen,
   maturityWarningMs,
+  positionOfBid,
   positionOfBorrowedLoan,
   positionOfLentLoan,
   positionOfListing,
@@ -13,7 +19,7 @@ const now = Date.parse('2026-08-23T12:00:00.000Z');
 const oneDay = 24 * 60 * 60 * 1000;
 
 function money(minorUnits: string) {
-  return { minorUnits, currency: 'AUD' as const };
+  return { minorUnits, currency: 'USD' as const };
 }
 
 function listing(overrides: Partial<MyListingResponse> = {}): MyListingResponse {
@@ -49,6 +55,7 @@ function offer(overrides: Partial<MyOfferResponse> = {}): MyOfferResponse {
     itemDescription: 'Omega Speedmaster',
     receiptId: 'R1',
     hasPhotograph: true,
+    isHoldHeld: true,
     ...overrides,
   };
 }
@@ -66,6 +73,7 @@ function loan(overrides: Partial<LoanResponse> = {}): LoanResponse {
     maturesAt: '2026-09-30T12:00:00.000Z',
     graceEndsAt: '2026-10-07T12:00:00.000Z',
     lenderNoteHolderAccountId: 'gita',
+    lenderNoteId: 'NOTE1',
     status: 'ACTIVE',
     accruedInterest: money('5917'),
     originationSettlementRef: {
@@ -157,7 +165,29 @@ describe('an offer as a position', () => {
     const position = offerPosition(offer({ status }));
     expect(position.action?.kind).toBe('reclaim');
     expect(position.needsAttention).toBe(true);
-    expect(position.figure).toEqual({ label: 'Held', value: 'AUD 4,000.00' });
+    expect(position.figure).toEqual({ label: 'Held', value: 'USD 4,000.00' });
+  });
+
+  /* Reclaiming refunds the hold and deliberately leaves the offer
+     superseded, so the status alone cannot say whether there is anything
+     left to ask for. Reading it alone was a row that went on asking for
+     money the reader already had back, and a bell that never cleared. */
+  it.each(['SUPERSEDED', 'EXPIRED'] as const)('stops asking once a %s hold is home', (status) => {
+    const position = offerPosition(offer({ status, isHoldHeld: false }));
+    expect(position.action).toBeNull();
+    expect(position.needsAttention).toBe(false);
+    expect(position.caption).toBe('Your money is back in your balance');
+  });
+
+  /* Nothing sweeps a pending offer into EXPIRED when its date passes, so one
+     that has run out sits PENDING with its money as stranded as an outbid
+     hold, and used to read "Standing" as though it were still in the run. */
+  it('treats an offer past its own date as expired, not standing', () => {
+    const ranOut = new Date(now - oneDay).toISOString();
+    const position = offerPosition(offer({ expiresAt: ranOut }));
+    expect(position.stage).toBe('Expired');
+    expect(position.action?.kind).toBe('reclaim');
+    expect(position.needsAttention).toBe(true);
   });
 
   it('leaves an accepted offer to the loan it became', () => {
@@ -177,6 +207,96 @@ describe('an offer as a position', () => {
   });
 });
 
+function bid(overrides: Partial<MyBidResponse> = {}): MyBidResponse {
+  return {
+    id: 'B1',
+    liquidationId: 'LQ1',
+    itemDescription: 'Rolex Datejust',
+    receiptId: 'R9',
+    hasPhotograph: true,
+    amount: money('300000'),
+    placedAt: '2026-08-20T12:00:00.000Z',
+    liquidationStatus: 'BIDDING',
+    closesAt: '2026-09-23T12:00:00.000Z',
+    isStanding: true,
+    isHoldHeld: true,
+    ...overrides,
+  };
+}
+
+/* The money the portfolio could not see. A bid holds funds exactly as an
+   offer does and a beaten one keeps holding them, so every case here is the
+   offer case again in the other market. */
+describe('a bid as a position', () => {
+  it('leaves the high bid alone while the sale is still taking them', () => {
+    const position = positionOfBid(bid(), now);
+    expect(position.stage).toBe('Bidding');
+    expect(position.action).toBeNull();
+    expect(position.needsAttention).toBe(false);
+  });
+
+  it('asks for a beaten hold back', () => {
+    const position = positionOfBid(bid({ isStanding: false }), now);
+    expect(position.stage).toBe('Outbid');
+    expect(position.action?.kind).toBe('reclaim');
+    expect(position.needsAttention).toBe(true);
+    expect(position.figure).toEqual({ label: 'Held', value: 'USD 3,000.00' });
+  });
+
+  /* Reclaiming refunds the hold and writes nothing back to the bid, the same
+     as an offer, so the bid alone can never say whether there is anything
+     left to ask for. */
+  it('stops asking once the hold is home', () => {
+    const position = positionOfBid(bid({ isStanding: false, isHoldHeld: false }), now);
+    expect(position.action).toBeNull();
+    expect(position.needsAttention).toBe(false);
+    expect(position.caption).toBe('Your money is back in your balance');
+  });
+
+  it('carries the sale a reclaim has to be addressed under', () => {
+    expect(positionOfBid(bid({ isStanding: false }), now).bid).toEqual({
+      id: 'B1',
+      liquidationId: 'LQ1',
+    });
+  });
+
+  /* The winner's hold is spent paying the loan out rather than refunded, so
+     there is nothing to reclaim and the item arrives as a receipt. */
+  it('closes a won sale with nothing left to do', () => {
+    const position = positionOfBid(bid({ liquidationStatus: 'SETTLED', isHoldHeld: false }), now);
+    expect(position.stage).toBe('Won');
+    expect(position.action).toBeNull();
+    expect(position.needsAttention).toBe(false);
+  });
+
+  /* Nothing closes a sale on a timer either. A bid standing on a sale whose
+     time is up is not in the run any more, and reading it as live would
+     invite the reader to wait for something that has stopped. */
+  it('treats a sale past its closing time as over, not live', () => {
+    const closed = new Date(now - oneDay).toISOString();
+    const position = positionOfBid(bid({ closesAt: closed }), now);
+    expect(position.stage).toBe('Outbid');
+    expect(position.action?.kind).toBe('reclaim');
+  });
+});
+
+describe('a listing that ran out of time', () => {
+  /* Nothing expires a listing on a timer, so one past its date sits ACTIVE
+     with the date behind it. Acceptance refuses it, so the button was one
+     the server would always turn down. */
+  it('offers nothing to accept once the date has passed', () => {
+    const ranOut = new Date(now - oneDay).toISOString();
+    const position = listingPosition(listing({ expiresAt: ranOut }));
+    expect(position.stage).toBe('Expired');
+    expect(position.action).toBeNull();
+    expect(position.caption).toContain('ran out of time');
+  });
+
+  it('still offers to accept while there is time left', () => {
+    expect(listingPosition(listing()).action?.kind).toBe('accept');
+  });
+});
+
 describe('a loan the reader owes', () => {
   /* The table is borrowing only now, so "You borrowed" on every row was a
      word the reader could not use. The rate is the fact that varies. */
@@ -187,7 +307,7 @@ describe('a loan the reader owes', () => {
   it('shows what settling today would cost', () => {
     const position = positionOfBorrowedLoan(loan(), now);
     expect(position.stage).toBe('Running');
-    expect(position.figure).toEqual({ label: 'Owed today', value: 'AUD 4,059.17' });
+    expect(position.figure).toEqual({ label: 'Owed today', value: 'USD 4,059.17' });
     expect(position.action?.kind).toBe('repay');
   });
 
@@ -224,12 +344,13 @@ describe('a loan the reader owes', () => {
       expect(position.needsAttention).toBe(false);
     });
 
-    /* Still open, not history. Staff have the seal to break and the reader
-       has a counter to walk up to; it is finished when the item is theirs. */
-    it('keeps a requested collection in view', () => {
-      expect(isOpen(positionOfBorrowedLoan(loan({ status: 'REPAID' }), now, 'REQUESTED'))).toBe(
-        true,
-      );
+    /* History, because the loan is what this table is about and the loan is
+       paid off. What is left is an errand about an item, and it is carried
+       by My items and by the bell in the header. */
+    it('files a requested collection into history with the loan it closed', () => {
+      const position = positionOfBorrowedLoan(loan({ status: 'REPAID' }), now, 'REQUESTED');
+      expect(position.stage).toBe('Collection requested');
+      expect(isOpen(position)).toBe(false);
     });
 
     it('files it into history once it has been handed over', () => {
@@ -247,12 +368,6 @@ describe('a loan the reader owes', () => {
     expect(position.action?.kind).toBe('collect');
     expect(position.needsAttention).toBe(true);
   });
-
-  it('raises a default without offering an action the borrower does not have', () => {
-    const position = positionOfBorrowedLoan(loan({ status: 'DEFAULTED' }), now);
-    expect(position.action).toBeNull();
-    expect(position.needsAttention).toBe(true);
-  });
 });
 
 /* The numbers the table is built out of. Everything here is arithmetic on
@@ -267,11 +382,11 @@ describe('what a loan is worth', () => {
   });
 
   /* Bare figures. The loan tables name the currency once in the column
-     header, because twenty repetitions of "AUD" down a column pushed every
+     header, because twenty repetitions of "USD" down a column pushed every
      amount onto two lines. */
   it('splits interest into what has accrued and what is still to come', () => {
     const metrics = positionOfBorrowedLoan(sixtyDays, now).metrics;
-    expect(metrics?.currency).toBe('AUD');
+    expect(metrics?.currency).toBe('USD');
     expect(metrics?.interestSoFar).toBe('59.17');
     expect(metrics?.interestToCome).toBe('59.18');
   });
@@ -281,11 +396,11 @@ describe('what a loan is worth', () => {
   it('settles a borrower at today and a lender at maturity', () => {
     expect(positionOfBorrowedLoan(sixtyDays, now).metrics?.settlement).toEqual({
       label: 'Owed today',
-      value: 'AUD 4,059.17',
+      value: 'USD 4,059.17',
     });
     expect(positionOfLentLoan(sixtyDays, now).metrics?.settlement).toEqual({
       label: 'Value at maturity',
-      value: 'AUD 4,118.35',
+      value: 'USD 4,118.35',
     });
   });
 
@@ -298,7 +413,7 @@ describe('what a loan is worth', () => {
     const term = positionOfBorrowedLoan(sixtyDays, now).term;
     expect(term?.elapsedBasisPoints).toBe(3667);
     expect(term?.note).toBe('day 23 of 60');
-    expect(term?.caption).toBe('38 days left');
+    expect(term?.caption).toEqual({ value: '38 days', trail: 'left' });
   });
 
   /* Counted from one. The day a loan is drawn down is its first day. */
@@ -350,7 +465,7 @@ describe('what a loan is worth', () => {
     /* The term is spent, so the count sits at its end and grace is what is
        left to say. */
     expect(term?.note).toBe('day 60 of 60');
-    expect(term?.caption).toBe('4 days of grace left');
+    expect(term?.caption).toEqual({ value: '4 days', trail: 'of grace left' });
   });
 
   it('says so once grace has run out', () => {
@@ -391,7 +506,7 @@ describe('a loan the reader is owed', () => {
   it('shows what it has earned so far', () => {
     const position = positionOfLentLoan(loan(), now);
     expect(position.stage).toBe('Earning');
-    expect(position.figure).toEqual({ label: 'Earned so far', value: 'AUD 59.17' });
+    expect(position.figure).toEqual({ label: 'Earned so far', value: 'USD 59.17' });
     expect(position.needsAttention).toBe(false);
   });
 
@@ -405,8 +520,49 @@ describe('a loan the reader is owed', () => {
     expect(position.needsAttention).toBe(true);
   });
 
-  it('leaves a loan inside its grace alone', () => {
-    expect(positionOfLentLoan(loan(), now).action).toBeNull();
+  it('offers to sell a position that is earning', () => {
+    const position = positionOfLentLoan(loan(), now);
+    expect(position.action).toEqual({ label: 'Sell position', kind: 'sell' });
+    expect(position.lenderNoteId).toBe('NOTE1');
+  });
+
+  it('offers the withdrawal once the position is listed for sale', () => {
+    const position = positionOfLentLoan(loan(), now, false, {
+      id: 'SALE1',
+      loanId: 'LN1',
+      lenderNoteId: 'NOTE1',
+      sellerAccountId: 'gita',
+      status: 'OPEN',
+      askPrice: money('380000'),
+      createdAt: '2026-08-20T12:00:00.000Z',
+      receiptId: 'R1',
+      itemDescription: 'Omega Speedmaster',
+      itemCategory: 'WATCH',
+      hasPhotograph: true,
+      principal: money('400000'),
+      annualPercentageRateBasisPoints: 1800,
+      startedAt: '2026-08-01T12:00:00.000Z',
+      maturesAt: '2026-09-30T12:00:00.000Z',
+      accruedInterest: money('5917'),
+      currentValue: money('405917'),
+      maturityValue: money('411780'),
+    });
+    expect(position.stage).toBe('Listed for sale');
+    expect(position.action).toEqual({ label: 'Withdraw sale', kind: 'withdrawSale' });
+    expect(position.figure).toEqual({ label: 'Ask', value: 'USD 3,800.00' });
+    expect(position.noteSale?.id).toBe('SALE1');
+  });
+
+  /* Claiming does not change the loan, which stays DEFAULTED for ever, so
+     the row kept offering a claim the server then refused with
+     `RECEIPT_NOT_ENCUMBERED`. The receipt is what knows: claiming moves it
+     into the claimant's own name. */
+  it('stops offering a claim once the collateral has been taken', () => {
+    const position = positionOfLentLoan(loan({ status: 'DEFAULTED' }), now, true);
+    expect(position.stage).toBe('Claimed');
+    expect(position.action).toBeNull();
+    expect(position.needsAttention).toBe(false);
+    expect(isOpen(position)).toBe(false);
   });
 
   it('offers the collateral to the lender on a default', () => {
@@ -494,12 +650,40 @@ describe('open and closed', () => {
     expect(isOpen(build())).toBe(false);
   });
 
-  /* Finished as a loan, unfinished as an errand. Burying it under history
-     would hide the only control that ends it. */
-  it('keeps a repaid loan open while the item is still to be collected', () => {
+  /* The errand belongs to the item, not to the loan. Once the item has been
+     listed again, pledged again, or collected under a later loan, the row
+     that closed has nothing left to ask for. */
+  it('stops offering to collect an item that has moved on', () => {
+    const position = positionOfBorrowedLoan(loan({ status: 'REPAID' }), now, null, false);
+    expect(position.stage).toBe('Repaid');
+    expect(position.action).toBeNull();
+    expect(position.needsAttention).toBe(false);
+    expect(position.caption).toBe('Paid off in full');
+  });
+
+  /* Bad news the borrower cannot act on. A notification with no action
+     behind it can never be cleared, so it would sit on the bell for good. */
+  it('does not ring the bell about a default nobody can act on', () => {
+    const position = positionOfBorrowedLoan(loan({ status: 'DEFAULTED' }), now);
+    expect(position.action).toBeNull();
+    expect(position.needsAttention).toBe(false);
+  });
+
+  /* Paid off is finished, whatever is still on a shelf. The control that
+     ends the errand stays on the row, and the bell carries it from every
+     other screen, but the row itself belongs behind the reader. */
+  it('files a repaid loan into history even with the item still to collect', () => {
     const repaid = positionOfBorrowedLoan(loan({ status: 'REPAID' }), now);
     expect(repaid.action?.kind).toBe('collect');
-    expect(isOpen(repaid)).toBe(true);
+    expect(repaid.needsAttention).toBe(true);
+    expect(isOpen(repaid)).toBe(false);
+  });
+
+  /* The other side of the same rule: a defaulted loan is not finished while
+     the collateral is still there to be taken. */
+  it('keeps a defaulted loan open until its collateral is claimed', () => {
+    expect(isOpen(positionOfLentLoan(loan({ status: 'DEFAULTED' }), now))).toBe(true);
+    expect(isOpen(positionOfLentLoan(loan({ status: 'DEFAULTED' }), now, true))).toBe(false);
   });
 });
 
@@ -507,7 +691,8 @@ describe('how long is left', () => {
   it('counts a live listing down to its closing date', () => {
     const closes = new Date(now + 20 * oneDay).toISOString();
     const term = listingPosition(listing({ expiresAt: closes })).term;
-    expect(term?.note).toBe('closes in 20 days');
+    expect(term?.note).toBe('closes in');
+    expect(term?.caption).toEqual({ value: '20 days', trail: '' });
     /* No bar. Neither a listing nor an offer records when it began, so a
        proportion would be drawn from a guess. */
     expect(term?.elapsedBasisPoints).toBeNull();
@@ -515,7 +700,7 @@ describe('how long is left', () => {
 
   it('says a listing closes today rather than in zero days', () => {
     const closes = new Date(now + 60 * 60 * 1000).toISOString();
-    expect(listingPosition(listing({ expiresAt: closes })).term?.note).toBe('closes today');
+    expect(listingPosition(listing({ expiresAt: closes })).term?.caption?.value).toBe('today');
   });
 
   /* Every other column on a closed row shows a dash. The term did not, and

@@ -3,6 +3,8 @@ import type { Loan } from '../../../domain/lending/loan';
 import { LoanNotFound } from '../../../domain/lending/loan-not-found';
 import { LOAN_REPOSITORY } from '../../../domain/lending/loan-repository';
 import type { LoanRepository } from '../../../domain/lending/loan-repository';
+import { NOTE_SALE_REPOSITORY } from '../../../domain/lending/note-sale-repository';
+import type { NoteSaleRepository } from '../../../domain/lending/note-sale-repository';
 import { NotResourceOwner } from '../../../domain/marketplace/not-resource-owner';
 import { AUDIT_PORT } from '../../../domain/ports/audit.port';
 import type { AuditPort } from '../../../domain/ports/audit.port';
@@ -31,6 +33,7 @@ export class MarkDefaultUseCase {
   constructor(
     @Inject(UNIT_OF_WORK) private readonly unitOfWork: UnitOfWork,
     @Inject(LOAN_REPOSITORY) private readonly loans: LoanRepository,
+    @Inject(NOTE_SALE_REPOSITORY) private readonly noteSales: NoteSaleRepository,
     @Inject(DOMAIN_EVENT_PUBLISHER) private readonly events: DomainEventPublisher,
     @Inject(AUDIT_PORT) private readonly audit: AuditPort,
     @Inject(CLOCK_PORT) private readonly clock: ClockPort,
@@ -54,6 +57,20 @@ export class MarkDefaultUseCase {
         return defaulted;
       }
       await this.loans.save(defaulted.value, context);
+
+      // A sale on a loan that just defaulted would advertise a claim on
+      // repayment that will never come, so it dies in the same transaction.
+      const openSale = await this.noteSales.findOpenByLoanId(loan.id, context);
+      if (openSale !== null) {
+        const voided = openSale.markVoided();
+        if (voided.ok) {
+          await this.noteSales.save(voided.value, context);
+          await this.events.publish(
+            [{ type: 'NoteSaleVoided', noteSaleId: openSale.id, loanId: loan.id }],
+            context,
+          );
+        }
+      }
 
       await this.events.publish(
         [{ type: 'LoanDefaulted', loanId: loan.id, defaultedAt: now }],

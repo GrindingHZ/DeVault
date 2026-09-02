@@ -22,8 +22,8 @@ export function toParametersDto(parameters: ProtocolParameters): ProtocolParamet
 
 export function fromParametersDto(dto: ProtocolParametersDto): ProtocolParameters {
   const threshold =
-    dto.dualAppraisalThreshold.currency === 'AUD'
-      ? toMoney({ minorUnits: dto.dualAppraisalThreshold.minorUnits, currency: 'AUD' })
+    dto.dualAppraisalThreshold.currency === 'USD'
+      ? toMoney({ minorUnits: dto.dualAppraisalThreshold.minorUnits, currency: 'USD' })
       : Money.of(
           BigInt(dto.dualAppraisalThreshold.minorUnits),
           currencyOf(dto.dualAppraisalThreshold.currency),

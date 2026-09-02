@@ -81,7 +81,11 @@ export function DataTable<Row>({
                 <td
                   key={column.key}
                   role="cell"
-                  className="flex items-baseline justify-between gap-4 px-3 py-1 md:h-row md:table-cell md:py-0"
+                  /* Vertical room on the wide layout too. `h-row` sets a
+                     floor rather than a height, and with three line cells
+                     like a term meter the content ran hard into the row
+                     above and below it. */
+                  className="flex items-baseline justify-between gap-4 px-3 py-1 md:h-row md:table-cell md:py-2"
                 >
                   <span
                     aria-hidden="true"

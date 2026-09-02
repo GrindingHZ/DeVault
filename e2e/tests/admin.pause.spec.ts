@@ -49,7 +49,7 @@ async function issueReceiptFor(request: APIRequestContext, borrowerEmail: string
   await request.post(`${apiBase}/intakes/${intakeId}/appraisals`, {
     headers: { 'idempotency-key': randomUUID() },
     data: {
-      value: { minorUnits: '500000', currency: 'AUD' },
+      value: { minorUnits: '500000', currency: 'USD' },
       method: 'spot times weight',
       comparableReferences: 'LBMA',
     },
@@ -90,7 +90,7 @@ test('a pause stops new lending without trapping a borrower', async ({
   ] as const) {
     await request.post(`${apiBase}/me/deposits`, {
       headers: { 'idempotency-key': randomUUID() },
-      data: { email, amount: { minorUnits, currency: 'AUD' } },
+      data: { email, amount: { minorUnits, currency: 'USD' } },
     });
   }
   const expiresAt = new Date(Date.now() + 3_600_000).toISOString();
@@ -99,7 +99,7 @@ test('a pause stops new lending without trapping a borrower', async ({
     headers: { 'idempotency-key': randomUUID() },
     data: {
       receiptId,
-      requestedPrincipal: { minorUnits: '250000', currency: 'AUD' },
+      requestedPrincipal: { minorUnits: '250000', currency: 'USD' },
       maxAnnualPercentageRateBasisPoints: 2400,
       requestedDurationMs: 30 * oneDay,
       requestedLifetimeMs: 3_600_000,
@@ -114,7 +114,7 @@ test('a pause stops new lending without trapping a borrower', async ({
   const offer = await request.post(`${apiBase}/listings/${listingId}/offers`, {
     headers: { 'idempotency-key': randomUUID() },
     data: {
-      principal: { minorUnits: '250000', currency: 'AUD' },
+      principal: { minorUnits: '250000', currency: 'USD' },
       annualPercentageRateBasisPoints: 1800,
       durationMs: 30 * oneDay,
       expiresAt,
@@ -145,7 +145,7 @@ test('a pause stops new lending without trapping a borrower', async ({
   const refused = await request.post(`${apiBase}/listings/${listingId}/offers`, {
     headers: { 'idempotency-key': randomUUID() },
     data: {
-      principal: { minorUnits: '250000', currency: 'AUD' },
+      principal: { minorUnits: '250000', currency: 'USD' },
       annualPercentageRateBasisPoints: 1800,
       durationMs: 30 * oneDay,
       expiresAt,

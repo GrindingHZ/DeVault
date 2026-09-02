@@ -17,9 +17,10 @@ import type { PositionSide } from './position';
 export interface StageMeaning {
   readonly tone: StatusTone;
   /* Whether the story is over. A terminal position drops out of what the
-     reader is watching and into the history behind it, unless it still has
-     something to do: a repaid loan whose item is still in a vault is
-     finished as a loan and not finished as an errand. */
+     reader is watching and into the history behind it, whatever controls the
+     row still carries: a loan that has been paid off in full is finished
+     even though its item is still on a shelf. A stage with more of the story
+     left in it says so here instead. */
   readonly isTerminal: boolean;
   readonly meaning: string;
 }
@@ -64,7 +65,7 @@ const borrowingStages = {
   },
   'Collection requested': {
     tone: 'active',
-    isTerminal: false,
+    isTerminal: true,
     meaning:
       'You have asked for the item back and the vault is expecting you. Bring photo identification to the counter; staff verify you, break the seal in front of you and hand it over.',
   },
@@ -96,8 +97,22 @@ const lendingStages = {
   Outbid: {
     tone: 'warning',
     isTerminal: false,
+    /* Both markets, because both lose the same way: an offer undercut on
+       rate and a bid topped on price leave their owner in the identical
+       position, holding money that is doing nothing. */
     meaning:
-      'Somebody offered a lower rate. Your money is still held and earning nothing until you reclaim it.',
+      'Somebody beat your price. Your money is still held and earning nothing until you reclaim it.',
+  },
+  Bidding: {
+    tone: 'active',
+    isTerminal: false,
+    meaning:
+      'Yours is the high bid on a collateral sale, and your money is held against it until the sale closes.',
+  },
+  Won: {
+    tone: 'success',
+    isTerminal: true,
+    meaning: 'You won the sale. Your bid paid the loan out and the item is being released to you.',
   },
   Expired: {
     tone: 'warning',
@@ -114,6 +129,12 @@ const lendingStages = {
     isTerminal: false,
     meaning: 'The loan is live and inside its term. Interest is accruing to you each day.',
   },
+  'Listed for sale': {
+    tone: 'active',
+    isTerminal: false,
+    meaning:
+      'Your position is on the secondary market at your ask. The first buyer takes it and the money lands in your balance; withdraw the sale to keep the position.',
+  },
   'Past grace': {
     tone: 'warning',
     isTerminal: false,
@@ -127,8 +148,19 @@ const lendingStages = {
   },
   Defaulted: {
     tone: 'danger',
+    /* Not finished: the collateral is still sitting there waiting to be
+       taken, and until somebody takes it this position is one of the few
+       that is actually costing its holder to ignore. It becomes Claimed,
+       which is finished. */
+    isTerminal: false,
+    meaning:
+      'The borrower did not repay and grace has run out. Claim the collateral to take the receipt into your own name.',
+  },
+  Claimed: {
+    tone: 'success',
     isTerminal: true,
-    meaning: 'You hold the receipt. Claim the collateral and the item goes to sale on your behalf.',
+    meaning:
+      'The receipt is in your name and the item is in the vault under it. It appears in My items, where you can collect it or leave it to be sold.',
   },
   Sold: {
     tone: 'neutral',

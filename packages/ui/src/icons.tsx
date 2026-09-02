@@ -102,6 +102,19 @@ export function PortfolioIcon(props: IconProps): ReactElement {
   );
 }
 
+/* Two arrows passing each other: a position leaving one hand for another,
+   which is what the secondary market is. */
+export function ExchangeIcon(props: IconProps): ReactElement {
+  return (
+    <Icon {...props}>
+      <path d="M4 8h14" />
+      <path d="M14 4l4 4-4 4" />
+      <path d="M20 16H6" />
+      <path d="M10 12l-4 4 4 4" />
+    </Icon>
+  );
+}
+
 export function WalletIcon(props: IconProps): ReactElement {
   return (
     <Icon {...props}>

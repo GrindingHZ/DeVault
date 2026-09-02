@@ -51,9 +51,9 @@ describe('naming the people behind an identifier', () => {
       data: {
         id: vaultId,
         name: 'Identity vault',
-        city: 'Sydney',
+        city: 'New York',
         insuredLimitMinorUnits: 100_000_000_000n,
-        currency: 'AUD',
+        currency: 'USD',
       },
     });
 
@@ -123,7 +123,7 @@ describe('naming the people behind an identifier', () => {
         holderAccountId: memberAccountId,
         intakeRecordHash: 'hash-identity-1',
         appraisedValueMinorUnits: 1_000_000n,
-        currency: 'AUD',
+        currency: 'USD',
         appraisedAt: new Date(0),
         appraiserId: 'S1',
         itemCategory: 'WATCH',

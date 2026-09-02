@@ -139,10 +139,17 @@ export function useViewportProgress(ref: RefObject<HTMLElement | null>): number 
       }
       const rect = element.getBoundingClientRect();
       const viewport = window.innerHeight;
-      /* Filled by the time the row sits a little above the middle, so it has
-         finished moving before the reader's eye settles on it. */
-      const travel = viewport * 0.45;
-      const next = quantise(Math.min(Math.max((viewport - rect.top) / travel, 0), 1));
+      /* Starts as the row clears the bottom edge and finishes only once it is
+         near the top, so it fills across most of a screen of scrolling rather
+         than in the last stretch before the reader arrives.
+
+         The first pass ran over 45 percent of the viewport and was done by
+         the time a row reached the middle, which meant every row a reader
+         actually looked at was already full and the whole thing read as
+         static. */
+      const start = viewport * 0.95;
+      const travel = viewport * 0.8;
+      const next = quantise(Math.min(Math.max((start - rect.top) / travel, 0), 1));
       if (next !== latest.current) {
         latest.current = next;
         setProgress(next);

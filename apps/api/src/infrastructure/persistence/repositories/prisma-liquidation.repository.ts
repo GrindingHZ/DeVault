@@ -70,8 +70,11 @@ export class PrismaLiquidationRepository implements LiquidationRepository {
   }
 
   async findByLoan(loanId: LoanId, context: UnitOfWorkContext): Promise<Liquidation | null> {
-    const row = await transactionOf(context).liquidation.findUnique({
-      where: { loanId },
+    /* The live one. A cancelled sale is history rather than an obstacle: it
+       gave the loan its slot back, and the only caller is the guard asking
+       whether this loan already has a sale running. */
+    const row = await transactionOf(context).liquidation.findFirst({
+      where: { loanId, status: { not: 'CANCELLED' } },
       include: { bids: { orderBy: { id: 'asc' } } },
     });
     return row === null ? null : toLiquidation(row);

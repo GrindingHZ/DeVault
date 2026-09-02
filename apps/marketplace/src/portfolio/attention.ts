@@ -44,6 +44,10 @@ const rank: Record<PositionActionKind, number> = {
   publish: 5,
   accept: 6,
   withdraw: 7,
+  /* Selling is an option, never an errand: neither raises attention, so the
+     rank only settles ties in the tables. */
+  sell: 8,
+  withdrawSale: 9,
 };
 
 export function attentionOrder(left: Position, right: Position): number {

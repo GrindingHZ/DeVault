@@ -89,12 +89,20 @@ const allowedTransitions: Record<ListingStatus, ListingStatus[]> = {
 
 ```
 IN_VAULT ──encumber──▶ ENCUMBERED ──release──▶ IN_VAULT
-    │                       │
-    │                       └──claimDefault──▶ ENCUMBERED (holder changes)
+    │  ▲                    │
+    │  └──claimDefault──────┘ (holder becomes the claimant)
     │
+    ├──transferHolder─────▶ IN_VAULT (holder changes)
     ├──burnForRedemption──▶ RELEASED
-    └──burnForLiquidation─▶ LIQUIDATED
+    └──burnForLiquidation─▶ LIQUIDATED ◀──burnForLiquidation── ENCUMBERED
 ```
+
+`claimDefault` lands in IN_VAULT under the claimant rather than staying encumbered (Q-012). The loan
+it was pledged against is over, and leaving it encumbered would mean a lender who took the
+collateral could not then redeem it without a special case. `burnForLiquidation` runs from
+ENCUMBERED as well as from IN_VAULT, because flow 8 can sell before any lender has claimed.
+`transferHolder` exists in the entity and in the custody port and nothing fires it; it is the seam a
+Phase 3 object transfer lands on. `docs/14-state-machines.md` carries the guards and effects.
 
 Fields: `id`, `vaultId`, `holderAccountId`, `intakeRecordHash`, `appraisedValue: Money`,
 `appraisedAt`, `appraiserId`, `itemCategory`, `insurancePolicyReference`, `status`, `encumberedByLoanId`.
@@ -205,16 +213,50 @@ class LenderNote {
 ```
 
 Thin by design. `transferable` defaults to `false` behind the `notesTransferable` feature flag;
-see the securities-law note in `docs/00-product-overview.md`. Build the transfer endpoint, ship it
-disabled.
+see the securities-law note in `docs/00-product-overview.md`. The demo parameters turn the flag on
+so the secondary market has something to show; production keeps it off until counsel answers Q-002.
+The bare transfer endpoint this section once asked for was subsumed by the note sale, which is a
+transfer with the payment leg that makes it an exit.
+
+### NoteSale
+
+The fixed price sale of a lender note: the secondary market the note indirection was built to buy.
+
+```
+OPEN ──purchase──▶ SOLD
+  │
+  ├──withdraw───▶ WITHDRAWN
+  │
+  └──void───────▶ VOIDED
+```
+
+Fields: `id`, `lenderNoteId`, `loanId`, `sellerAccountId`, `askPrice: Money`, `createdAt`,
+`status`, `version`.
+
+The ask is capped at `loan.calculateAmountDue(now)` at listing time: the seller keeps what the
+position has earned and forfeits the rest of the term's interest, which is the buyer's whole
+reason to buy. The cap only grows, so a sale never falls out of compliance and the purchase
+revalidates nothing about the price. Only ACTIVE loans may be listed; repayment and default void
+any open sale inside their own transaction, the way accepting an offer supersedes the losers.
+Neither the seller nor the borrower may buy (Q-030), and every note sale write locks the loan row,
+so a purchase racing a repayment serialises on the same lock repayment already takes.
+
+Purchase is one transaction: one balance checked transfer of the ask (ledger kind `SELL_NOTE`),
+one holder reassignment on the note, one status move on the sale. That is what makes it one Move
+transaction in Phase 3.
 
 ### Liquidation
 
 ```
 SCHEDULED ──open──▶ BIDDING ──close──▶ SETTLED
-                       │
-                       └──cancel──▶ CANCELLED
+    │
+    └──cancel──▶ CANCELLED
 ```
+
+Cancelling runs from SCHEDULED only. A sale that has opened has bids behind it and every bid holds
+somebody's money; calling one off would have to refund all of them, and nothing does that in bulk.
+Close it instead. A cancelled sale gives the loan its slot back, so the loan can be scheduled again:
+the one sale per loan index is partial on that account.
 
 Fields: `id`, `loanId`, `receiptId`, `reservePrice: Money`, `opensAt`, `closesAt`, `winningBidId`,
 `status`, `waterfallResult`.

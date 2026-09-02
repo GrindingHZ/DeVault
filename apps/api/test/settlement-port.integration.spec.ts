@@ -10,7 +10,7 @@ import { createTestApplication } from './create-test-application';
 import type { TestApplication } from './create-test-application';
 import { expectLedgerBalances } from './ledger-assertions';
 
-const aud = currencyOf('AUD');
+const usd = currencyOf('USD');
 let harness: TestApplication | undefined;
 let accountCounter = 0;
 
@@ -48,8 +48,9 @@ describeSettlementPortContract('ledger', async () => {
             {
               fromAccountId: platformAccountIds.float,
               toAccountId: accountId,
-              amount: Money.of(minorUnits, aud),
+              amount: Money.of(minorUnits, usd),
               reference: `seed-${accountCounter}`,
+              reason: 'DEPOSIT',
             },
             context,
           ),
@@ -58,7 +59,7 @@ describeSettlementPortContract('ledger', async () => {
       return accountId;
     },
     async availableBalanceOf(accountId: AccountId): Promise<bigint> {
-      return (await adapter.availableBalance(accountId, aud)).minorUnits;
+      return (await adapter.availableBalance(accountId, usd)).minorUnits;
     },
     heldBalanceOf,
     async referenceExists(settlementRef): Promise<boolean> {

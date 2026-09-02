@@ -5,10 +5,13 @@ export const marketKeys = {
   detail: (listingId: string) => ['listings', 'detail', listingId] as const,
   myListings: ['listings', 'mine'] as const,
   myOffers: ['offers', 'mine'] as const,
+  myBids: ['bids', 'mine'] as const,
   myReceipts: ['receipts', 'mine'] as const,
   myLoans: (role: 'borrower' | 'lender') => ['loans', 'mine', role] as const,
   payoffQuote: (loanId: string) => ['loans', 'payoff', loanId] as const,
   myRedemptions: ['redemption-requests', 'mine'] as const,
+  noteSalesBrowse: ['note-sales', 'browse'] as const,
+  myNoteSales: ['note-sales', 'mine'] as const,
   /* Polled on a timer by the workspace. Both are conveniences: nothing on
      the screen becomes unreachable when either fails. */
   marketIndex: ['market', 'index'] as const,

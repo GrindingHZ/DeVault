@@ -11,7 +11,7 @@ import {
   UnbalancedLedgerTransactionError,
 } from './ledger-transaction';
 
-const aud = currencyOf('AUD');
+const usd = currencyOf('USD');
 const occurredAt = Instant.fromEpochMilliseconds(1_700_000_000_000n);
 
 function buildWith(entries: readonly LedgerEntry[]): LedgerTransaction {
@@ -31,9 +31,9 @@ const balancedEntriesArbitrary = fc
   .map((amounts) => {
     const total = amounts.reduce((sum, amount) => sum + amount, 0n);
     const debits = amounts.map((amount, index) =>
-      debit(ledgerAccountIdOf(`DEBIT-${index}`), Money.of(amount, aud)),
+      debit(ledgerAccountIdOf(`DEBIT-${index}`), Money.of(amount, usd)),
     );
-    const credits = [credit(ledgerAccountIdOf('CREDIT-0'), Money.of(total, aud))];
+    const credits = [credit(ledgerAccountIdOf('CREDIT-0'), Money.of(total, usd))];
     return [...debits, ...credits];
   });
 
@@ -59,7 +59,7 @@ describe('LedgerTransaction.build', () => {
         balancedEntriesArbitrary,
         fc.bigInt({ min: 1n, max: 1_000_000n }),
         (entries, extra) => {
-          const unbalanced = [...entries, credit(ledgerAccountIdOf('EXTRA'), Money.of(extra, aud))];
+          const unbalanced = [...entries, credit(ledgerAccountIdOf('EXTRA'), Money.of(extra, usd))];
           expect(() => buildWith(unbalanced)).toThrow(UnbalancedLedgerTransactionError);
         },
       ),
@@ -69,30 +69,32 @@ describe('LedgerTransaction.build', () => {
   it('rejects a zero or negative entry amount', () => {
     expect(() =>
       buildWith([
-        debit(ledgerAccountIdOf('A'), Money.of(0n, aud)),
-        credit(ledgerAccountIdOf('B'), Money.of(0n, aud)),
+        debit(ledgerAccountIdOf('A'), Money.of(0n, usd)),
+        credit(ledgerAccountIdOf('B'), Money.of(0n, usd)),
       ]),
     ).toThrow(NonPositiveEntryAmountError);
     expect(() =>
       buildWith([
-        debit(ledgerAccountIdOf('A'), Money.of(-100n, aud)),
-        credit(ledgerAccountIdOf('B'), Money.of(-100n, aud)),
+        debit(ledgerAccountIdOf('A'), Money.of(-100n, usd)),
+        credit(ledgerAccountIdOf('B'), Money.of(-100n, usd)),
       ]),
     ).toThrow(NonPositiveEntryAmountError);
   });
 
   it('rejects fewer than two entries', () => {
-    expect(() => buildWith([debit(ledgerAccountIdOf('A'), Money.of(100n, aud))])).toThrow(
+    expect(() => buildWith([debit(ledgerAccountIdOf('A'), Money.of(100n, usd))])).toThrow(
       UnbalancedLedgerTransactionError,
     );
   });
 
   it('balances per currency, not across currencies', () => {
-    const usd = currencyOf('USD');
+    /* Deliberately not the product currency. A transaction that balances
+       in one currency and not in another is the whole point of this test. */
+    const eur = currencyOf('EUR');
     expect(() =>
       buildWith([
-        debit(ledgerAccountIdOf('A'), Money.of(100n, aud)),
-        credit(ledgerAccountIdOf('B'), Money.of(100n, usd)),
+        debit(ledgerAccountIdOf('A'), Money.of(100n, usd)),
+        credit(ledgerAccountIdOf('B'), Money.of(100n, eur)),
       ]),
     ).toThrow(UnbalancedLedgerTransactionError);
   });

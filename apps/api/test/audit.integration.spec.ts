@@ -7,9 +7,9 @@ import type { TestApplication } from './create-test-application';
 const vaultId = 'VAULT-AUDIT-1';
 const password = 'a-long-enough-password';
 const oneDay = 24n * 60n * 60n * 1000n;
-const amount = (minorUnits: string): { minorUnits: string; currency: 'AUD' } => ({
+const amount = (minorUnits: string): { minorUnits: string; currency: 'USD' } => ({
   minorUnits,
-  currency: 'AUD',
+  currency: 'USD',
 });
 
 describe('audit trail', () => {
@@ -29,9 +29,9 @@ describe('audit trail', () => {
       data: {
         id: vaultId,
         name: 'Audit vault',
-        city: 'Sydney',
+        city: 'New York',
         insuredLimitMinorUnits: 1_000_000_000n,
-        currency: 'AUD',
+        currency: 'USD',
       },
     });
   });
@@ -69,7 +69,7 @@ describe('audit trail', () => {
         holderAccountId: borrower.accountId,
         intakeRecordHash: `hash-${suffix}`,
         appraisedValueMinorUnits: 500_000n,
-        currency: 'AUD',
+        currency: 'USD',
         appraisedAt: new Date(0),
         appraiserId: 'S1',
         itemCategory: 'BULLION',

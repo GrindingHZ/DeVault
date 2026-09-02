@@ -6,6 +6,8 @@ export * from './tab-strip';
 export * from './chip';
 export * from './slider';
 export * from './meter';
+export * from './value-chart';
+export * from './value-scale';
 export * from './data-table';
 export * from './card';
 export * from './dialog';

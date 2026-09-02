@@ -58,3 +58,35 @@ describe('reading custody from both state machines at once', () => {
     expect(redemptionStepIndex('RELEASED')).toBe(2);
   });
 });
+
+/* Listing an item does not move it and does not touch its receipt, so the
+   receipt alone cannot say whether one stands against it. Without the listing
+   a listed item and an idle one read the same, above a button offering to
+   list something already listed. */
+describe('an item that is on the market', () => {
+  it('says it is taking offers rather than sitting in the vault', () => {
+    const reading = custodyReadingFor('IN_VAULT', null, 'ACTIVE');
+    expect(reading.label).toBe('Taking offers');
+    expect(reading.tone).toBe('active');
+  });
+
+  it('separates a draft nobody can see from a live listing', () => {
+    expect(custodyReadingFor('IN_VAULT', null, 'DRAFT').label).toBe('Draft listing');
+  });
+
+  it('reads as in the vault again once the listing is gone', () => {
+    expect(custodyReadingFor('IN_VAULT', null, null).label).toBe('In the vault');
+  });
+
+  /* A matched listing is a loan, and the receipt already reports that by
+     being encumbered. The listing must not talk over it. */
+  it('lets the receipt speak once the listing has been matched', () => {
+    expect(custodyReadingFor('ENCUMBERED', null, 'MATCHED').label).toBe('Securing a loan');
+  });
+
+  /* Asking for an item back burns the receipt in the same transaction, so a
+     redemption outranks anything a listing could say. */
+  it('lets a redemption outrank a listing', () => {
+    expect(custodyReadingFor('RELEASED', 'REQUESTED', 'ACTIVE').label).toBe('Collection requested');
+  });
+});

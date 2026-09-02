@@ -1,5 +1,6 @@
 import {
   BrowseIcon,
+  ExchangeIcon,
   NavRail,
   NavRailItem,
   PortfolioIcon,
@@ -10,20 +11,23 @@ import {
 import { Link, useRouterState } from '@tanstack/react-router';
 import type { ReactElement, ReactNode } from 'react';
 
-/* Four destinations, in the order somebody works through the product: find
-   something, see where you stand, look at what you own, then the money.
+/* Five destinations, in the order somebody works through the product: find
+   something to fund, find a position already funded, see where you stand,
+   look at what you own, then the money.
 
    There were seven. Four of them split one person's own positions by role,
    which put the same loan behind two different doors and made a reader who
    borrows and lends navigate to assemble a picture they should have been
    handed. That split survives as a filter on the portfolio, not as
-   navigation. */
+   navigation. The Secondary Market earns its own place because it is a
+   different market, not a different view of this person's things. */
 const destinations: readonly {
   readonly to: string;
   readonly label: string;
   readonly icon: ReactNode;
 }[] = [
   { to: '/listings', label: 'Browse', icon: <BrowseIcon /> },
+  { to: '/secondary-market', label: 'Secondary Market', icon: <ExchangeIcon /> },
   { to: '/portfolio', label: 'Portfolio', icon: <PortfolioIcon /> },
   { to: '/borrow/receipts', label: 'My items', icon: <ReceiptIcon /> },
   { to: '/wallet', label: 'Wallet', icon: <WalletIcon /> },

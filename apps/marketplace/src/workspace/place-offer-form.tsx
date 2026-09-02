@@ -122,7 +122,7 @@ export function PlaceOfferForm({
              restated rather than cast. */
           principal: {
             minorUnits: detail.requestedPrincipal.minorUnits,
-            currency: 'AUD',
+            currency: 'USD',
           },
           annualPercentageRateBasisPoints: input.rateBasisPoints,
           durationMs: detail.requestedDurationMs,

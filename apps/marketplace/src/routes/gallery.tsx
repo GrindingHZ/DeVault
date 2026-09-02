@@ -73,7 +73,7 @@ function GalleryPage(): ReactElement {
 
         <Card title="Money and rates">
           <p>
-            <Money value={{ minorUnits: '250000', currency: 'AUD' }} /> at{' '}
+            <Money value={{ minorUnits: '250000', currency: 'USD' }} /> at{' '}
             <Rate basisPoints={1800} />
           </p>
         </Card>
@@ -96,7 +96,7 @@ function GalleryPage(): ReactElement {
                 key: 'principal',
                 header: 'Principal',
                 render: (row: GalleryRow) => (
-                  <Money value={{ minorUnits: row.principal, currency: 'AUD' }} />
+                  <Money value={{ minorUnits: row.principal, currency: 'USD' }} />
                 ),
               },
               { key: 'status', header: 'Status', render: (row: GalleryRow) => row.status },

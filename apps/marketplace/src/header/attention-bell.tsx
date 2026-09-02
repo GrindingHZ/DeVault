@@ -23,6 +23,9 @@ export function AttentionBell(): ReactElement {
   const { actOn } = usePositionActions({
     /* Repaying needs a quote, which lives on the portfolio. */
     onRepay: () => void navigate({ to: '/portfolio', search: { side: 'borrowing' } }),
+    /* Selling needs an ask, and the form for it lives on the portfolio too.
+       The bell never carries this action, so this is only the type's due. */
+    onSell: () => void navigate({ to: '/portfolio', search: { side: 'lending' } }),
     onOpen: (position) =>
       position.listingId === null
         ? void navigate({ to: '/borrow/receipts' })

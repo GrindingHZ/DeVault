@@ -10,7 +10,7 @@ import { createTestApplication } from './create-test-application';
 import type { TestApplication } from './create-test-application';
 import { expectLedgerBalances } from './ledger-assertions';
 
-const aud = currencyOf('AUD');
+const usd = currencyOf('USD');
 const vaultId = 'VAULT-RACE-2';
 const raceRounds = 20;
 
@@ -41,7 +41,7 @@ describe('offer race', () => {
         holderAccountId: `B-${round}-${suffix}`,
         intakeRecordHash: `hash-${round}-${suffix}`,
         appraisedValueMinorUnits: 500_000n,
-        currency: 'AUD',
+        currency: 'USD',
         appraisedAt: new Date(0),
         appraiserId: 'S1',
         itemCategory: 'BULLION',
@@ -56,7 +56,7 @@ describe('offer race', () => {
         borrowerAccountId: `B-${round}-${suffix}`,
         receiptId,
         requestedPrincipalMinorUnits: 250_000n,
-        currency: 'AUD',
+        currency: 'USD',
         maxAnnualPercentageRateBasisPoints: 2400,
         requestedDurationMs: 2_592_000_000n,
         expiresAt: new Date(Number(harness.clock.now().epochMilliseconds) + 86_400_000),
@@ -73,9 +73,9 @@ describe('offer race', () => {
         data: {
           id: vaultId,
           name: 'Race vault',
-          city: 'Sydney',
+          city: 'New York',
           insuredLimitMinorUnits: 100_000_000n,
-          currency: 'AUD',
+          currency: 'USD',
         },
       });
       const lender = accountIdOf(`RACE-LENDER-${round}`);
@@ -84,8 +84,9 @@ describe('offer race', () => {
           {
             fromAccountId: platformAccountIds.float,
             toAccountId: lender,
-            amount: Money.of(250_000n, aud),
+            amount: Money.of(250_000n, usd),
             reference: `seed-${round}`,
+            reason: 'DEPOSIT',
           },
           context,
         ),
@@ -100,7 +101,7 @@ describe('offer race', () => {
         placeOffer.execute({
           listingId: listingIdOf(listingId),
           lenderAccountId: lender,
-          principal: Money.of(250_000n, aud),
+          principal: Money.of(250_000n, usd),
           annualPercentageRateBasisPoints: 1800,
           durationMs: 2_592_000_000n,
           expiresAt,

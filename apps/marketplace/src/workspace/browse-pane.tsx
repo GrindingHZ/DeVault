@@ -52,26 +52,47 @@ const nothingHere: Record<BrowseScope, { readonly title: string; readonly descri
   },
 };
 
-/* One unit, the largest that still says something true, and the word after
-   it rather than a sentence before it.
+/* The date it closes, not a countdown to it.
 
-   "closes in 71d 23h" took a line of its own and read as prose while saying
-   almost nothing: at seventy one days the hours do not change any decision.
-   Under an hour they do, so that is the only case that keeps two figures. */
-export function closesIn(expiresAt: string, nowEpochMs: number): string {
-  const remaining = Date.parse(expiresAt) - nowEpochMs;
-  if (!Number.isFinite(remaining) || remaining <= 0) {
+   "71d left" is a number a reader has to turn back into a date before they
+   can decide anything, and under the demo clock it was a number computed
+   against the wrong one. A date is a date: it needs no clock to render and
+   it says the same thing tomorrow.
+
+   Two figures only when they change a decision. Inside a day the hour does,
+   which is the one case that keeps a time. */
+export function closesOn(expiresAt: string, nowEpochMs: number): string {
+  const epochMs = Date.parse(expiresAt);
+  if (!Number.isFinite(epochMs)) {
+    return 'no closing date';
+  }
+  const remaining = epochMs - nowEpochMs;
+  if (remaining <= 0) {
     return 'closed';
   }
-  const minutes = Math.floor(remaining / 60_000);
-  if (minutes < 60) {
-    return `${String(minutes)}m left`;
+  const locale = typeof navigator === 'undefined' ? 'en-AU' : navigator.language;
+  if (remaining < 24 * 60 * 60 * 1000) {
+    const time = new Intl.DateTimeFormat(locale, {
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(new Date(epochMs));
+    return `by ${time} today`;
   }
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) {
-    return `${String(hours)}h left`;
-  }
-  return `${String(Math.floor(hours / 24))}d left`;
+  const date = new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(epochMs));
+  return `by ${date}`;
+}
+
+/* A week. Long enough that a lender still has time to act on it, short
+   enough that saying so is not crying wolf on every row. */
+const closingSoonMs = 7 * 24 * 60 * 60 * 1000;
+
+export function isClosingSoon(expiresAt: string, nowEpochMs: number): boolean {
+  const remaining = Date.parse(expiresAt) - nowEpochMs;
+  return Number.isFinite(remaining) && remaining > 0 && remaining < closingSoonMs;
 }
 
 function itemFrom(
@@ -90,7 +111,8 @@ function itemFrom(
     loanToValueBasisPoints: listing.loanToValueBasisPoints,
     categoryMaxLoanToValueBasisPoints: listing.categoryMaxLoanToValueBasisPoints,
     bestRateBasisPoints: bestRate,
-    closesIn: closesIn(listing.expiresAt, nowEpochMs),
+    closesIn: closesOn(listing.expiresAt, nowEpochMs),
+    isClosingSoon: isClosingSoon(listing.expiresAt, nowEpochMs),
     photographSrc: listing.hasPhotograph ? `/api/v1/receipts/${listing.receiptId}/photo` : null,
     relationship,
   };

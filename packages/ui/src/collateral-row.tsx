@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 import { ItemPhotograph } from './item-photograph';
-import { LoanToValue } from './loan-to-value';
+import { LoanToValueMeter } from './loan-to-value';
+import { formatMoney } from './money';
 import type { MoneyValue } from './money';
 import { formatRate } from './rate';
 
@@ -16,10 +17,14 @@ export interface CollateralItem {
   readonly appraisedValue: MoneyValue;
   readonly requestedPrincipal: MoneyValue;
   readonly loanToValueBasisPoints: number;
-  /* What this category allows, so the chip bands against the right limit. */
+  /* What this category allows, so the meter bands against the right limit. */
   readonly categoryMaxLoanToValueBasisPoints: number;
   readonly bestRateBasisPoints: number | null;
+  /* Already worded: "by 15 Jan 2026", or "closed". A date rather than a
+     countdown, so the row needs no clock to render it. */
   readonly closesIn: string;
+  /* Whether that date is close enough to change what a lender does today. */
+  readonly isClosingSoon?: boolean;
   readonly photographSrc: string | null;
   readonly relationship: CollateralRelationship;
 }
@@ -74,17 +79,32 @@ function AskingRate({ basisPoints }: { readonly basisPoints: number | null }): R
     );
   }
   return (
+    /* Plain, deliberately. A rate has no good direction on its own: a low one
+       is what a borrower wants and what a lender is beaten down to, and this
+       row renders on both the browse tab and the reader's own listings.
+       Colouring it would tell half the readers the opposite of the truth
+       (docs/13-design-system.md, the rule MarketDelta is built on). */
     <span className="shrink-0 whitespace-nowrap font-figure text-sm font-semibold tabular-nums text-ink-primary">
       {formatRate(basisPoints).replace(' p.a.', '')}
     </span>
   );
 }
 
-/* The category and the time left, divided rather than boxed.
+/* What the borrower is asking for. The one figure a lender is actually being
+   asked to put up, and the row went without it for a long time on the
+   grounds that lenders compete on rate rather than amount (rule M4). They do,
+   but they still have to decide whether they have it. */
+function Principal({ value }: { readonly value: MoneyValue }): ReactElement {
+  return (
+    <span className="shrink-0 whitespace-nowrap font-figure text-sm font-semibold tabular-nums text-ink-primary">
+      {formatMoney(value)}
+    </span>
+  );
+}
 
-   These were two chips in a row of three. One chip earns its shape because
-   it bands a ratio against a limit; the other two are plain facts, and three
-   boxes side by side read as a control panel rather than a description. */
+/* The category and when it closes. The date takes a warning tone in its last
+   week: it is the one fact on the row that becomes urgent on its own, without
+   anybody doing anything. */
 function Facts({ item }: { readonly item: CollateralItem }): ReactElement {
   return (
     <span className="flex min-w-0 items-center gap-1.5 font-body text-xs text-ink-secondary">
@@ -92,7 +112,13 @@ function Facts({ item }: { readonly item: CollateralItem }): ReactElement {
       <span aria-hidden="true" className="text-edge-strong">
         /
       </span>
-      <span className="whitespace-nowrap">{item.closesIn}</span>
+      <span
+        className={`whitespace-nowrap ${
+          item.isClosingSoon === true ? 'font-medium text-status-warning' : ''
+        }`}
+      >
+        {item.closesIn}
+      </span>
     </span>
   );
 }
@@ -105,7 +131,7 @@ export function CollateralRow({ item, isSelected, onSelect }: CollateralProps): 
       onClick={() => onSelect?.(item.listingId)}
       aria-pressed={isSelected === true}
       data-selected={isSelected === true ? 'true' : undefined}
-      className={`flex w-full items-start gap-3 border-b border-l-2 border-edge px-3 py-2 text-left transition-colors duration-control ease-enter hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-status-active ${
+      className={`flex w-full items-start gap-3 border-b border-l-2 border-edge px-3 py-2.5 text-left transition-colors duration-control ease-enter hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-status-active ${
         isSelected === true ? 'border-l-status-active bg-surface-sunken' : 'border-l-transparent'
       }`}
     >
@@ -124,18 +150,18 @@ export function CollateralRow({ item, isSelected, onSelect }: CollateralProps): 
             <Relationship value={item.relationship} />
           </span>
         </span>
-        {/* Three facts, not six. The category, the share of the appraisal and
-            how long is left are what a lender sorts on; the amount is the
-            borrower's and is not something a lender competes on (rule M4).
 
-            Body font, not mono. A monospace on words reads as a typewriter,
-            and DESIGN-BRIEF reserves the mono for amounts, rates and ids. */}
-        <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-          <LoanToValue
+        <Facts item={item} />
+
+        {/* The amount asked for and how far into the category's allowance it
+            reaches, on one line. A lender deciding whether to offer is asking
+            both at once: can I put this up, and is it well covered. */}
+        <span className="flex min-w-0 items-center gap-2.5">
+          <Principal value={item.requestedPrincipal} />
+          <LoanToValueMeter
             basisPoints={item.loanToValueBasisPoints}
             capBasisPoints={item.categoryMaxLoanToValueBasisPoints}
           />
-          <Facts item={item} />
         </span>
       </span>
     </button>
@@ -152,8 +178,8 @@ export function CollateralCard({ item, isSelected, onSelect }: CollateralProps):
       aria-pressed={isSelected === true}
       data-selected={isSelected === true ? 'true' : undefined}
       /* The photograph runs to the edges and the card clips it, so a tile
-         reads as the object rather than as a box with a picture inside it. */
-      /* `w-full`, because a button sizes to its content by default and the
+         reads as the object rather than as a box with a picture inside it.
+         `w-full`, because a button sizes to its content by default and the
          tiles came out three different widths inside a grid whose cells were
          all the same. */
       className={`flex w-full flex-col overflow-hidden rounded-md border text-left transition-colors duration-control ease-enter hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-status-active ${
@@ -169,19 +195,28 @@ export function CollateralCard({ item, isSelected, onSelect }: CollateralProps):
           <AskingRate basisPoints={item.bestRateBasisPoints} />
         </span>
         <span className="flex min-w-0 items-center justify-between gap-2">
-          <LoanToValue
-            basisPoints={item.loanToValueBasisPoints}
-            capBasisPoints={item.categoryMaxLoanToValueBasisPoints}
-          />
+          <Principal value={item.requestedPrincipal} />
           {/* The tile has one line for this, so the reader's own standing
               takes it when there is one: that they hold an offer here
               outranks how long the listing has left. */}
           {item.relationship === 'none' ? (
-            <span className="truncate font-body text-xs text-ink-secondary">{item.closesIn}</span>
+            <span
+              className={`truncate font-body text-xs ${
+                item.isClosingSoon === true
+                  ? 'font-medium text-status-warning'
+                  : 'text-ink-secondary'
+              }`}
+            >
+              {item.closesIn}
+            </span>
           ) : (
             <Relationship value={item.relationship} />
           )}
         </span>
+        <LoanToValueMeter
+          basisPoints={item.loanToValueBasisPoints}
+          capBasisPoints={item.categoryMaxLoanToValueBasisPoints}
+        />
       </span>
     </button>
   );

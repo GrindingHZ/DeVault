@@ -214,6 +214,17 @@ The rail answers one question in three parts: **Browse items** is other people's
 what the reader has money against, **My listings** is their own. "All items" mixed all three, which
 padded the lender's tab with rows nobody could act on and gave a borrower nowhere to look.
 
+Each row carries the amount asked for, the closing date and a banded meter for the share of the
+category's allowance the loan has taken. The meter runs green to red across the whole allowance, so
+a reader can see how well covered a listing is before reading a figure; the percentage sits beside
+it, because colour is never the only carrier. The rate stays plain: a low rate is what a borrower
+wants and what a lender is beaten down to, and one row renders for both, so colouring it would tell
+half the readers the opposite of the truth.
+
+The closing date is a date, not a countdown. "71 days left" is a number a reader has to turn back
+into a date before deciding anything, and it was being computed against the browser's clock rather
+than the server's. It takes a warning tone inside its last week.
+
 How the rail is laid out is a pair of icon toggles on the bar beside the filter, not a menu item
 three clicks inside it: it changes what the reader is looking at rather than what is in the list.
 The gallery is two across at every width, and the rail cannot be dragged below the width two

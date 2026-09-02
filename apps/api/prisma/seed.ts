@@ -475,6 +475,14 @@ async function buildDataset(origin: string): Promise<void> {
     active.push(await originate(origin, receiptAt(2 + index), 1500 + index * 300, durationDays));
   }
 
+  /* One position on the secondary market, so the demo can show a lender
+     leaving early and a buyer reading the discount off the value chart. The
+     45 day loan has enough term left to make the picture worth drawing. */
+  const forSale = active[1];
+  if (forSale !== undefined) {
+    await listPositionForSale(origin, forSale, 97n);
+  }
+
   // Three listings taking offers, so the marketplace is not an empty table.
   for (const [index, receipt] of receipts.slice(5).entries()) {
     const listingId = await publishListing(origin, receipt, 30);
@@ -500,7 +508,8 @@ async function buildDataset(origin: string): Promise<void> {
 
   process.stdout.write(
     `seeded ${receipts.length} receipts, ${active.length} active loans, ` +
-      `one repaid and redeemed, one in liquidation with two bids\n`,
+      `one repaid and redeemed, one in liquidation with two bids, ` +
+      `one position listed for sale\n`,
   );
 }
 
@@ -612,6 +621,33 @@ async function originate(
     {},
   );
   return { loanId: identifierOf(accepted), borrower: receipt.borrower, lender: lenderEmail };
+}
+
+/* The ask in hundredths of the principal. The running loans are originated
+   after the clock has stopped moving, so nothing has accrued yet and the
+   principal is exactly the cap; asking under it is what puts a visible
+   discount on the positions page. */
+async function listPositionForSale(
+  origin: string,
+  loan: SeededLoan,
+  hundredthsOfPrincipal: bigint,
+): Promise<void> {
+  const lender = new DemoClient(origin);
+  await lender.signIn(loan.lender, demoPassword);
+  const lent = await lender.call('GET', '/me/loans?role=lender');
+  const rows = lent.items as readonly {
+    id: string;
+    lenderNoteId: string;
+    principal: { minorUnits: string };
+  }[];
+  const row = rows.find((item) => item.id === loan.loanId);
+  if (row === undefined) {
+    throw new Error('the lender must hold the loan being listed');
+  }
+  const ask = (BigInt(row.principal.minorUnits) * hundredthsOfPrincipal) / 100n;
+  await lender.call('POST', `/notes/${row.lenderNoteId}/sales`, {
+    askPrice: money(ask.toString()),
+  });
 }
 
 async function repay(origin: string, loan: SeededLoan): Promise<void> {

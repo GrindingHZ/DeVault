@@ -305,8 +305,8 @@ describe('note sale', () => {
   });
 
   it('refuses to list while transfers are disabled', async () => {
-    // No parameter version written: the demo default governs the mint, and
-    // the note comes out non transferable.
+    // Written off before the mint, so the note itself comes out non
+    // transferable and the refusal is the minted field, not the switch.
     await setTransfers(false);
     const loan = await originate();
     const refused = await listSale(loan, '245000');

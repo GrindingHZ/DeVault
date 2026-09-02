@@ -77,6 +77,6 @@ describe('parameter storage', () => {
     expect(restored.dualAppraisalThreshold.minorUnits).toBe(12_345_678n);
     expect(restored.gracePeriodMs).toBe(demoParameters.gracePeriodMs);
     expect(restored.maxLoanToValueBasisPointsByCategory.BULLION).toBe(6000);
-    expect(restored.notesTransferable).toBe(false);
+    expect(restored.notesTransferable).toBe(demoParameters.notesTransferable);
   });
 });

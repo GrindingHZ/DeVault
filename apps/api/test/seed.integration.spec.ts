@@ -77,6 +77,10 @@ describe('the demo seed', () => {
     expect(await prisma.liquidationBid.count({ where: { liquidationId: sale.id } })).toBe(2);
   });
 
+  it('leaves one position listed on the secondary market', async () => {
+    expect(await prisma.noteSale.count({ where: { status: 'OPEN' } })).toBe(1);
+  });
+
   /* The seed moves the clock to spread the book across weeks, and writes the
      offset down so the process that serves the demo starts where the seed
      finished. Read against that clock every date the seed wrote is in the

@@ -67,6 +67,7 @@ Every account uses the password `demo-password-123`.
   pledged against loans, three still free
 - Three live listings, each with two competing offers on it
 - Three active loans, maturing in a fortnight, in six weeks, and in three months
+- One lender position listed on the secondary market at three percent under its value
 - One loan repaid and its item already walked back out of the vault
 - One loan defaulted, its sale open, two bids standing against it
 
@@ -131,7 +132,23 @@ Say: one acceptance, one transaction. The hold on the lender's money, the moveme
 the fee, the loan, and both notes all commit together or not at all. That is why this maps to a
 single on chain transaction later.
 
-### 3. Time passes (admin, 1 minute)
+### 3. A lender exits early (marketplace, 2 minutes)
+
+Sign in as `bruno@demo.test`, or any member who is not a side of the six week loan.
+
+1. On **Browse**, open the **Positions for sale** tab. The seed left one position listed: a lender
+   on the six week loan asking three percent under what the position is worth.
+2. Read the chart out loud. The solid line is what the position is worth as interest accrues, from
+   the principal at origination to the full payoff at maturity. The marker is today. The dashed
+   line is the ask, sitting under the value line, and the gap is what the buyer earns on top of
+   the remaining interest.
+3. Press **Buy this position** and confirm. The toast says repayment now pays you, the position
+   appears on your **Portfolio** lending side, and the seller's wallet shows the proceeds.
+
+Say: the loan does not know who is owed. It pays whoever holds the note, so selling the note is
+one transfer and one holder change in one transaction, and in Phase 3 it is one Move transaction.
+
+### 4. Time passes (admin, 1 minute)
 
 Sign in as `ops@demo.test`. Go to **Parameters**.
 
@@ -146,7 +163,7 @@ Sign in as `ops@demo.test`. Go to **Parameters**.
 
 Say: nothing here is a mock. The clock is the only thing being lied to, and only in a demo.
 
-### 4. The borrower repays (marketplace, 2 minutes)
+### 5. The borrower repays (marketplace, 2 minutes)
 
 As `ada@demo.test`:
 
@@ -163,7 +180,7 @@ In the vault console as `staff@demo.test`:
 
 Say: the item left the building, the receipt is spent, and every movement of money is in the ledger.
 
-### 5. The other borrower does not repay (admin, 3 minutes)
+### 6. The other borrower does not repay (admin, 3 minutes)
 
 As `ops@demo.test`, go to **Liquidations**. The seed left one sale already taking bids, with two
 bids standing.
@@ -176,7 +193,7 @@ bids standing.
 Say: the lender is paid first, the fee comes out of what is left, and the surplus goes back to the
 borrower. Not to us. That is the difference between a pawnbroker and a repossession.
 
-### 6. The things that keep it honest (admin, 1 minute)
+### 7. The things that keep it honest (admin, 1 minute)
 
 Still as `ops@demo.test`:
 

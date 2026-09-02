@@ -4,7 +4,7 @@ import type { ReactElement } from 'react';
 export interface ItemPhotographProps {
   readonly src: string | null;
   readonly alt: string;
-  readonly size?: 'thumbnail' | 'row' | 'detail' | 'tile';
+  readonly size?: 'compact' | 'thumbnail' | 'row' | 'detail' | 'tile';
   readonly testId?: string;
 }
 

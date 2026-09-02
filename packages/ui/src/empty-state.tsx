@@ -2,7 +2,11 @@ import type { ReactElement, ReactNode } from 'react';
 
 export interface EmptyStateProps {
   readonly title: string;
-  readonly description?: string;
+  /* Spelled with `undefined` because the package compiles under
+     `exactOptionalPropertyTypes`, where an absent prop and a prop holding
+     undefined are different types. Callers forwarding an optional of their
+     own, as DataTable does with `emptyDescription`, pass the second. */
+  readonly description?: string | undefined;
   readonly action?: ReactNode;
 }
 

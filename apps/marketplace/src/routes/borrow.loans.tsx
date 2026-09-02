@@ -1,5 +1,5 @@
 import { fetchMyLoans } from '@depawn/contracts';
-import { Skeleton } from '@depawn/ui';
+import { Page, PageHeader, Skeleton } from '@depawn/ui';
 import { useQuery } from '@tanstack/react-query';
 import { Navigate, createFileRoute } from '@tanstack/react-router';
 import type { ReactElement } from 'react';
@@ -28,9 +28,13 @@ function BorrowLoansPage(): ReactElement | null {
 
   return (
     <MarketShell>
-      <div className="flex max-w-4xl flex-col gap-6">
+      <Page>
+        <PageHeader
+          title="My loans"
+          description="What you owe, when it matures, and what it costs to settle today."
+        />
         <MyLoansCard />
-      </div>
+      </Page>
     </MarketShell>
   );
 }

@@ -4,6 +4,7 @@ import { Button, Field, toMinorUnits } from '@depawn/ui';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import type { ReactElement } from 'react';
+import { useFeedback } from '../market-shell';
 import { marketKeys } from '../market-keys';
 import { walletKeys } from '../wallet-keys';
 
@@ -31,6 +32,7 @@ export function PlaceOfferForm({
   readonly detail: ListingDetailResponse;
 }): ReactElement {
   const queryClient = useQueryClient();
+  const feedback = useFeedback();
   const [principalInput, setPrincipalInput] = useState(
     (BigInt(detail.requestedPrincipal.minorUnits) / 100n).toString(),
   );
@@ -57,6 +59,7 @@ export function PlaceOfferForm({
         { idempotencyKey },
       ),
     onSuccess: async () => {
+      feedback.reportSuccess('Your offer is standing, and the money is held.');
       setIdempotencyKey(crypto.randomUUID());
       await queryClient.invalidateQueries({ queryKey: marketKeys.detail(detail.id) });
       await queryClient.invalidateQueries({ queryKey: marketKeys.myOffers });

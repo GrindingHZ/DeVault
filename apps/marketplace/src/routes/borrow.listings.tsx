@@ -6,7 +6,18 @@ import {
   nameForListingStatus,
 } from '@depawn/contracts';
 import type { ListingResponse } from '@depawn/contracts';
-import { Button, Card, DataTable, Explain, Money, Rate, Skeleton, StatusBadge } from '@depawn/ui';
+import {
+  Button,
+  Card,
+  DataTable,
+  Explain,
+  Money,
+  Page,
+  PageHeader,
+  Rate,
+  Skeleton,
+  StatusBadge,
+} from '@depawn/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, Navigate, createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
@@ -14,7 +25,7 @@ import type { ReactElement } from 'react';
 import { useCurrentAccount } from '../current-account';
 import { listingStatusTone } from '../listing-status-tone';
 import { marketKeys } from '../market-keys';
-import { MarketShell } from '../market-shell';
+import { MarketShell, useFeedback } from '../market-shell';
 
 export const Route = createFileRoute('/borrow/listings')({
   component: BorrowListingsPage,
@@ -35,9 +46,13 @@ function BorrowListingsPage(): ReactElement | null {
 
   return (
     <MarketShell>
-      <div className="max-w-4xl">
+      <Page>
+        <PageHeader
+          title="My listings"
+          description="What you have put up for funding, and the offers standing against each one."
+        />
         <MyListingsCard />
-      </div>
+      </Page>
     </MarketShell>
   );
 }
@@ -51,6 +66,7 @@ function cancelMessageFor(error: unknown): string {
 
 function MyListingsCard(): ReactElement {
   const queryClient = useQueryClient();
+  const feedback = useFeedback();
   const listingsQuery = useQuery({ queryKey: marketKeys.myListings, queryFn: fetchMyListings });
   const [cancelError, setCancelError] = useState<string | null>(null);
   // Generated on mount and rotated per success (docs/05-frontend.md).
@@ -59,6 +75,7 @@ function MyListingsCard(): ReactElement {
   const cancelMutation = useMutation({
     mutationFn: (listingId: string) => cancelListing(listingId, { idempotencyKey }),
     onSuccess: async () => {
+      feedback.reportSuccess('The listing was cancelled.');
       setIdempotencyKey(crypto.randomUUID());
       setCancelError(null);
       await queryClient.invalidateQueries({ queryKey: marketKeys.myListings });

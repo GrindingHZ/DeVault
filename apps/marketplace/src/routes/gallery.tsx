@@ -15,11 +15,20 @@ import {
   Stepper,
   ToastRegion,
 } from '@depawn/ui';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useState } from 'react';
 import type { ReactElement } from 'react';
 
+/* A development surface that was shipping to customers. Deleting it would
+   break the P0.5 exit criterion in docs/13-design-system.md, which asks that
+   every primitive appear here, so it stays and stops being reachable in a
+   built application instead. */
 export const Route = createFileRoute('/gallery')({
+  beforeLoad: () => {
+    if (!import.meta.env.DEV) {
+      throw redirect({ to: '/listings' });
+    }
+  },
   component: GalleryPage,
 });
 

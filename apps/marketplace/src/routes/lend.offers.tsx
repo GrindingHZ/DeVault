@@ -1,6 +1,17 @@
 import { fetchMyOffers, nameForOfferStatus, reclaimOffer } from '@depawn/contracts';
 import type { OfferResponse } from '@depawn/contracts';
-import { Button, Card, DataTable, Explain, Money, Rate, Skeleton, StatusBadge } from '@depawn/ui';
+import {
+  Button,
+  Card,
+  DataTable,
+  Explain,
+  Money,
+  Page,
+  PageHeader,
+  Rate,
+  Skeleton,
+  StatusBadge,
+} from '@depawn/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Navigate, createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
@@ -8,7 +19,7 @@ import type { ReactElement } from 'react';
 import { useCurrentAccount } from '../current-account';
 import { offerStatusTone } from '../listing-status-tone';
 import { marketKeys } from '../market-keys';
-import { MarketShell } from '../market-shell';
+import { MarketShell, useFeedback } from '../market-shell';
 import { walletKeys } from '../wallet-keys';
 
 export const Route = createFileRoute('/lend/offers')({
@@ -30,15 +41,20 @@ function LendOffersPage(): ReactElement | null {
 
   return (
     <MarketShell>
-      <div className="max-w-4xl">
+      <Page>
+        <PageHeader
+          title="My offers"
+          description="Money you have committed, and holds waiting to be reclaimed."
+        />
         <MyOffersCard />
-      </div>
+      </Page>
     </MarketShell>
   );
 }
 
 function MyOffersCard(): ReactElement {
   const queryClient = useQueryClient();
+  const feedback = useFeedback();
   const offersQuery = useQuery({ queryKey: marketKeys.myOffers, queryFn: fetchMyOffers });
   // Generated on mount and rotated per success, so a double click replays and
   // the next reclaim gets a fresh key (docs/05-frontend.md).
@@ -47,6 +63,7 @@ function MyOffersCard(): ReactElement {
   const reclaimMutation = useMutation({
     mutationFn: (offerId: string) => reclaimOffer(offerId, { idempotencyKey }),
     onSuccess: async () => {
+      feedback.reportSuccess('The hold was returned to your balance.');
       setIdempotencyKey(crypto.randomUUID());
       await queryClient.invalidateQueries({ queryKey: marketKeys.myOffers });
       await queryClient.invalidateQueries({ queryKey: walletKeys.all });

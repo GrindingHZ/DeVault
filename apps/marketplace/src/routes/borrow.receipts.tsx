@@ -20,6 +20,8 @@ import {
   Field,
   ItemPhotograph,
   Money,
+  Page,
+  PageHeader,
   Skeleton,
   StatusBadge,
   toMinorUnits,
@@ -32,6 +34,13 @@ import { useCurrentAccount } from '../current-account';
 import { marketKeys } from '../market-keys';
 import { MarketShell } from '../market-shell';
 import { receiptStatusTone } from '../receipt-status-tone';
+
+/* The tail rather than the head: a ULID begins with a timestamp, so every
+   receipt issued the same afternoon shares its first characters and only the
+   end of the string tells two of them apart. */
+function shortReference(id: string): string {
+  return id.slice(-6).toUpperCase();
+}
 
 export const Route = createFileRoute('/borrow/receipts')({
   component: BorrowReceiptsPage,
@@ -55,9 +64,13 @@ function BorrowReceiptsPage(): ReactElement | null {
 
   return (
     <MarketShell>
-      <div className="max-w-5xl">
+      <Page>
+        <PageHeader
+          title="My items"
+          description="What the vault is holding for you, and what you can do with each one."
+        />
         <ReceiptsCard />
-      </div>
+      </Page>
     </MarketShell>
   );
 }
@@ -130,8 +143,13 @@ function ReceiptsCard(): ReactElement {
         <DataTable
           columns={[
             /* The item leads, because this is the reader's own property and
-               the receipt id is only how our systems refer to it. The id is
-               still here, under the name, for anyone quoting it to staff. */
+               the receipt id is only how our systems refer to it.
+
+               A short reference rather than the whole identifier. Somebody
+               at the counter does need something to quote, and twenty six
+               characters of it repeated down a column is noise they have to
+               read past to find their own watch. The full value stays in the
+               title for anyone who needs to copy it. */
             {
               key: 'item',
               header: 'Item',
@@ -151,9 +169,10 @@ function ReceiptsCard(): ReactElement {
                     </span>
                     <span
                       data-testid={`receipt-${receipt.id}`}
-                      className="mt-0.5 block font-mono text-[11px] text-ink-secondary"
+                      title={receipt.id}
+                      className="mt-0.5 block font-mono text-xs text-ink-secondary"
                     >
-                      {receipt.id}
+                      Ref {shortReference(receipt.id)}
                     </span>
                   </span>
                 </span>

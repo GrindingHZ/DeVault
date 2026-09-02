@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { ReactElement } from 'react';
-import { LandingBook } from './landing-book';
 import { LandingCustody } from './landing-custody';
 import { LandingHero } from './landing-hero';
+import { LandingLife } from './landing-life';
 import { LandingLiquidity } from './landing-liquidity';
 import { LandingNav } from './landing-nav';
 import { SignInDialog } from './landing-sign-in';
@@ -33,7 +33,7 @@ export function LandingPage({ opensSignIn = false }: LandingPageProps): ReactEle
             if you do not repay. Four answers, in the order somebody asks
             them. */}
         <LandingHero onSignIn={() => setSignInOpen(true)} />
-        <LandingBook />
+        <LandingLife />
         <LandingLiquidity />
         <LandingCustody onSignIn={() => setSignInOpen(true)} />
       </main>

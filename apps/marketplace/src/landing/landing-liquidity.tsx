@@ -26,21 +26,48 @@ function fillFor(progress: number, index: number): number {
 
    The bar and the percentage are scrubbed by the same number, so they are the
    same fact told twice rather than a figure with a decoration beside it. */
+/* The row the worked example is done on. The same watch the book bids for,
+   so a reader who scrolled past that section recognises the figure. */
+const worked = inventory.find((item) => item.name === 'Rolex Watch');
+
 export function LandingLiquidity(): ReactElement {
   const section = useRef<HTMLElement>(null);
   const progress = useScrollProgress(section);
 
   return (
-    <section ref={section} className="relative h-[190vh] bg-surface-base">
+    <section ref={section} className="relative h-[230vh] bg-surface-base">
       <div className="sticky top-0 flex h-screen items-center">
         <div className="mx-auto w-full max-w-[75rem] px-8">
           <div className="flex flex-col gap-4">
             <Eyebrow>{liquidity.eyebrow}</Eyebrow>
             <SectionHeading>{liquidity.heading}</SectionHeading>
             <SectionLede>{liquidity.lede}</SectionLede>
+            {worked === undefined ? null : (
+              /* The sum done once, on a real row from the vault, so the bars
+                 underneath are read as money rather than as decoration. */
+              <p className="mt-2 max-w-[62ch] font-body text-base leading-relaxed text-ink-secondary">
+                A <span className="text-ink-primary">{worked.name}</span> appraised at{' '}
+                <span className="font-figure font-semibold tabular-nums text-ink-primary">
+                  {worked.appraisedDisplay}
+                </span>{' '}
+                is a watch, and watches lend{' '}
+                <span className="font-figure font-semibold tabular-nums text-accent">
+                  {worked.ltvPct}%
+                </span>
+                , so the most you can borrow against it is{' '}
+                <span className="font-figure font-semibold tabular-nums text-ink-primary">
+                  {worked.maxAdvanceDisplay}
+                </span>
+                .
+              </p>
+            )}
           </div>
 
-          <ol className="mt-10 flex flex-col">
+          <p className="mt-10 font-body text-xs font-semibold uppercase tracking-widest text-ink-secondary">
+            {liquidity.barLabel}
+          </p>
+
+          <ol className="mt-3 flex flex-col">
             {liquidityTracks.map((track, index) => {
               const fill = fillFor(progress, index);
               /* Matched on the rate rather than the name: a track is titled
@@ -60,7 +87,9 @@ export function LandingLiquidity(): ReactElement {
                       >
                         {track.category}
                       </h3>
-                      <p className="font-body text-sm text-ink-secondary">{track.reason}</p>
+                      <p className="max-w-[52ch] font-body text-sm text-ink-secondary">
+                        {liquidity.reasons[track.category] ?? track.reason}
+                      </p>
                     </div>
                     <p className="font-figure font-bold tabular-nums text-accent">
                       <span style={{ fontSize: 'clamp(1.5rem, 2.6vw, 2rem)' }}>

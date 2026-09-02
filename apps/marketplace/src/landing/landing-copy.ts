@@ -22,23 +22,36 @@ export const heroClauses = [
   'Lenders bid. You take the cheapest.',
 ] as const;
 
-export const heroCta = 'See the order book';
+export const heroCta = 'See how it works';
 
-export const book = {
-  eyebrow: 'The order book',
-  heading: 'A pawn shop sets the rate. Here, lenders undercut each other.',
-  lede: 'One receipt, open to every lender at once. Cheapest at the top.',
-  settlementLabel: 'If you take the best offer',
-  /* Kept because people genuinely confuse the two, and the page puts them
-     next to each other. */
-  figureNote: 'Interest and total repayable are different numbers. Nothing compounds.',
-  footnote: 'Demonstration book. Lenders shown by reference only.',
+export const life = {
+  eyebrow: 'The life of one receipt',
+  heading: 'One object, five states, one row in the ledger.',
 } as const;
 
+/* This section was a heading, a slogan and five bars, and it never said what
+   the bars measured. A reader saw "60%" against a gold bar with no way to
+   know whether that was a rate, a fee, or a share of something. The heading
+   now states the mechanic, the lede gives the reason, and a worked line does
+   the arithmetic once so the bars underneath it mean something. */
 export const liquidity = {
-  eyebrow: 'What it lends',
-  heading: 'Sixty percent of a gold bar. Thirty percent of a painting.',
-  lede: 'One sells the same day. The other is an opinion.',
+  eyebrow: 'What you can borrow',
+  heading: 'You borrow against a share of the appraisal, not all of it.',
+  lede: 'Staff appraise the object at what it would fetch. We then lend a share of that figure, and the share depends on how quickly the object could be sold if you never came back for it. That sale is the only way the money comes back, so the faster and more certain it is, the more we lend.',
+  barLabel: 'Share of the appraisal we lend',
+  /* One line each, and each one is the actual reason that category sits where
+     it does. The previous set were aphorisms. */
+  reasons: {
+    Bullion:
+      'Priced against spot every day. A dealer takes it the same afternoon at a number we can look up before you leave.',
+    Watches:
+      'A model with a public sales record. Weeks to sell, at a price we can check against completed auctions.',
+    Jewellery:
+      'A certificated stone holds its price. The setting is worth its metal and little more, so we lend against the stone.',
+    Collectibles:
+      'Graded, so the condition is not in dispute. What it fetches still depends on who is collecting this month.',
+    Art: 'One buyer at a time, and no two works are the same. An appraisal here is a judgement rather than a quote.',
+  } as Record<string, string>,
 } as const;
 
 export const custody = {

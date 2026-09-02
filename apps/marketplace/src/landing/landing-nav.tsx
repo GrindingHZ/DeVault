@@ -7,7 +7,7 @@ import { useScrolledPast } from './use-scroll-progress';
 /* Two, for a page with four sections. A menu longer than the page it indexes
    is furniture. */
 const destinations: readonly { readonly href: string; readonly label: string }[] = [
-  { href: '#book', label: 'Order book' },
+  { href: '#life', label: 'How it works' },
   { href: '#custody', label: 'Custody' },
 ];
 

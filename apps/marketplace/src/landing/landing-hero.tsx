@@ -35,8 +35,8 @@ export function LandingHero({ onSignIn }: { readonly onSignIn: () => void }): Re
   return (
     <section ref={section} id="top" className="relative h-[260vh]">
       <div className="sticky top-0 flex h-screen items-center overflow-hidden">
-        <div className="mx-auto flex w-full max-w-[75rem] items-center px-8">
-          <div className="relative z-10 flex max-w-[34rem] flex-col gap-6 pb-14 pt-24">
+        <div className="mx-auto flex w-full max-w-[75rem] items-center gap-10 px-8">
+          <div className="relative z-10 flex w-full max-w-[34rem] shrink-0 flex-col gap-6 pb-14 pt-24">
             <Eyebrow>{heroEyebrow}</Eyebrow>
 
             {/* One list, not four headings. A screen reader should get the
@@ -73,7 +73,7 @@ export function LandingHero({ onSignIn }: { readonly onSignIn: () => void }): Re
                 Sign in
               </button>
               <a
-                href="#book"
+                href="#life"
                 className="inline-flex items-center gap-2 font-body text-sm font-semibold text-ink-secondary transition-colors duration-control ease-enter hover:text-ink-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-status-active"
               >
                 {heroCta}
@@ -93,11 +93,15 @@ export function LandingHero({ onSignIn }: { readonly onSignIn: () => void }): Re
             </div>
           </div>
 
-          {/* Bleeds off the right edge on purpose, so the page starts wider
-              than the window and the reader knows there is more of it. */}
+          {/* Sits in the flow beside the text rather than pinned to the
+              viewport edge. Absolutely positioned against the full width
+              sticky parent, it drifted further from the copy the wider the
+              window got, and on a large screen it left a hole between the
+              two. As a flex sibling it takes whatever the text does not and
+              stays next to it at any width. */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -right-24 top-1/2 hidden h-[42rem] w-[42rem] -translate-y-1/2 lg:block"
+            className="pointer-events-none relative hidden aspect-square min-w-0 flex-1 lg:-mr-12 lg:block"
           >
             <HeroArtwork progress={progress} />
           </div>

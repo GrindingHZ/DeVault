@@ -1,3 +1,4 @@
+import { interestFixtures } from '@depawn/test-support';
 import { describe, expect, it } from 'vitest';
 import { Instant } from '../shared/instant';
 import { Money, currencyOf } from '../shared/money';
@@ -81,4 +82,22 @@ describe('calculateAccruedInterest', () => {
   it('keeps the principal currency', () => {
     expect(interestAt(maturesAt).currency).toBe(usd);
   });
+});
+
+/* The same cases the Move module is tested against, from one file, so a
+   disagreement between the two arithmetics shows up here rather than on
+   chain (docs/06-testing.md, Phase 3 additions). */
+describe('calculateAccruedInterest against the shared fixtures', () => {
+  for (const fixture of interestFixtures) {
+    it(fixture.name, () => {
+      const interest = calculateAccruedInterest(
+        Money.of(BigInt(fixture.principalMinorUnits), usd),
+        fixture.annualPercentageRateBasisPoints,
+        Instant.fromEpochMilliseconds(BigInt(fixture.startedAtMs)),
+        Instant.fromEpochMilliseconds(BigInt(fixture.maturesAtMs)),
+        Instant.fromEpochMilliseconds(BigInt(fixture.nowMs)),
+      );
+      expect(interest.minorUnits).toBe(BigInt(fixture.expectedInterestMinorUnits));
+    });
+  }
 });

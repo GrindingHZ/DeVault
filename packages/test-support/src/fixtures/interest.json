@@ -1,0 +1,83 @@
+[
+  {
+    "name": "returns zero at the moment of origination",
+    "principalMinorUnits": "250000",
+    "annualPercentageRateBasisPoints": 1800,
+    "startedAtMs": "1700000000000",
+    "maturesAtMs": "1702592000000",
+    "nowMs": "1700000000000",
+    "expectedInterestMinorUnits": "0"
+  },
+  {
+    "name": "accrues over ten days of a thirty day term",
+    "principalMinorUnits": "250000",
+    "annualPercentageRateBasisPoints": 1800,
+    "startedAtMs": "1700000000000",
+    "maturesAtMs": "1702592000000",
+    "nowMs": "1700864000000",
+    "expectedInterestMinorUnits": "1232"
+  },
+  {
+    "name": "accrues over twenty days of a thirty day term",
+    "principalMinorUnits": "250000",
+    "annualPercentageRateBasisPoints": 1800,
+    "startedAtMs": "1700000000000",
+    "maturesAtMs": "1702592000000",
+    "nowMs": "1701728000000",
+    "expectedInterestMinorUnits": "2465"
+  },
+  {
+    "name": "matches the closed form over a full year",
+    "principalMinorUnits": "1000000",
+    "annualPercentageRateBasisPoints": 1800,
+    "startedAtMs": "0",
+    "maturesAtMs": "31536000000",
+    "nowMs": "31536000000",
+    "expectedInterestMinorUnits": "180000"
+  },
+  {
+    "name": "accrues at maturity itself",
+    "principalMinorUnits": "250000",
+    "annualPercentageRateBasisPoints": 1800,
+    "startedAtMs": "1700000000000",
+    "maturesAtMs": "1702592000000",
+    "nowMs": "1702592000000",
+    "expectedInterestMinorUnits": "3698"
+  },
+  {
+    "name": "stops accruing at maturity",
+    "principalMinorUnits": "250000",
+    "annualPercentageRateBasisPoints": 1800,
+    "startedAtMs": "1700000000000",
+    "maturesAtMs": "1702592000000",
+    "nowMs": "1710368000000",
+    "expectedInterestMinorUnits": "3698"
+  },
+  {
+    "name": "accrues nothing before origination",
+    "principalMinorUnits": "250000",
+    "annualPercentageRateBasisPoints": 1800,
+    "startedAtMs": "1700000000000",
+    "maturesAtMs": "1702592000000",
+    "nowMs": "1699913600000",
+    "expectedInterestMinorUnits": "0"
+  },
+  {
+    "name": "truncates in the borrower favour",
+    "principalMinorUnits": "1",
+    "annualPercentageRateBasisPoints": 1,
+    "startedAtMs": "1700000000000",
+    "maturesAtMs": "1702592000000",
+    "nowMs": "1700003600000",
+    "expectedInterestMinorUnits": "0"
+  },
+  {
+    "name": "does not overflow on a large principal held for a full term",
+    "principalMinorUnits": "10000000000",
+    "annualPercentageRateBasisPoints": 2400,
+    "startedAtMs": "0",
+    "maturesAtMs": "31536000000",
+    "nowMs": "31536000000",
+    "expectedInterestMinorUnits": "2400000000"
+  }
+]

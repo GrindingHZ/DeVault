@@ -1,3 +1,4 @@
+import { waterfallFixtures } from '@depawn/test-support';
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { platformAccountIds } from '../ledger/platform-accounts';
@@ -135,4 +136,27 @@ describe('distributeLiquidationProceeds', () => {
       { numRuns: 500 },
     );
   });
+});
+
+describe('distributeLiquidationProceeds against the shared fixtures', () => {
+  for (const fixture of waterfallFixtures) {
+    it(fixture.name, () => {
+      const distributions = distributeLiquidationProceeds(
+        Money.of(BigInt(fixture.proceedsMinorUnits), usd),
+        Money.of(BigInt(fixture.amountOwedMinorUnits), usd),
+        recipients,
+        fixture.liquidationFeeBasisPoints,
+      );
+      expect(amountFor(distributions, 'LENDER-1')).toBe(BigInt(fixture.expectedLenderMinorUnits));
+      expect(amountFor(distributions, platformAccountIds.feeRevenue)).toBe(
+        BigInt(fixture.expectedFeeMinorUnits),
+      );
+      expect(amountFor(distributions, 'BORROWER-1')).toBe(
+        BigInt(fixture.expectedSurplusMinorUnits),
+      );
+      expect(amountFor(distributions, platformAccountIds.rounding)).toBe(
+        BigInt(fixture.expectedRoundingMinorUnits),
+      );
+    });
+  }
 });

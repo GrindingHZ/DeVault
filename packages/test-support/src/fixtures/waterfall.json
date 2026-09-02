@@ -1,0 +1,52 @@
+[
+  {
+    "name": "pays the lender, takes a fee, and returns the surplus when the sale beats the debt",
+    "proceedsMinorUnits": "300000",
+    "amountOwedMinorUnits": "250000",
+    "liquidationFeeBasisPoints": 500,
+    "expectedLenderMinorUnits": "250000",
+    "expectedFeeMinorUnits": "2500",
+    "expectedSurplusMinorUnits": "47500",
+    "expectedRoundingMinorUnits": "0"
+  },
+  {
+    "name": "gives the lender everything and nobody else anything when the sale falls short",
+    "proceedsMinorUnits": "200000",
+    "amountOwedMinorUnits": "250000",
+    "liquidationFeeBasisPoints": 500,
+    "expectedLenderMinorUnits": "200000",
+    "expectedFeeMinorUnits": "0",
+    "expectedSurplusMinorUnits": "0",
+    "expectedRoundingMinorUnits": "0"
+  },
+  {
+    "name": "leaves nothing over when the sale matches the debt exactly",
+    "proceedsMinorUnits": "250000",
+    "amountOwedMinorUnits": "250000",
+    "liquidationFeeBasisPoints": 500,
+    "expectedLenderMinorUnits": "250000",
+    "expectedFeeMinorUnits": "0",
+    "expectedSurplusMinorUnits": "0",
+    "expectedRoundingMinorUnits": "0"
+  },
+  {
+    "name": "routes a truncated minor unit to the surplus rather than losing it",
+    "proceedsMinorUnits": "250001",
+    "amountOwedMinorUnits": "250000",
+    "liquidationFeeBasisPoints": 500,
+    "expectedLenderMinorUnits": "250000",
+    "expectedFeeMinorUnits": "0",
+    "expectedSurplusMinorUnits": "1",
+    "expectedRoundingMinorUnits": "0"
+  },
+  {
+    "name": "truncates the fee downwards on an awkward remainder",
+    "proceedsMinorUnits": "300003",
+    "amountOwedMinorUnits": "250000",
+    "liquidationFeeBasisPoints": 333,
+    "expectedLenderMinorUnits": "250000",
+    "expectedFeeMinorUnits": "1665",
+    "expectedSurplusMinorUnits": "48338",
+    "expectedRoundingMinorUnits": "0"
+  }
+]

@@ -14,5 +14,5 @@ fixture file the TypeScript reads.
 - [x] feat(move): custodial wallets, holds, and the payout that must be emptied
 - [x] test(move): holds release exactly what they held and refund once
 - [x] feat(move): attest domain events beside the settlement that caused them
-- [ ] feat(move): accrue interest with the borrower's rounding
+- [x] feat(move): accrue interest with the borrower's rounding
 - [ ] test(move): interest agrees with the shared fixtures

@@ -1,12 +1,12 @@
 # State
 
-phase: P8
-slice: p8c-borrower-surface
-stage: closed
-task: 8
-slice-base: ad34e14
-status: complete
+phase: P10
+slice: p10a-move-package
+stage: execute
+task: 1
+slice-base: pending
+started: 2026-08-25T13:30:00Z
 
-The Web2 product is complete and the marketplace surface is done. Every borrower screen names its
-item, states read as words, Browse filters and sorts in the database, and money is formatted by its
-own currency. P9 through P11 remain the Web3 pivot and are not started.
+The Web2 product is complete. P9 through P11 are the Web3 pivot, specified in
+docs/superpowers/specs/2026-08-25-web3-migration-design.md and planned in
+docs/superpowers/plans/2026-08-25-web3-migration.md. p9a-chain-readiness closed approved.

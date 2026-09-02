@@ -13,3 +13,9 @@ fixtures have one home, the package scaffold builds, and the api resolves the SD
 - [x] test(domain): read interest and waterfall fixtures from a shared file
 - [x] chore(move): scaffold the depawn package
 - [x] chore(deps): add the sui sdk and resolve its exports
+
+## Added after review
+
+- [x] fix(api): carry the port on the chain driver failure
+- [x] test(domain): leave the value cases to the shared fixtures
+- [x] test(seed): count the buyer receipts a settled sale issues

@@ -34,12 +34,32 @@ export function ItemPhotograph({
   const box = boxBySize[size];
 
   if (src === null || hasFailed) {
+    /* Says there is no photograph rather than leaving a hole. On the dark
+       scope the sunken surface is within a shade of the page ground, so a
+       plain box read as a gap in the layout instead of as a placeholder. */
     return (
       <div
         data-testid={testId}
-        aria-hidden="true"
-        className={`${box} shrink-0 border border-edge bg-surface-sunken`}
-      />
+        role="img"
+        aria-label={`No photograph of ${alt}`}
+        title={`No photograph of ${alt}`}
+        className={`${box} flex shrink-0 items-center justify-center border border-edge-strong bg-surface-raised text-ink-secondary`}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+          className="h-1/2 w-1/2"
+        >
+          <rect x="3" y="5" width="18" height="14" rx="2" />
+          <circle cx="8.5" cy="10" r="1.5" />
+          <path d="M21 16l-5-5-4.5 4.5" />
+        </svg>
+      </div>
     );
   }
 

@@ -1,6 +1,9 @@
 export * from './app-shell';
 export * from './brand';
 export * from './button';
+export * from './pressable';
+export * from './tab-strip';
+export * from './chip';
 export * from './data-table';
 export * from './card';
 export * from './dialog';
@@ -42,3 +45,4 @@ export * from './summary-strip';
 export * from './position-row';
 export * from './term-bar';
 export * from './legend';
+export * from './popover';

@@ -35,14 +35,14 @@ function ItemCell({
     </>
   );
   if (onOpen === undefined) {
-    return <span className="flex min-w-48 max-w-64 flex-col gap-0.5 py-1">{reading}</span>;
+    return <span className="flex min-w-40 max-w-60 flex-col gap-0.5 py-1">{reading}</span>;
   }
   return (
     <button
       type="button"
       data-testid="position-item"
       onClick={onOpen}
-      className="flex min-w-48 max-w-64 flex-col gap-0.5 py-1 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-status-active"
+      className="flex min-w-40 max-w-60 flex-col gap-0.5 py-1 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-status-active"
     >
       {reading}
     </button>

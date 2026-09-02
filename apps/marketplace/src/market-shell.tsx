@@ -1,13 +1,10 @@
-import { logout } from '@depawn/contracts';
-import { AppBoundary, AppShell, Button, ToastRegion, useMutationFeedback } from '@depawn/ui';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
+import { AppBoundary, AppShell, ToastRegion, useMutationFeedback } from '@depawn/ui';
 import { createContext, useContext } from 'react';
 import type { ReactElement, ReactNode } from 'react';
-import { currentAccountKeys } from './current-account';
-import { MarketContext } from './market-context';
+import { AccountMenu } from './header/account-menu';
+import { AttentionBell } from './header/attention-bell';
+import { BalanceMenu } from './header/balance-menu';
 import { MarketRail } from './market-rail';
-import { ReclaimBanner } from './reclaim-banner';
 
 interface Feedback {
   readonly reportSuccess: (text: string) => void;
@@ -43,34 +40,28 @@ export function MarketShell({
      screen is an ordinary padded document. */
   readonly fills?: boolean;
 }): ReactElement {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const feedback = useMutationFeedback();
-  const logoutMutation = useMutation({
-    mutationFn: logout,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: currentAccountKeys.me });
-      await navigate({ to: '/login' });
-    },
-  });
 
   return (
     <AppShell
       surface="floor"
       fills={fills}
       productName="DeVault"
-      context={<MarketContext />}
       rail={<MarketRail />}
+      /* Read from the left: what needs you, what you can spend, who you
+         are. Nothing here is a page, which is what keeps them out of the
+         rail beside the destinations. */
       actions={
-        <Button variant="secondary" onClick={() => logoutMutation.mutate()}>
-          Log out
-        </Button>
+        <>
+          <AttentionBell />
+          <BalanceMenu />
+          <AccountMenu />
+        </>
       }
     >
       <FeedbackContext.Provider
         value={{ reportSuccess: feedback.reportSuccess, reportFailure: feedback.reportFailure }}
       >
-        <ReclaimBanner />
         <AppBoundary>{children}</AppBoundary>
       </FeedbackContext.Provider>
       <ToastRegion messages={feedback.messages} onDismiss={feedback.dismiss} />

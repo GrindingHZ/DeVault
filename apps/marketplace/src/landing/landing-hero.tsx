@@ -1,14 +1,14 @@
 import { useRef } from 'react';
 import type { ReactElement } from 'react';
 import { HeroArtwork } from './landing-artwork';
-import { copy, heroClauses, terms } from './landing-content';
+import { heroClauses, heroCta, heroEyebrow } from './landing-copy';
 import { Eyebrow } from './landing-section';
 import { useScrollProgress } from './use-scroll-progress';
 
-/* Where each clause takes the light. Four thresholds for four clauses, spaced
-   so the first one holds while the reader is still arriving and the last one
-   holds while they read the action underneath it. */
-const thresholds = [0, 0.24, 0.5, 0.76];
+/* Where each clause takes the light. One threshold per clause, spaced so the
+   first holds while the reader is arriving and the last holds while they read
+   the action underneath it. */
+const thresholds = [0, 0.34, 0.68];
 
 function activeIndexFor(progress: number): number {
   let active = 0;
@@ -20,25 +20,24 @@ function activeIndexFor(progress: number): number {
   return active;
 }
 
-/* The focus list, and the page's core mechanic.
+/* The focus list.
 
-   Four clauses stacked, exactly one held at full contrast while its
+   Three clauses stacked, exactly one held at full contrast while its
    neighbours dim toward the ground and blur. Scrolling moves the light rather
    than the text, so the sentence a reader is on is the only one competing for
-   them. The same mechanic runs again further down the page over the eight
-   items in the vault, because it is also how the real marketplace works: a
-   rail of things, one of them selected, a panel bound to the selection. */
-export function LandingHero(): ReactElement {
+   them. Three is the whole business model, which is why no section below has
+   to explain the flow a second time. */
+export function LandingHero({ onSignIn }: { readonly onSignIn: () => void }): ReactElement {
   const section = useRef<HTMLElement>(null);
   const progress = useScrollProgress(section);
   const active = activeIndexFor(progress);
 
   return (
-    <section ref={section} id="top" className="relative h-[340vh]">
+    <section ref={section} id="top" className="relative h-[260vh]">
       <div className="sticky top-0 flex h-screen items-center overflow-hidden">
         <div className="mx-auto flex w-full max-w-[75rem] items-center px-8">
           <div className="relative z-10 flex max-w-[34rem] flex-col gap-6 pb-14 pt-24">
-            <Eyebrow>{copy.heroEyebrow}</Eyebrow>
+            <Eyebrow>{heroEyebrow}</Eyebrow>
 
             {/* One list, not four headings. A screen reader should get the
                 whole argument in order rather than whichever line happens to
@@ -66,11 +65,18 @@ export function LandingHero(): ReactElement {
             </ul>
 
             <div className="mt-2 flex flex-wrap items-center gap-6">
-              <a
-                href="#book"
+              <button
+                type="button"
+                onClick={onSignIn}
                 className="inline-flex items-center gap-2 rounded-md bg-accent px-5 py-3 font-body text-sm font-semibold text-ink-inverse transition-colors duration-control ease-enter hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-status-active"
               >
-                {copy.heroCta}
+                Sign in
+              </button>
+              <a
+                href="#book"
+                className="inline-flex items-center gap-2 font-body text-sm font-semibold text-ink-secondary transition-colors duration-control ease-enter hover:text-ink-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-status-active"
+              >
+                {heroCta}
                 <svg
                   viewBox="0 0 16 16"
                   aria-hidden="true"
@@ -84,11 +90,6 @@ export function LandingHero(): ReactElement {
                   <path d="M3 8h10M9 4l4 4-4 4" />
                 </svg>
               </a>
-              <p className="max-w-[16rem] font-body text-sm text-ink-secondary">
-                Vault <span className="font-mono text-ink-primary">{terms.vault}</span>,{' '}
-                {terms.vaultCity}. Rate ceiling {terms.rateCeilingPctPerYear}% per year. Origination
-                fee {terms.originationFeePct}%.
-              </p>
             </div>
           </div>
 

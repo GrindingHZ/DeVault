@@ -1,7 +1,8 @@
 import { formatMoney } from '@depawn/ui';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactElement } from 'react';
-import { bookOffers, copy, inventory, orderBook, terms } from './landing-content';
+import { bookOffers, inventory, orderBook, terms } from './landing-content';
+import { book } from './landing-copy';
 import type { BookOffer } from './landing-content';
 import { Eyebrow, SectionHeading, SectionLede } from './landing-section';
 import { useIsInView, usePrefersReducedMotion } from './use-scroll-progress';
@@ -73,9 +74,9 @@ export function LandingBook(): ReactElement {
     <section ref={section} id="book" className="scroll-mt-24 bg-surface-sunken py-[8rem]">
       <div className="mx-auto w-full max-w-[75rem] px-8">
         <div className="flex flex-col gap-4">
-          <Eyebrow>The order book</Eyebrow>
-          <SectionHeading>{copy.bookHeading}</SectionHeading>
-          <SectionLede>{copy.bookLede}</SectionLede>
+          <Eyebrow>{book.eyebrow}</Eyebrow>
+          <SectionHeading>{book.heading}</SectionHeading>
+          <SectionLede>{book.lede}</SectionLede>
         </div>
 
         <div className="mt-14 grid gap-6 lg:grid-cols-[1.12fr_0.88fr]">
@@ -171,13 +172,13 @@ export function LandingBook(): ReactElement {
             </ul>
 
             <p className="mt-4 border-t border-edge pt-4 font-body text-xs leading-relaxed text-ink-secondary">
-              {copy.bookFootnote}
+              {book.footnote}
             </p>
           </div>
 
           <div className="flex flex-col gap-5 rounded-lg border border-edge bg-surface-raised p-6">
             <p className="font-body text-xs font-semibold uppercase tracking-widest text-ink-secondary">
-              If you take the best offer
+              {book.settlementLabel}
             </p>
             <p className="flex items-baseline gap-3">
               <span
@@ -215,7 +216,7 @@ export function LandingBook(): ReactElement {
             </dl>
 
             <p className="mt-auto font-body text-xs leading-relaxed text-ink-secondary">
-              {copy.bookFigureNote}
+              {book.figureNote}
             </p>
           </div>
         </div>

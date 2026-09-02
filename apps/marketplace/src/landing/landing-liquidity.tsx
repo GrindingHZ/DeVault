@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import type { ReactElement } from 'react';
-import { copy, inventory, liquidityTracks } from './landing-content';
+import { inventory, liquidityTracks } from './landing-content';
+import { liquidity } from './landing-copy';
 import { Eyebrow, SectionHeading, SectionLede } from './landing-section';
 import { useScrollProgress } from './use-scroll-progress';
 
@@ -30,13 +31,13 @@ export function LandingLiquidity(): ReactElement {
   const progress = useScrollProgress(section);
 
   return (
-    <section ref={section} className="relative h-[220vh] bg-surface-base">
+    <section ref={section} className="relative h-[190vh] bg-surface-base">
       <div className="sticky top-0 flex h-screen items-center">
         <div className="mx-auto w-full max-w-[75rem] px-8">
           <div className="flex flex-col gap-4">
-            <Eyebrow>Priced by liquidity</Eyebrow>
-            <SectionHeading>{copy.liquidityHeading}</SectionHeading>
-            <SectionLede>{copy.liquidityLede}</SectionLede>
+            <Eyebrow>{liquidity.eyebrow}</Eyebrow>
+            <SectionHeading>{liquidity.heading}</SectionHeading>
+            <SectionLede>{liquidity.lede}</SectionLede>
           </div>
 
           <ol className="mt-10 flex flex-col">

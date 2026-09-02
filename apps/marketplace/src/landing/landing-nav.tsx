@@ -4,10 +4,10 @@ import type { ReactElement } from 'react';
 import { useCurrentAccount } from '../current-account';
 import { useScrolledPast } from './use-scroll-progress';
 
+/* Two, for a page with four sections. A menu longer than the page it indexes
+   is furniture. */
 const destinations: readonly { readonly href: string; readonly label: string }[] = [
-  { href: '#how', label: 'How it works' },
   { href: '#book', label: 'Order book' },
-  { href: '#vault', label: 'The vault' },
   { href: '#custody', label: 'Custody' },
 ];
 
@@ -16,7 +16,7 @@ const destinations: readonly { readonly href: string; readonly label: string }[]
    is the thing being read and the navigation is a way back, not a menu.
 
    Left aligned deliberately. The mark is never centred. */
-export function LandingNav(): ReactElement {
+export function LandingNav({ onSignIn }: { readonly onSignIn: () => void }): ReactElement {
   const isCollapsed = useScrolledPast(0.5);
   const currentAccount = useCurrentAccount();
   const isSignedIn = currentAccount.data !== null && currentAccount.data !== undefined;
@@ -54,13 +54,24 @@ export function LandingNav(): ReactElement {
         ))}
         {/* The one action. A reader who is already signed in does not need to
             be asked again, so the same slot carries them into the product. */}
-        <Link
-          to={isSignedIn ? '/portfolio' : '/login'}
-          data-testid="landing-sign-in"
-          className="whitespace-nowrap rounded-md bg-accent px-3 py-1.5 font-body text-sm font-semibold text-ink-inverse transition-colors duration-control ease-enter hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-status-active"
-        >
-          {isSignedIn ? 'Go to your portfolio' : 'Sign in'}
-        </Link>
+        {isSignedIn ? (
+          <Link
+            to="/portfolio"
+            data-testid="landing-sign-in"
+            className="whitespace-nowrap rounded-md bg-accent px-3 py-1.5 font-body text-sm font-semibold text-ink-inverse transition-colors duration-control ease-enter hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-status-active"
+          >
+            Your portfolio
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={onSignIn}
+            data-testid="landing-sign-in"
+            className="whitespace-nowrap rounded-md bg-accent px-3 py-1.5 font-body text-sm font-semibold text-ink-inverse transition-colors duration-control ease-enter hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-status-active"
+          >
+            Sign in
+          </button>
+        )}
       </div>
     </nav>
   );

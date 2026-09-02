@@ -399,6 +399,33 @@ model LenderNote {
   @@map("lender_note")
 }
 
+enum NoteSaleStatus {
+  OPEN
+  SOLD
+  WITHDRAWN
+  VOIDED
+
+  @@map("note_sale_status")
+}
+
+model NoteSale {
+  id                 String         @id
+  lenderNoteId       String         @map("lender_note_id")
+  loanId             String         @map("loan_id")
+  sellerAccountId    String         @map("seller_account_id")
+  askPriceMinorUnits BigInt         @map("ask_price_minor_units")
+  currency           String
+  status             NoteSaleStatus
+  version            Int            @default(0)
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([sellerAccountId, status])
+  @@index([loanId, status])
+  @@map("note_sale")
+}
+
 model BorrowerNote {
   id              String   @id
   loanId          String   @unique @map("loan_id")

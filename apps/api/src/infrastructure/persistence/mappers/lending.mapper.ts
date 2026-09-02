@@ -2,15 +2,18 @@ import type {
   BorrowerNote as BorrowerNoteRow,
   LenderNote as LenderNoteRow,
   Loan as LoanRow,
+  NoteSale as NoteSaleRow,
 } from '@prisma/client';
 import type { BorrowerNote } from '../../../domain/lending/borrower-note';
 import type { LenderNote } from '../../../domain/lending/lender-note';
 import { Loan } from '../../../domain/lending/loan';
+import { NoteSale } from '../../../domain/lending/note-sale';
 import {
   accountIdOf,
   borrowerNoteIdOf,
   lenderNoteIdOf,
   loanIdOf,
+  noteSaleIdOf,
   receiptIdOf,
 } from '../../../domain/shared/identifiers';
 import { Instant } from '../../../domain/shared/instant';
@@ -93,5 +96,33 @@ export function toBorrowerNote(row: BorrowerNoteRow): BorrowerNote {
     loanId: loanIdOf(row.loanId),
     holderAccountId: accountIdOf(row.holderAccountId),
     transferable: row.transferable,
+  };
+}
+
+export function toNoteSale(row: NoteSaleRow): NoteSale {
+  return NoteSale.restore({
+    id: noteSaleIdOf(row.id),
+    lenderNoteId: lenderNoteIdOf(row.lenderNoteId),
+    loanId: loanIdOf(row.loanId),
+    sellerAccountId: accountIdOf(row.sellerAccountId),
+    askPrice: Money.of(row.askPriceMinorUnits, currencyOf(row.currency)),
+    createdAt: instantOf(row.createdAt),
+    status: row.status,
+    version: row.version,
+  });
+}
+
+export function toNoteSaleRow(sale: NoteSale): Omit<NoteSaleRow, 'updatedAt' | 'version'> {
+  return {
+    id: sale.id,
+    lenderNoteId: sale.lenderNoteId,
+    loanId: sale.loanId,
+    sellerAccountId: sale.sellerAccountId,
+    askPriceMinorUnits: sale.askPrice.minorUnits,
+    currency: sale.askPrice.currency,
+    status: sale.status,
+    /* Written from the domain clock rather than left to the database default:
+       under the demo offset the two disagree by weeks (docs/10 flow 15). */
+    createdAt: dateOf(sale.createdAt),
   };
 }

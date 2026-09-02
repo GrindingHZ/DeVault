@@ -1,4 +1,4 @@
-import type { AccountId, LoanId, ReceiptId } from '../shared/identifiers';
+import type { AccountId, LenderNoteId, LoanId, ReceiptId } from '../shared/identifiers';
 import type { UnitOfWorkContext } from '../ports/unit-of-work';
 import type { BorrowerNote } from './borrower-note';
 import type { LenderNote } from './lender-note';
@@ -18,6 +18,15 @@ export interface LoanRepository {
   /* The note holder is resolved inside the repaying transaction so a note
      transfer cannot land between the read and the payment. */
   findLenderNoteHolder(id: LoanId, context: UnitOfWorkContext): Promise<AccountId | null>;
+  findByLenderNoteId(noteId: LenderNoteId, context: UnitOfWorkContext): Promise<Loan | null>;
+  findLenderNoteById(noteId: LenderNoteId, context: UnitOfWorkContext): Promise<LenderNote | null>;
+  /* The one mutation a note ever sees. The sale use case is its only caller,
+     inside the transaction that also moved the money. */
+  reassignLenderNoteHolder(
+    noteId: LenderNoteId,
+    holderAccountId: AccountId,
+    context: UnitOfWorkContext,
+  ): Promise<void>;
   findLiveByReceipt(receiptId: ReceiptId, context: UnitOfWorkContext): Promise<Loan | null>;
   /* Origination persists the loan and both notes together; later phases save
      the loan alone through save. */

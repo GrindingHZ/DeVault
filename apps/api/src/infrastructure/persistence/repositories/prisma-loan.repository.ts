@@ -3,8 +3,14 @@ import type { LoanRepository, OriginatedLoan } from '../../../domain/lending/loa
 import type { Loan } from '../../../domain/lending/loan';
 import type { UnitOfWorkContext } from '../../../domain/ports/unit-of-work';
 import { accountIdOf } from '../../../domain/shared/identifiers';
-import type { AccountId, LoanId, ReceiptId } from '../../../domain/shared/identifiers';
-import { toLoan, toLoanRow } from '../mappers/lending.mapper';
+import type {
+  AccountId,
+  LenderNoteId,
+  LoanId,
+  ReceiptId,
+} from '../../../domain/shared/identifiers';
+import type { LenderNote } from '../../../domain/lending/lender-note';
+import { toLenderNote, toLoan, toLoanRow } from '../mappers/lending.mapper';
 import { transactionOf } from '../prisma-unit-of-work';
 
 export class StaleLoanVersionError extends Error {
@@ -35,6 +41,30 @@ export class PrismaLoanRepository implements LoanRepository {
   async findLenderNoteHolder(id: LoanId, context: UnitOfWorkContext): Promise<AccountId | null> {
     const note = await transactionOf(context).lenderNote.findUnique({ where: { loanId: id } });
     return note === null ? null : accountIdOf(note.holderAccountId);
+  }
+
+  async findByLenderNoteId(noteId: LenderNoteId, context: UnitOfWorkContext): Promise<Loan | null> {
+    const row = await transactionOf(context).loan.findUnique({ where: { lenderNoteId: noteId } });
+    return row === null ? null : toLoan(row);
+  }
+
+  async findLenderNoteById(
+    noteId: LenderNoteId,
+    context: UnitOfWorkContext,
+  ): Promise<LenderNote | null> {
+    const row = await transactionOf(context).lenderNote.findUnique({ where: { id: noteId } });
+    return row === null ? null : toLenderNote(row);
+  }
+
+  async reassignLenderNoteHolder(
+    noteId: LenderNoteId,
+    holderAccountId: AccountId,
+    context: UnitOfWorkContext,
+  ): Promise<void> {
+    await transactionOf(context).lenderNote.update({
+      where: { id: noteId },
+      data: { holderAccountId },
+    });
   }
 
   async saveOrigination(originated: OriginatedLoan, context: UnitOfWorkContext): Promise<void> {

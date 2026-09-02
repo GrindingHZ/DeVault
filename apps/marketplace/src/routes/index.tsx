@@ -1,7 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router';
 import type { ReactElement } from 'react';
+import { LandingBook } from '../landing/landing-book';
+import { LandingCustody } from '../landing/landing-custody';
+import { LandingDefault } from '../landing/landing-default';
 import { LandingHero } from '../landing/landing-hero';
+import { LandingHow } from '../landing/landing-how';
+import { LandingLife } from '../landing/landing-life';
+import { LandingLiquidity } from '../landing/landing-liquidity';
 import { LandingNav } from '../landing/landing-nav';
+import { LandingVault } from '../landing/landing-vault';
 
 export const Route = createFileRoute('/')({
   component: LandingPage,
@@ -28,6 +35,15 @@ function LandingPage(): ReactElement {
       <LandingNav />
       <main>
         <LandingHero />
+        <LandingHow />
+        <LandingBook />
+        <LandingLife />
+        <LandingVault />
+        <LandingLiquidity />
+        <LandingDefault />
+        {/* Carries the closing footer, because the last argument and the
+            close are one thought. */}
+        <LandingCustody />
       </main>
     </div>
   );

@@ -62,6 +62,18 @@ const preset: Omit<Config, 'content'> = {
         md: 'var(--radius-md)',
         lg: 'var(--radius-lg)',
       },
+      /* The tape. Translating by half the track works because the content is
+         rendered twice, so the moment the first copy leaves the second is
+         exactly where it started. */
+      keyframes: {
+        ticker: {
+          from: { transform: 'translateX(0)' },
+          to: { transform: 'translateX(-50%)' },
+        },
+      },
+      animation: {
+        ticker: 'ticker var(--motion-ticker) linear infinite',
+      },
       height: {
         row: 'var(--density-row-height)',
         'row-floor': 'var(--density-row-floor)',

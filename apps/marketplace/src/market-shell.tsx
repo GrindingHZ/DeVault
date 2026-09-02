@@ -5,6 +5,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { createContext, useContext } from 'react';
 import type { ReactElement, ReactNode } from 'react';
 import { currentAccountKeys } from './current-account';
+import { MarketContext } from './market-context';
 import { MarketRail } from './market-rail';
 import { ReclaimBanner } from './reclaim-banner';
 
@@ -57,7 +58,8 @@ export function MarketShell({
     <AppShell
       surface="floor"
       fills={fills}
-      productName="depawn marketplace"
+      productName="depawn"
+      context={<MarketContext />}
       rail={<MarketRail />}
       actions={
         <Button variant="secondary" onClick={() => logoutMutation.mutate()}>

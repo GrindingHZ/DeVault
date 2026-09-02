@@ -1,21 +1,6 @@
-import {
-  browseListings,
-  fetchListing,
-  fetchMarketIndex,
-  fetchMarketTape,
-  fetchMyOffers,
-  nameForCategory,
-} from '@depawn/contracts';
+import { browseListings, fetchListing, fetchMarketTape, fetchMyOffers } from '@depawn/contracts';
 import type { ListingSummary } from '@depawn/contracts';
-import {
-  IndexStrip,
-  LifecycleSpine,
-  Skeleton,
-  Tape,
-  Workspace,
-  positionOf,
-  spineFor,
-} from '@depawn/ui';
+import { LifecycleSpine, Skeleton, Tape, Workspace, positionOf, spineFor } from '@depawn/ui';
 import type { CollateralRelationship, MarketRole } from '@depawn/ui';
 import { useQuery } from '@tanstack/react-query';
 import { Navigate, createFileRoute, useNavigate } from '@tanstack/react-router';
@@ -84,12 +69,6 @@ function VaultFloor({ viewerAccountId }: { readonly viewerAccountId: string }): 
 
   const myOffersQuery = useQuery({ queryKey: marketKeys.myOffers, queryFn: fetchMyOffers });
 
-  const indexQuery = useQuery({
-    queryKey: marketKeys.marketIndex,
-    queryFn: () => fetchMarketIndex(),
-    refetchInterval: tapePollMs,
-  });
-
   const tapeQuery = useQuery({
     queryKey: marketKeys.marketTape,
     queryFn: () => fetchMarketTape(),
@@ -140,27 +119,9 @@ function VaultFloor({ viewerAccountId }: { readonly viewerAccountId: string }): 
       ? allListings.filter((listing) => livePendingListingIds.has(listing.id))
       : allListings;
 
-  const indexEntries = (indexQuery.data?.categories ?? []).map((entry) => ({
-    category: entry.category,
-    categoryName: nameForCategory(entry.category),
-    liveListings: entry.liveListings,
-    averageRateBasisPoints: entry.averageRateBasisPoints,
-    previousAverageRateBasisPoints: entry.previousAverageRateBasisPoints,
-  }));
-
   return (
     <MarketShell fills>
       <Workspace
-        indexStrip={
-          <IndexStrip
-            entries={indexEntries}
-            role={role}
-            selectedCategory={category === '' ? null : category}
-            onSelectCategory={(next) =>
-              update({ category: next ?? undefined, listing: undefined, offer: undefined })
-            }
-          />
-        }
         browse={
           <BrowsePane
             listings={visibleListings}

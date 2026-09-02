@@ -8,6 +8,9 @@ export interface AppShellProps {
   /* A NavRail down the left instead of links along the top. Optional so the
      vault console and the admin keep the shape they have. */
   readonly rail?: ReactNode;
+  /* What the reader needs on every screen, beside the name of the product.
+     The brand alone is the least useful row in an application. */
+  readonly context?: ReactNode;
   readonly actions?: ReactNode;
   readonly children: ReactNode;
   /* 'terminal' switches the density tokens for the vault console. 'floor' is
@@ -23,6 +26,7 @@ export function AppShell({
   productName,
   navigation,
   rail,
+  context,
   actions,
   children,
   surface = 'default',
@@ -30,7 +34,10 @@ export function AppShell({
 }: AppShellProps): ReactElement {
   const header = (
     <header className="flex min-h-row items-center justify-between gap-4 border-b border-edge bg-surface-raised px-4">
-      <span className="font-heading text-base font-semibold">{productName}</span>
+      <div className="flex min-w-0 items-center gap-4">
+        <span className="shrink-0 font-heading text-base font-semibold">{productName}</span>
+        {context}
+      </div>
       {rail === undefined && navigation !== undefined ? (
         <nav aria-label="Primary" className="flex items-center gap-4">
           {navigation}

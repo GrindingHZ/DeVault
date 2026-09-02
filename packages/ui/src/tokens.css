@@ -49,6 +49,14 @@
   --motion-enter: 180ms;
   --motion-panel: 240ms;
 
+  /* One full pass of the ticker. Nothing else in the product moves for
+     longer than a quarter of a second, so this is deliberately a separate
+     name rather than a fourth entry on that scale: it is not a transition,
+     it is a thing that keeps going.
+
+     Slow on purpose. A tape a reader has to chase is a tape nobody reads. */
+  --motion-ticker: 90s;
+
   /* Entering decelerates, leaving accelerates. Linear reads as mechanical
      on anything a person is watching. */
   --motion-ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
@@ -92,6 +100,14 @@
     --motion-control: 0ms;
     --motion-enter: 0ms;
     --motion-panel: 0ms;
+  }
+
+  /* The ticker is not collapsed to zero the way the durations above are.
+     A zero length animation that repeats forever is not stillness, it is the
+     same movement at infinite speed. Somebody who asked for less motion gets
+     none, so the animation is switched off rather than shortened. */
+  [data-ticker] {
+    animation: none;
   }
 }
 

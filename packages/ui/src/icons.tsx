@@ -115,3 +115,19 @@ export function CheckIcon(props: IconProps): ReactElement {
     </Icon>
   );
 }
+
+export function PauseIcon(props: IconProps): ReactElement {
+  return (
+    <Icon {...props}>
+      <path d="M9 5v14M15 5v14" />
+    </Icon>
+  );
+}
+
+export function PlayIcon(props: IconProps): ReactElement {
+  return (
+    <Icon {...props}>
+      <path d="M7 4.5l12 7.5-12 7.5z" />
+    </Icon>
+  );
+}

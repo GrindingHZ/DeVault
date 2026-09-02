@@ -1,0 +1,402 @@
+{
+  "_note": "Every figure, name, serial and term on the DeVault landing page. All of it is real product data. Do not paraphrase copy and do not round figures. Money is stored in minor units (cents) as integers, mirroring the product's own ledger; the display strings are what the page shows.",
+
+  "terms": {
+    "rateCeilingPctPerYear": 48,
+    "originationFeePct": 2,
+    "termDays": 30,
+    "gracePeriodDays": 7,
+    "statutoryHoldingDays": 30,
+    "secondAppraisalThresholdMinor": 10000000,
+    "secondAppraisalThresholdDisplay": "AUD 100,000.00",
+    "offerMinimumLiveMinutes": 10,
+    "currency": "AUD",
+    "vault": "VAULT-DEMO-1",
+    "vaultCity": "Sydney",
+    "policy": "POL-SYD-2026-0114"
+  },
+
+  "loanToValueByCategory": {
+    "Bullion": 60,
+    "Watch": 50,
+    "Jewellery": 45,
+    "Collectible": 35,
+    "Art": 30
+  },
+
+  "inventory": [
+    {
+      "name": "Rolex Submariner Date 126610LN, 2021, box and papers",
+      "category": "Watch",
+      "appraisedMinor": 1950000,
+      "appraisedDisplay": "AUD 19,500.00",
+      "ltvPct": 50,
+      "maxAdvanceMinor": 975000,
+      "maxAdvanceDisplay": "AUD 9,750.00",
+      "serials": ["CASE-9K42L118", "MOVEMENT-3235-77219"],
+      "standIn": "watch"
+    },
+    {
+      "name": "PAMP Suisse 100 g gold bar, 999.9 fine, with assay card",
+      "category": "Bullion",
+      "appraisedMinor": 1680000,
+      "appraisedDisplay": "AUD 16,800.00",
+      "ltvPct": 60,
+      "maxAdvanceMinor": 1008000,
+      "maxAdvanceDisplay": "AUD 10,080.00",
+      "serials": ["PAMP-C401882"],
+      "standIn": "bullion"
+    },
+    {
+      "name": "Tiffany & Co. solitaire ring, 1.01 ct, GIA certificated",
+      "category": "Jewellery",
+      "appraisedMinor": 1260000,
+      "appraisedDisplay": "AUD 12,600.00",
+      "ltvPct": 45,
+      "maxAdvanceMinor": 567000,
+      "maxAdvanceDisplay": "AUD 5,670.00",
+      "serials": ["GIA-2185640021"],
+      "standIn": "jewellery"
+    },
+    {
+      "name": "Cartier Love bracelet, 18 ct yellow gold, size 17",
+      "category": "Jewellery",
+      "appraisedMinor": 1140000,
+      "appraisedDisplay": "AUD 11,400.00",
+      "ltvPct": 45,
+      "maxAdvanceMinor": 513000,
+      "maxAdvanceDisplay": "AUD 5,130.00",
+      "serials": [],
+      "standIn": "jewellery"
+    },
+    {
+      "name": "Omega Speedmaster Professional Moonwatch 310.30.42.50.01.002",
+      "category": "Watch",
+      "appraisedMinor": 1100000,
+      "appraisedDisplay": "AUD 11,000.00",
+      "ltvPct": 50,
+      "maxAdvanceMinor": 550000,
+      "maxAdvanceDisplay": "AUD 5,500.00",
+      "serials": [],
+      "standIn": "watch"
+    },
+    {
+      "name": "1999 Pokemon Base Set Charizard, PSA 9",
+      "category": "Collectible",
+      "appraisedMinor": 890000,
+      "appraisedDisplay": "AUD 8,900.00",
+      "ltvPct": 35,
+      "maxAdvanceMinor": 311500,
+      "maxAdvanceDisplay": "AUD 3,115.00",
+      "serials": [],
+      "standIn": "collectible"
+    },
+    {
+      "name": "Perth Mint 1 oz gold Kangaroo, 2024, in capsule",
+      "category": "Bullion",
+      "appraisedMinor": 520000,
+      "appraisedDisplay": "AUD 5,200.00",
+      "ltvPct": 60,
+      "maxAdvanceMinor": 312000,
+      "maxAdvanceDisplay": "AUD 3,120.00",
+      "serials": [],
+      "standIn": "bullion"
+    },
+    {
+      "name": "Andy Warhol, Marilyn, Sunday B. Morning edition, unsigned",
+      "category": "Art",
+      "appraisedMinor": 380000,
+      "appraisedDisplay": "AUD 3,800.00",
+      "ltvPct": 30,
+      "maxAdvanceMinor": 114000,
+      "maxAdvanceDisplay": "AUD 1,140.00",
+      "serials": [],
+      "standIn": "art"
+    }
+  ],
+
+  "orderBook": {
+    "_note": "Demonstration book against the Rolex listing. Lenders shown by reference only. Interest is principal x rate x 30 / 365, computed at render, never hard-coded.",
+    "listing": "Rolex Submariner Date 126610LN, 2021, box and papers",
+    "principalMinor": 975000,
+    "principalDisplay": "AUD 9,750.00",
+    "termDays": 30,
+    "offers": [
+      {
+        "ratePctPerYear": 15.4,
+        "amountMinor": 975000,
+        "amountDisplay": "AUD 9,750.00",
+        "lender": "LNDR-4417",
+        "arrivesAtStage": 0
+      },
+      {
+        "ratePctPerYear": 16.8,
+        "amountMinor": 975000,
+        "amountDisplay": "AUD 9,750.00",
+        "lender": "LNDR-2098",
+        "arrivesAtStage": 0
+      },
+      {
+        "ratePctPerYear": 18.2,
+        "amountMinor": 600000,
+        "amountDisplay": "AUD 6,000.00",
+        "lender": "LNDR-8831",
+        "arrivesAtStage": 0
+      },
+      {
+        "ratePctPerYear": 21.0,
+        "amountMinor": 975000,
+        "amountDisplay": "AUD 9,750.00",
+        "lender": "LNDR-1174",
+        "arrivesAtStage": 0
+      },
+      {
+        "ratePctPerYear": 24.5,
+        "amountMinor": 425000,
+        "amountDisplay": "AUD 4,250.00",
+        "lender": "LNDR-6602",
+        "arrivesAtStage": 0
+      },
+      {
+        "ratePctPerYear": 14.9,
+        "amountMinor": 975000,
+        "amountDisplay": "AUD 9,750.00",
+        "lender": "LNDR-3390",
+        "arrivesAtStage": 1
+      },
+      {
+        "ratePctPerYear": 14.2,
+        "amountMinor": 975000,
+        "amountDisplay": "AUD 9,750.00",
+        "lender": "LNDR-7725",
+        "arrivesAtStage": 2
+      }
+    ],
+    "stageDwellMs": { "toStage1": 2200, "toStage2": 3200, "atFinal": 5400 },
+    "settlementAtBestRate": {
+      "ratePctPerYear": 14.2,
+      "advanceDisplay": "AUD 9,750.00",
+      "originationFeeDisplay": "−AUD 195.00",
+      "youReceiveDisplay": "AUD 9,555.00",
+      "interestDisplay": "AUD 113.79",
+      "totalRepayableDisplay": "AUD 9,863.79",
+      "costOfLoanDisplay": "AUD 308.79"
+    }
+  },
+
+  "heroClauses": [
+    "You have a gold bar and a cash flow problem.",
+    "You do not want to sell it. You do not want to ask a bank.",
+    "So you hand it to a vault and walk out with a receipt.",
+    "Lenders bid to fund it. You take the cheapest."
+  ],
+
+  "howItWorks": [
+    {
+      "numeral": "( 001 )",
+      "heading": "Deposit at a vault.",
+      "body": "You bring the object in. Photo identification on intake, because a pawnbroker is required to know who handed over what. Nothing is listed and nothing is borrowed against until it is physically in the vault."
+    },
+    {
+      "numeral": "( 002 )",
+      "heading": "We appraise, photograph and seal it.",
+      "body": "Serial numbers are read off the object and recorded. Above AUD 100,000.00 a second independent appraisal is required before anything is listed.",
+      "identifiers": ["CASE-9K42L118", "MOVEMENT-3235-77219"]
+    },
+    {
+      "numeral": "( 003 )",
+      "heading": "You get a receipt.",
+      "body": "One receipt, one sealed item, one insured position under policy POL-SYD-2026-0114. The receipt is the thing you borrow against. The object does not move again until you redeem it."
+    },
+    {
+      "numeral": "( 004 )",
+      "heading": "You list it, and lenders bid.",
+      "body": "This is the part a pawn shop does not have. Every offer is visible to every other lender, so the only way to win your loan is to price it lower than the last one. An offer stays live for at least ten minutes. Nothing may price above 48% per year."
+    },
+    {
+      "numeral": "( 005 )",
+      "heading": "You repay and collect.",
+      "body": "Principal and interest, thirty days later. The seal is broken in front of you and you check the serial against the receipt before you leave. If you do not repay, keep reading, because that part is written down too."
+    }
+  ],
+
+  "receiptLife": {
+    "item": "Rolex Submariner Date 126610LN, 2021, box and papers",
+    "header": "VAULT-DEMO-1 · CASE-9K42L118",
+    "stations": [
+      {
+        "label": "Receipt",
+        "status": "Sealed",
+        "statusColor": "#8b9aab",
+        "body": "Photographed, sealed, and insured under policy POL-SYD-2026-0114. The intake record is hashed at this point, so nothing about the object can be quietly edited later.",
+        "fields": [
+          { "label": "Appraised", "value": "AUD 19,500.00" },
+          { "label": "Lends up to", "value": "50%" },
+          { "label": "Movement", "value": "MOVEMENT-3235-77219", "mono": true },
+          { "label": "Policy", "value": "POL-SYD-2026-0114", "mono": true }
+        ]
+      },
+      {
+        "label": "Listed",
+        "status": "Listed",
+        "statusColor": "#2f81f7",
+        "body": "Listed for thirty days at half the appraised value. Lenders can see the seal record, the serials and every offer already standing. Each new one has to beat the last.",
+        "fields": [
+          { "label": "Requested", "value": "AUD 9,750.00" },
+          { "label": "Offers standing", "value": "1 → 5", "animated": true },
+          { "label": "Best rate", "value": "15.4% → 14.9% p.a.", "animated": true },
+          { "label": "Ceiling", "value": "48% p.a." }
+        ]
+      },
+      {
+        "label": "Funded",
+        "status": "Funded",
+        "statusColor": "#2ea043",
+        "body": "The cheapest offer wins and the rest are released back to the lenders who placed them. The fee comes out at drawdown, so the figure below is what actually arrives.",
+        "fields": [
+          { "label": "Rate taken", "value": "14.2% p.a." },
+          { "label": "Origination fee", "value": "−AUD 195.00" },
+          { "label": "You receive", "value": "AUD 9,555.00" },
+          { "label": "Term", "value": "30 days" }
+        ]
+      },
+      {
+        "label": "Maturing",
+        "status": "Maturing",
+        "statusColor": "#d29922",
+        "body": "Nothing compounds and nothing is added while the clock runs. The watch has not moved. It is still sealed, in the same vault, under the same policy.",
+        "fields": [
+          { "label": "Days remaining", "value": "30 → 0", "animated": true },
+          { "label": "Interest accrued", "value": "AUD 0.00 → AUD 113.79", "animated": true },
+          { "label": "Total repayable", "value": "AUD 9,863.79" },
+          { "label": "Grace after maturity", "value": "7 days" }
+        ]
+      },
+      {
+        "label": "Redeemed",
+        "status": "Redeemed",
+        "statusColor": "#2ea043",
+        "body": "Paid in full. The seal is broken in front of you and you check CASE-9K42L118 against the receipt before you leave. The lender is repaid the same day.",
+        "fields": [
+          { "label": "Repaid", "value": "AUD 9,863.79" },
+          { "label": "Cost of the loan", "value": "AUD 308.79" },
+          { "label": "Item", "value": "Returned" },
+          { "label": "Receipt", "value": "Closed" }
+        ]
+      }
+    ]
+  },
+
+  "liquidityTracks": [
+    { "category": "Bullion", "ltvPct": 60, "reason": "Spot priced, assayed, sold the same day." },
+    {
+      "category": "Watches",
+      "ltvPct": 50,
+      "reason": "A reference number with a public auction record behind it."
+    },
+    {
+      "category": "Jewellery",
+      "ltvPct": 45,
+      "reason": "Certificated stones price well. Settings do not."
+    },
+    {
+      "category": "Collectibles",
+      "ltvPct": 35,
+      "reason": "Graded, but the bid depends on who is collecting this month."
+    },
+    { "category": "Art", "ltvPct": 30, "reason": "An opinion with a frame around it." }
+  ],
+
+  "defaultTimeline": [
+    {
+      "mark": "DAY 30",
+      "heading": "Maturity",
+      "headingColor": "#e6edf3",
+      "dotColor": "#2ea043",
+      "body": "Repayment is due. Pay AUD 9,863.79 and the seal is broken the same day."
+    },
+    {
+      "mark": "DAY 31–37",
+      "heading": "Grace period",
+      "headingColor": "#d29922",
+      "dotColor": "#d29922",
+      "body": "Seven days. The receipt reads at risk, not defaulted, and the item is not for sale during this window."
+    },
+    {
+      "mark": "DAY 37–67",
+      "heading": "Statutory holding",
+      "headingColor": "#f85149",
+      "dotColor": "#f85149",
+      "body": "The receipt defaults, and then thirty days must pass before a defaulted item may be sold. You can still redeem it in that time."
+    },
+    {
+      "mark": "AFTER SALE",
+      "heading": "Surplus returns to you",
+      "headingColor": "#2ea043",
+      "dotColor": "#2ea043",
+      "body": "Principal, interest and the costs of sale come out of the proceeds. Whatever is left is yours, and it is paid to you, not kept."
+    }
+  ],
+
+  "engineering": [
+    {
+      "heading": "Balances are derived, never stored",
+      "body": "Double entry, and the ledger is proved balanced three separate ways so that a bug in one of them cannot pass unnoticed.",
+      "items": ["A domain assertion", "A Postgres trigger", "Property tests"]
+    },
+    {
+      "heading": "Money is an integer",
+      "body": "Minor units, never a float. Where a division does not come out evenly, it truncates in the borrower's favour, and that is a decision rather than an accident.",
+      "illustration": "986379 → AUD 9,863.79"
+    },
+    {
+      "heading": "A double click cannot pay twice",
+      "body": "Every write that moves money claims an idempotency key before the handler runs. The second attempt replays the first answer instead of making a second payment.",
+      "illustration": "POST /repayments → Executed; POST /repayments → Replayed"
+    }
+  ],
+
+  "sectionCopy": {
+    "heroEyebrow": "A pawn shop with a public order book",
+    "heroFactLine": "Vault VAULT-DEMO-1, Sydney. Rate ceiling 48% per year. Origination fee 2%.",
+    "heroCta": "See the order book",
+    "howHeading": "Five steps, in order, and none of them are optional.",
+    "howLede": "Thirty days is the term. The only thing that varies is the rate, and you do not set it, and neither do we.",
+    "bookHeading": "A pawnbroker quotes you a rate. Here, lenders undercut each other for it.",
+    "bookLede": "One receipt, open to every lender at once, cheapest first. The best rate is the one at the top, and it only moves in one direction while the book is live.",
+    "bookFootnote": "Demonstration book. Lenders are shown by reference only. An offer stays live for at least ten minutes and may not price above 48% per year.",
+    "bookFigureNote": "Interest and total repayable are different numbers and people confuse them, so both are shown. Nothing compounds inside the term.",
+    "lifeEyebrow": "The life of one receipt",
+    "vaultHeading": "Eight objects, sealed, in Sydney.",
+    "vaultLede": "Every one of them is a real position with a real appraisal behind it. Pick one to see what it borrows against.",
+    "standInCaption": "DRAWN STAND-IN · SEALED, NOT PHOTOGRAPHED HERE",
+    "liquidityHeading": "We lend against 60 percent of a gold bar and 30 percent of a painting.",
+    "liquidityLede": "One of them sells the same day. The other is an opinion. The advance is not a judgement about you, it is a judgement about how fast the object turns into money if you walk away.",
+    "defaultHeading": "Nothing is repossessed, because we are already holding it.",
+    "defaultLede": "There is no collections call and no credit listing. The loan is secured by one object we already have, so the worst case is that we sell it. Here is exactly how long that takes and what comes back to you.",
+    "custodyHeading": "This is not a pool, and it is not a protocol. Somebody is physically holding the watch.",
+    "custodyLede": "Every loan on the book is secured by one identified object in one insured vault, and every dollar that moves is written twice in a ledger that will not let the two sides disagree.",
+    "custodyCardHeading": "Custody is a physical fact",
+    "custodyCardBody": "The object is appraised, photographed, sealed and stored at VAULT-DEMO-1 in Sydney under policy POL-SYD-2026-0114. The intake record is hashed at the moment it is written, so it can be shown to a lender later and proved unedited.",
+    "holdCardHeading": "Your offer holds money, it does not spend it",
+    "holdCardBody": "Placing an offer puts a hold on your balance. If you are outbid, the hold is yours to reclaim, and you release it yourself. Nothing moves your money without you asking for it, and every state change is recorded with who did it.",
+    "chainEyebrow": "Built to move on chain",
+    "chainParagraph": "Money, custody, identity and time each sit behind an interface. The ledger does not know whether a payment cleared through a bank or a chain, and the rules that decide what you owe do not change when that answer changes. Settling on Sui is a change of adapter. The loan book will not notice.",
+    "footerClose": "Bring the object. Take the cheapest offer.",
+    "footerMarkCaption": "The ledger, custody, and the name",
+    "footerFinePrint": "DeVault operates as a pawnbroker. Vault VAULT-DEMO-1, Sydney.",
+    "footerDemoNote": "Figures shown are for the seeded demonstration book.",
+    "wordmark": "DEVAULT"
+  },
+
+  "voice": {
+    "_note": "Guidance for any copy written later, so it matches what is already here.",
+    "rules": [
+      "Plain, direct, a little dry. Never salesy. Short sentences.",
+      "No exclamation marks.",
+      "Never revolutionise, seamless, unlock or empower.",
+      "It is a pawnbroker running a loan book on modern rails, and it should sound like one that happens to be unusually well engineered.",
+      "No invented statistics, no testimonials, no publication logos, no pricing tiers."
+    ]
+  }
+}

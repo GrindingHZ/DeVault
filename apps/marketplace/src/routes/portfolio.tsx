@@ -47,11 +47,16 @@ function PortfolioPage(): ReactElement | null {
   }
 
   return (
-    <MarketShell>
-      <Page>
-        <PortfolioBody />
-      </Page>
-    </MarketShell>
+    /* What the end to end suite waits for after a sign in: the marker
+       for "a session exists and the product has rendered". It lives
+       wherever signing in lands. */
+    <div data-testid="authenticated-home">
+      <MarketShell>
+        <Page>
+          <PortfolioBody />
+        </Page>
+      </MarketShell>
+    </div>
   );
 }
 

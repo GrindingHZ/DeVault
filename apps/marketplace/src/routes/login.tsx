@@ -27,7 +27,10 @@ function LoginPage(): ReactElement {
     mutationFn: login,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: currentAccountKeys.me });
-      await navigate({ to: '/' });
+      /* Into the product, not back to the landing page. `/` is public
+         marketing now, and signing in only to be shown the pitch again
+         reads as the form having failed. */
+      await navigate({ to: '/portfolio' });
     },
   });
 

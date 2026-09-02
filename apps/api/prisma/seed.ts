@@ -40,10 +40,9 @@ const cast = {
    upload check verifies the bytes and would refuse anything else.
 
    Every item is a thing somebody could actually walk into a shop with, named
-   to the exact model. A pawnbroker's book does not say "steel chronograph",
-   it says which one, because the reference number is most of what decides
-   what the thing is worth. The screens that render this dataset are only as
-   convincing as the dataset is. */
+   the way they would say it. What tells one Rolex from another lives on the
+   serial, where a person looks it up, rather than in a description every
+   screen then has to wrap over two lines. */
 interface Item {
   readonly description: string;
   readonly category: 'BULLION' | 'WATCH' | 'JEWELLERY' | 'COLLECTIBLE' | 'ART';
@@ -64,100 +63,140 @@ interface Item {
 
 /* Position is a contract, not an ordering. buildDataset reads this list by
    index: 0 is borrowed, repaid and walked back out; 1 defaults and goes to
-   sale against a reserve of AUD 1,500; 2 to 4 carry the running loans; 5 to 7
-   stay on the marketplace taking offers. Moving an entry moves the story it
-   is in, so add at the end rather than reordering. */
+   sale against a reserve of AUD 1,500; 2 to 4 carry the running loans;
+   everything from 5 on stays on the marketplace taking offers. Moving an
+   entry moves the story it is in, so add at the end rather than reordering.
+
+   Named the way somebody would say it out loud at the counter. An earlier
+   pass used full catalogue references, which read as a spreadsheet on every
+   screen that listed more than three of them; the reference number still
+   exists, on the serial. */
 const items: readonly Item[] = [
   {
-    /* Position 0: the completed cycle. Bullion because a borrower who pawns
-       gold is usually bridging a few weeks and means to come back for it,
-       which is the arc this position tells. */
-    description: 'Perth Mint 1 oz gold Kangaroo, 2024, in capsule',
+    /* Position 0: the completed cycle. Somebody bridging a few weeks who
+       means to come back for it. */
+    description: 'Gold Coin',
     category: 'BULLION',
     appraisedMinorUnits: '520000',
     askMinorUnits: '250000',
     appraisalMethod: 'spot price at appraisal against 999.9 assay',
-    comparableReferences: 'Perth Mint published spot, plus 4 percent retail premium',
+    comparableReferences: 'Perth Mint published spot, plus retail premium',
     serialNumbers: ['PM-2024-AU1-0084213'],
     tint: [212, 175, 84],
   },
   {
-    /* Position 1: defaults and is sold. Priced so the sale in buildDataset,
-       a reserve of AUD 1,500 and bids of AUD 1,800 and 2,100, reads as a
-       real result against the appraisal rather than a fire sale. */
-    description: 'Andy Warhol, Marilyn, Sunday B. Morning edition, unsigned',
+    /* Position 1: defaults and is sold. Priced so the reserve of AUD 1,500
+       and the bids of AUD 1,800 and 2,100 read as a real result. */
+    description: 'Signed Print',
     category: 'ART',
     appraisedMinorUnits: '380000',
     askMinorUnits: '100000',
     appraisalMethod: 'edition comparables, condition inspected unframed',
-    comparableReferences: 'three Sunday B. Morning lots cleared at auction in the last 90 days',
+    comparableReferences: 'three comparable lots cleared at auction in 90 days',
     serialNumbers: ['SBM-MAR-11-0442'],
     tint: [198, 92, 132],
   },
   {
-    /* Position 2: the near term running loan, 14 days. */
-    description: 'Rolex Submariner Date 126610LN, 2021, box and papers',
+    /* Positions 2 to 4: the running loans, at 14, 45 and 90 days. */
+    description: 'Rolex Watch',
     category: 'WATCH',
     appraisedMinorUnits: '1950000',
     askMinorUnits: '600000',
-    appraisalMethod: 'comparable sales, full set, movement running within tolerance',
-    comparableReferences: 'Chrono24 sold listings, 90 day median for a 2021 full set',
+    appraisalMethod: 'comparable sales, full set, movement within tolerance',
+    comparableReferences: 'sold listings, 90 day median for a full set',
     serialNumbers: ['CASE-9K42L118', 'MOVEMENT-3235-77219'],
     tint: [58, 68, 78],
   },
   {
-    /* Position 3: the mid term running loan, 45 days. */
-    description: 'Cartier Love bracelet, 18 ct yellow gold, size 17',
+    description: 'Gold Bracelet',
     category: 'JEWELLERY',
     appraisedMinorUnits: '1140000',
     askMinorUnits: '350000',
     appraisalMethod: 'assay verified, hallmark and certificate present',
-    comparableReferences: 'boutique replacement cost less 30 percent for a worn example',
+    comparableReferences: 'replacement cost less 30 percent for a worn example',
     serialNumbers: ['CRT-LV17-QK4482'],
     tint: [198, 160, 92],
   },
   {
-    /* Position 4: the long running loan, 90 days. */
-    description: '1999 Pokemon Base Set Charizard, PSA 9',
+    description: 'Pokemon Card',
     category: 'COLLECTIBLE',
     appraisedMinorUnits: '890000',
     askMinorUnits: '250000',
     appraisalMethod: 'graded population and recent cleared sales',
-    comparableReferences: 'PSA population report, 11 PSA 9 sales in the last 6 months',
+    comparableReferences: 'population report, 11 sales at this grade in 6 months',
     serialNumbers: ['PSA-98412236'],
     tint: [196, 106, 62],
   },
   {
-    /* Positions 5 to 7 stay live on the marketplace, so the browse pane has
-       one of each of the three highest value categories to compare. */
-    description: 'PAMP Suisse 100 g gold bar, 999.9 fine, with assay card',
+    /* Position 5 on: live on the marketplace, taking offers. */
+    description: 'Gold Bar',
     category: 'BULLION',
     appraisedMinorUnits: '1680000',
     askMinorUnits: '700000',
     appraisalMethod: 'spot price at appraisal, assay card intact and matching',
-    comparableReferences: 'Perth Mint published spot, plus 3 percent bar premium',
+    comparableReferences: 'Perth Mint published spot, plus bar premium',
     serialNumbers: ['PAMP-C401882'],
     tint: [216, 182, 96],
   },
   {
-    description: 'Omega Speedmaster Professional Moonwatch 310.30.42.50.01.002',
+    description: 'Omega Watch',
     category: 'WATCH',
     appraisedMinorUnits: '1100000',
     askMinorUnits: '400000',
-    appraisalMethod: 'comparable sales, hesalite crystal, box and papers present',
-    comparableReferences: 'Chrono24 sold listings, 90 day median for a full set',
+    appraisalMethod: 'comparable sales, box and papers present',
+    comparableReferences: 'sold listings, 90 day median for a full set',
     serialNumbers: ['CASE-88214477'],
     tint: [88, 96, 104],
   },
   {
-    description: 'Tiffany & Co. solitaire ring, 1.01 ct, GIA certificated',
+    description: 'Diamond Ring',
     category: 'JEWELLERY',
     appraisedMinorUnits: '1260000',
     askMinorUnits: '450000',
-    appraisalMethod: 'GIA certificate verified against the stone, setting inspected',
-    comparableReferences: 'GIA 2185640021, comparable G VS1 round brilliants at auction',
-    serialNumbers: ['GIA-2185640021', 'TCO-R44182'],
+    appraisalMethod: 'certificate verified against the stone, setting inspected',
+    comparableReferences: 'comparable G VS1 round brilliants at auction',
+    serialNumbers: ['GIA-2185640021'],
     tint: [138, 190, 190],
+  },
+  {
+    description: 'Chanel Bag',
+    category: 'COLLECTIBLE',
+    appraisedMinorUnits: '950000',
+    askMinorUnits: '300000',
+    appraisalMethod: 'authenticated, hardware and stitching inspected',
+    comparableReferences: 'resale platform sold listings, same leather and size',
+    serialNumbers: ['CHN-28114906'],
+    tint: [162, 118, 92],
+  },
+  {
+    description: 'Silver Bar',
+    category: 'BULLION',
+    appraisedMinorUnits: '320000',
+    askMinorUnits: '150000',
+    appraisalMethod: 'spot price at appraisal against 999 assay',
+    comparableReferences: 'published spot, plus bar premium',
+    serialNumbers: ['PM-2023-AG10-4471'],
+    tint: [176, 184, 192],
+  },
+  {
+    description: 'Pearl Necklace',
+    category: 'JEWELLERY',
+    appraisedMinorUnits: '680000',
+    askMinorUnits: '250000',
+    appraisalMethod: 'graded for lustre and matching, clasp assayed',
+    comparableReferences: 'comparable Akoya strands at auction',
+    serialNumbers: ['PRL-88-0192'],
+    tint: [222, 214, 200],
+  },
+  {
+    description: 'Oil Painting',
+    category: 'ART',
+    appraisedMinorUnits: '720000',
+    askMinorUnits: '200000',
+    appraisalMethod: 'attributed, canvas and frame inspected unglazed',
+    comparableReferences: 'two comparable works by the same hand at auction',
+    serialNumbers: [],
+    tint: [120, 96, 74],
   },
 ];
 

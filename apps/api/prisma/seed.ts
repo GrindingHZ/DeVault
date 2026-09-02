@@ -37,7 +37,13 @@ const cast = {
 /* One of each category the vault takes, so the demo shows the loan to value
    caps actually differing rather than five rows of gold. The tint stands in
    for a photograph: the seed generates a real PNG per item, because the
-   upload check verifies the bytes and would refuse anything else. */
+   upload check verifies the bytes and would refuse anything else.
+
+   Every item is a thing somebody could actually walk into a shop with, named
+   to the exact model. A pawnbroker's book does not say "steel chronograph",
+   it says which one, because the reference number is most of what decides
+   what the thing is worth. The screens that render this dataset are only as
+   convincing as the dataset is. */
 interface Item {
   readonly description: string;
   readonly category: 'BULLION' | 'WATCH' | 'JEWELLERY' | 'COLLECTIBLE' | 'ART';
@@ -46,64 +52,112 @@ interface Item {
   /* Comfortably inside the category cap, so the demo never has to explain a
      refusal it did not mean to show. */
   readonly askMinorUnits: string;
+  /* What the appraiser did and what they compared against. A valuation with
+     no method behind it is a number somebody made up, and the vault console
+     shows both. */
+  readonly appraisalMethod: string;
+  readonly comparableReferences: string;
+  /* What distinguishes this one from another of the same model. Recorded on
+     the intake, which is what the seal is sealed over. */
+  readonly serialNumbers: readonly string[];
 }
 
+/* Position is a contract, not an ordering. buildDataset reads this list by
+   index: 0 is borrowed, repaid and walked back out; 1 defaults and goes to
+   sale against a reserve of AUD 1,500; 2 to 4 carry the running loans; 5 to 7
+   stay on the marketplace taking offers. Moving an entry moves the story it
+   is in, so add at the end rather than reordering. */
 const items: readonly Item[] = [
   {
-    description: 'One kilogram gold bar, cast',
+    /* Position 0: the completed cycle. Bullion because a borrower who pawns
+       gold is usually bridging a few weeks and means to come back for it,
+       which is the arc this position tells. */
+    description: 'Perth Mint 1 oz gold Kangaroo, 2024, in capsule',
     category: 'BULLION',
-    appraisedMinorUnits: '500000',
+    appraisedMinorUnits: '520000',
     askMinorUnits: '250000',
-    tint: [201, 153, 47],
+    appraisalMethod: 'spot price at appraisal against 999.9 assay',
+    comparableReferences: 'Perth Mint published spot, plus 4 percent retail premium',
+    serialNumbers: ['PM-2024-AU1-0084213'],
+    tint: [212, 175, 84],
   },
   {
-    description: 'Steel chronograph, box and papers',
-    category: 'WATCH',
-    appraisedMinorUnits: '900000',
-    askMinorUnits: '200000',
-    tint: [92, 105, 118],
-  },
-  {
-    description: 'Two carat solitaire ring, certificated',
-    category: 'JEWELLERY',
-    appraisedMinorUnits: '600000',
-    askMinorUnits: '150000',
-    tint: [176, 186, 201],
-  },
-  {
-    description: 'Sealed first print trading card, graded',
-    category: 'COLLECTIBLE',
-    appraisedMinorUnits: '300000',
-    askMinorUnits: '90000',
-    tint: [138, 106, 168],
-  },
-  {
-    description: 'Signed screenprint, edition of fifty',
+    /* Position 1: defaults and is sold. Priced so the sale in buildDataset,
+       a reserve of AUD 1,500 and bids of AUD 1,800 and 2,100, reads as a
+       real result against the appraisal rather than a fire sale. */
+    description: 'Andy Warhol, Marilyn, Sunday B. Morning edition, unsigned',
     category: 'ART',
-    appraisedMinorUnits: '400000',
+    appraisedMinorUnits: '380000',
     askMinorUnits: '100000',
-    tint: [163, 106, 82],
+    appraisalMethod: 'edition comparables, condition inspected unframed',
+    comparableReferences: 'three Sunday B. Morning lots cleared at auction in the last 90 days',
+    serialNumbers: ['SBM-MAR-11-0442'],
+    tint: [198, 92, 132],
   },
   {
-    description: 'Ten ounce gold bar, minted',
-    category: 'BULLION',
-    appraisedMinorUnits: '700000',
-    askMinorUnits: '150000',
-    tint: [212, 168, 68],
-  },
-  {
-    description: 'Titanium diver, service history',
+    /* Position 2: the near term running loan, 14 days. */
+    description: 'Rolex Submariner Date 126610LN, 2021, box and papers',
     category: 'WATCH',
-    appraisedMinorUnits: '450000',
-    askMinorUnits: '150000',
-    tint: [74, 88, 99],
+    appraisedMinorUnits: '1950000',
+    askMinorUnits: '600000',
+    appraisalMethod: 'comparable sales, full set, movement running within tolerance',
+    comparableReferences: 'Chrono24 sold listings, 90 day median for a 2021 full set',
+    serialNumbers: ['CASE-9K42L118', 'MOVEMENT-3235-77219'],
+    tint: [58, 68, 78],
   },
   {
-    description: 'Antique emerald brooch',
+    /* Position 3: the mid term running loan, 45 days. */
+    description: 'Cartier Love bracelet, 18 ct yellow gold, size 17',
     category: 'JEWELLERY',
-    appraisedMinorUnits: '250000',
-    askMinorUnits: '100000',
-    tint: [96, 140, 116],
+    appraisedMinorUnits: '1140000',
+    askMinorUnits: '350000',
+    appraisalMethod: 'assay verified, hallmark and certificate present',
+    comparableReferences: 'boutique replacement cost less 30 percent for a worn example',
+    serialNumbers: ['CRT-LV17-QK4482'],
+    tint: [198, 160, 92],
+  },
+  {
+    /* Position 4: the long running loan, 90 days. */
+    description: '1999 Pokemon Base Set Charizard, PSA 9',
+    category: 'COLLECTIBLE',
+    appraisedMinorUnits: '890000',
+    askMinorUnits: '250000',
+    appraisalMethod: 'graded population and recent cleared sales',
+    comparableReferences: 'PSA population report, 11 PSA 9 sales in the last 6 months',
+    serialNumbers: ['PSA-98412236'],
+    tint: [196, 106, 62],
+  },
+  {
+    /* Positions 5 to 7 stay live on the marketplace, so the browse pane has
+       one of each of the three highest value categories to compare. */
+    description: 'PAMP Suisse 100 g gold bar, 999.9 fine, with assay card',
+    category: 'BULLION',
+    appraisedMinorUnits: '1680000',
+    askMinorUnits: '700000',
+    appraisalMethod: 'spot price at appraisal, assay card intact and matching',
+    comparableReferences: 'Perth Mint published spot, plus 3 percent bar premium',
+    serialNumbers: ['PAMP-C401882'],
+    tint: [216, 182, 96],
+  },
+  {
+    description: 'Omega Speedmaster Professional Moonwatch 310.30.42.50.01.002',
+    category: 'WATCH',
+    appraisedMinorUnits: '1100000',
+    askMinorUnits: '400000',
+    appraisalMethod: 'comparable sales, hesalite crystal, box and papers present',
+    comparableReferences: 'Chrono24 sold listings, 90 day median for a full set',
+    serialNumbers: ['CASE-88214477'],
+    tint: [88, 96, 104],
+  },
+  {
+    description: 'Tiffany & Co. solitaire ring, 1.01 ct, GIA certificated',
+    category: 'JEWELLERY',
+    appraisedMinorUnits: '1260000',
+    askMinorUnits: '450000',
+    appraisalMethod: 'GIA certificate verified against the stone, setting inspected',
+    comparableReferences: 'GIA 2185640021, comparable G VS1 round brilliants at auction',
+    serialNumbers: ['GIA-2185640021', 'TCO-R44182'],
+    tint: [138, 190, 190],
   },
 ];
 
@@ -323,9 +377,14 @@ async function buildDataset(origin: string): Promise<void> {
     return receipt;
   };
 
-  // Enough for every lender and bidder to cover what the story asks of them.
+  /* Enough for every lender and bidder to cover what the story asks of them.
+     The binding case is the account that places the losing offer on all five
+     originations and then offers on two of the live listings: those holds sit
+     side by side, because a superseded hold stays held until its lender
+     reclaims it (flow 4). That account commits AUD 27,000 before anything is
+     returned, so the float has to clear it with room rather than exactly. */
   for (const email of Object.values(cast)) {
-    await operations.call('POST', '/me/deposits', { email, amount: money('2000000') });
+    await operations.call('POST', '/me/deposits', { email, amount: money('4000000') });
   }
 
   const staffAndOperations = [
@@ -428,17 +487,20 @@ async function issueReceipt(staff: DemoClient, borrowerEmail: string, item: Item
   });
   const intakeId = identifierOf(begun);
   await staff.call('PATCH', `/intakes/${intakeId}`, {
+    serialNumbers: [...item.serialNumbers],
     sealNumber: `SEAL-${randomUUID().slice(0, 8)}`,
   });
   await staff.uploadPhoto(intakeId, solidPng(160, 160, item.tint));
   await staff.call('POST', `/intakes/${intakeId}/appraisals`, {
     value: money(item.appraisedMinorUnits),
-    method: 'comparable sales',
-    comparableReferences: 'internal register',
+    method: item.appraisalMethod,
+    comparableReferences: item.comparableReferences,
   });
   await staff.call('POST', `/intakes/${intakeId}/seal`, {});
   const issued = await staff.call('POST', `/intakes/${intakeId}/issue-receipt`, {
-    insurancePolicyReference: 'POL-DEMO',
+    /* One policy covers the vault rather than the item, which is why every
+       receipt issued here quotes the same reference. */
+    insurancePolicyReference: 'POL-SYD-2026-0114',
   });
   return identifierOf(issued);
 }

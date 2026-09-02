@@ -14,10 +14,10 @@ export interface RateHistoryProps {
 
 const viewBoxWidth = 200;
 const viewBoxHeight = 60;
-/* Without this the cheapest and dearest points sit exactly on the top and
-   bottom edges, where half the stroke is clipped and the line reads as empty
-   space. */
-const verticalPadding = 6;
+/* Enough that the flat runs never sit against the top and bottom of the box.
+   At six the line landed on the border and the whole chart read as a
+   rectangle rather than as a price that moved. */
+const verticalPadding = 12;
 /* The run held to the right edge after the last offer. Without it the final
    point maps to the right edge, its step falls exactly on the boundary, and
    the newest change in the price is the one nobody can see. */
@@ -96,7 +96,10 @@ export function RateHistory({ points, role, highlightAtEpochMs }: RateHistoryPro
         aria-label={`Best rate offered, from ${formatRate(first.basisPoints)} to ${formatRate(
           last.basisPoints,
         )} across ${points.length} offers.`}
-        className={`h-16 w-full rounded-md border border-edge bg-surface-sunken ${tone}`}
+        /* No border. The line is the only thing in this box that means
+           anything, and an outline around it competes with the two flat runs
+           it is trying to draw. */
+        className={`h-24 w-full rounded-md bg-surface-sunken ${tone}`}
       >
         <path
           d={commands.join(' ')}

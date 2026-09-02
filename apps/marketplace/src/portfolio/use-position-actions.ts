@@ -3,6 +3,7 @@ import {
   markLoanDefaulted,
   publishListing,
   reclaimOffer,
+  withdrawNoteSale,
   withdrawOffer,
 } from '@depawn/contracts';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -13,11 +14,13 @@ import { walletKeys } from '../wallet-keys';
 import type { Position } from './position';
 
 export interface PositionActionHandlers {
-  /* Repaying needs a quote, and collecting an item is a visit to a vault.
-     Neither is a button press, so the caller says where they lead: the
-     portfolio opens a payoff card, the header notification navigates. */
+  /* Repaying needs a quote, collecting an item is a visit to a vault, and
+     selling needs an ask. None is a button press, so the caller says where
+     they lead: the portfolio opens the matching card or dialog, the header
+     notification navigates. */
   readonly onRepay: (position: Position) => void;
   readonly onOpen: (position: Position) => void;
+  readonly onSell: (position: Position) => void;
 }
 
 function successFor(position: Position): string {
@@ -32,6 +35,9 @@ function successFor(position: Position): string {
   }
   if (position.action?.kind === 'default') {
     return 'The loan is marked defaulted. The collateral is yours to claim.';
+  }
+  if (position.action?.kind === 'withdrawSale') {
+    return 'The sale is withdrawn. The position is yours again.';
   }
   return 'The collateral is yours to collect.';
 }
@@ -56,6 +62,9 @@ function runAction(position: Position, idempotencyKey: string): Promise<unknown>
   }
   if (position.action?.kind === 'claim' && position.loanId !== null) {
     return claimReceipt(position.loanId, options);
+  }
+  if (position.action?.kind === 'withdrawSale' && position.noteSale !== null) {
+    return withdrawNoteSale(position.noteSale.id, options);
   }
   return Promise.reject(new Error('That position has nothing to act on.'));
 }
@@ -89,6 +98,8 @@ export function usePositionActions(handlers: PositionActionHandlers): {
          stays DEFAULTED. Without this the row goes on offering it. */
       await queryClient.invalidateQueries({ queryKey: marketKeys.myReceipts });
       await queryClient.invalidateQueries({ queryKey: marketKeys.myRedemptions });
+      await queryClient.invalidateQueries({ queryKey: marketKeys.myNoteSales });
+      await queryClient.invalidateQueries({ queryKey: marketKeys.noteSalesBrowse });
       await queryClient.invalidateQueries({ queryKey: marketKeys.browse });
     },
     onError: () => feedback.reportFailure('That could not be completed. Nothing has changed.'),
@@ -104,6 +115,10 @@ export function usePositionActions(handlers: PositionActionHandlers): {
     }
     if (position.action.kind === 'accept' || position.action.kind === 'collect') {
       handlers.onOpen(position);
+      return;
+    }
+    if (position.action.kind === 'sell') {
+      handlers.onSell(position);
       return;
     }
     act.mutate(position);

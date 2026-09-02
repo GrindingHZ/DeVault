@@ -47,6 +47,8 @@ function attentionPosition(): Position {
     term: null,
     photographSrc: null,
     amount: '2,500.00',
+    lenderNoteId: null,
+    noteSale: null,
     action: { label: 'Reclaim funds', kind: 'reclaim' },
     needsAttention: true,
   };

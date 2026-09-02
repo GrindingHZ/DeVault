@@ -1,11 +1,12 @@
 import {
   fetchMyListings,
   fetchMyLoans,
+  fetchMyNoteSales,
   fetchMyOffers,
   fetchMyReceipts,
   fetchMyRedemptionRequests,
 } from '@depawn/contracts';
-import type { LoanResponse, RedemptionStatusDto } from '@depawn/contracts';
+import type { LoanResponse, NoteSaleSummary, RedemptionStatusDto } from '@depawn/contracts';
 import { useQuery } from '@tanstack/react-query';
 import { marketKeys } from '../market-keys';
 import { attentionOf } from './attention';
@@ -77,6 +78,9 @@ export function usePositions(): Positions {
      loan. Without it the row kept offering a claim the server then refused
      with `RECEIPT_NOT_ENCUMBERED`. */
   const receiptsQuery = useQuery({ queryKey: marketKeys.myReceipts, queryFn: fetchMyReceipts });
+  /* Whether a lent position is already on the secondary market, so the row
+     offers the withdrawal rather than a second listing the server refuses. */
+  const noteSalesQuery = useQuery({ queryKey: marketKeys.myNoteSales, queryFn: fetchMyNoteSales });
 
   const borrowedLoans = borrowedQuery.data?.items ?? [];
   const lentLoans = lentQuery.data?.items ?? [];
@@ -101,8 +105,21 @@ export function usePositions(): Positions {
     )
     .sort(byItem);
   const heldReceiptIds = new Set((receiptsQuery.data?.items ?? []).map((receipt) => receipt.id));
+  const openSaleByLoanId = new Map<string, NoteSaleSummary>();
+  for (const sale of noteSalesQuery.data?.items ?? []) {
+    if (sale.status === 'OPEN') {
+      openSaleByLoanId.set(sale.loanId, sale);
+    }
+  }
   const lentLoanPositions = lentLoans
-    .map((loan) => positionOfLentLoan(loan, lentAsOf, heldReceiptIds.has(loan.receiptId)))
+    .map((loan) =>
+      positionOfLentLoan(
+        loan,
+        lentAsOf,
+        heldReceiptIds.has(loan.receiptId),
+        openSaleByLoanId.get(loan.id) ?? null,
+      ),
+    )
     .sort(byItem);
   const listingAsOf = Date.parse(listingsQuery.data?.asOf ?? '') || Date.now();
   const offerAsOf = Date.parse(offersQuery.data?.asOf ?? '') || Date.now();

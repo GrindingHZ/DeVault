@@ -16,6 +16,7 @@ import { useCurrentAccount } from '../current-account';
 import { MarketShell } from '../market-shell';
 import { PayoffCard } from '../payoff-card';
 import { historyColumns, openBorrowingColumns, openLendingColumns } from '../portfolio/columns';
+import { SellPositionDialog } from '../portfolio/sell-position-dialog';
 import { totalsOf } from '../portfolio/portfolio-summary';
 import { isOpen } from '../portfolio/position';
 import type { Position } from '../portfolio/position';
@@ -102,6 +103,10 @@ function PortfolioBody(): ReactElement {
      repayment lands the loan is no longer active and the card closes itself
      instead of sitting there quoting a settled debt. */
   const [payoffLoanId, setPayoffLoanId] = useState<string | null>(null);
+  /* The id rather than the loan for the same reason as the payoff card: the
+     dialog reads the same data as the table and closes itself once the loan
+     stops being sellable. */
+  const [sellingLoanId, setSellingLoanId] = useState<string | null>(null);
 
   const positions = usePositions();
 
@@ -122,6 +127,7 @@ function PortfolioBody(): ReactElement {
   const { actOn } = usePositionActions({
     onRepay: (position) => setPayoffLoanId(position.loanId),
     onOpen: (position) => openerFor(position)?.(),
+    onSell: (position) => setSellingLoanId(position.loanId),
   });
 
   const ofSide = isBorrowing ? positions.borrowing : positions.lending;
@@ -142,6 +148,9 @@ function PortfolioBody(): ReactElement {
 
   const payoffLoan = positions.borrowedLoans.find(
     (one) => one.id === payoffLoanId && one.status === 'ACTIVE',
+  );
+  const sellingLoan = positions.lentLoans.find(
+    (one) => one.id === sellingLoanId && one.status === 'ACTIVE',
   );
 
   function go(next: { readonly side?: PortfolioSide; readonly view?: PortfolioView }): void {
@@ -266,6 +275,7 @@ function PortfolioBody(): ReactElement {
       )}
 
       {payoffLoan === undefined ? null : <PayoffCard loan={payoffLoan} />}
+      <SellPositionDialog loan={sellingLoan ?? null} onClose={() => setSellingLoanId(null)} />
     </div>
   );
 }

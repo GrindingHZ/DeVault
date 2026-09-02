@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { LoanResponse, MyListingResponse, MyOfferResponse } from '@depawn/contracts';
+import type {
+  LoanResponse,
+  MyListingResponse,
+  MyOfferResponse,
+  NoteSaleSummary,
+} from '@depawn/contracts';
 import { meaningOf, stagesFor, toneOf } from './stages';
 import {
   positionOfBorrowedLoan,
@@ -84,6 +89,25 @@ function loan(overrides: Partial<LoanResponse> = {}): LoanResponse {
 
 const wellPast = Date.parse('2026-11-30T12:00:00.000Z');
 
+const openSale: NoteSaleSummary = {
+  id: 'SALE1',
+  loanId: 'LN1',
+  lenderNoteId: 'NOTE1',
+  sellerAccountId: 'gita',
+  status: 'OPEN',
+  askPrice: money('380000'),
+  createdAt: '2026-08-20T12:00:00.000Z',
+  itemDescription: 'Omega Speedmaster',
+  itemCategory: 'WATCH',
+  principal: money('400000'),
+  annualPercentageRateBasisPoints: 1800,
+  startedAt: '2026-08-01T12:00:00.000Z',
+  maturesAt: '2026-09-30T12:00:00.000Z',
+  accruedInterest: money('5917'),
+  currentValue: money('405917'),
+  maturityValue: money('411780'),
+};
+
 /* Every branch of every mapper. If a new state is added and its stage is not
    in the legend, the type will refuse it, and if it is in the legend but on
    the wrong side, the coverage test below catches it. */
@@ -104,6 +128,7 @@ const everyPosition: readonly Position[] = [
   positionOfBorrowedLoan(loan({ status: 'DEFAULTED' }), now),
   positionOfBorrowedLoan(loan({ status: 'LIQUIDATED' }), now),
   positionOfLentLoan(loan(), now),
+  positionOfLentLoan(loan(), now, false, openSale),
   positionOfLentLoan(loan(), wellPast),
   positionOfLentLoan(loan({ status: 'DEFAULTED' }), now),
   positionOfLentLoan(loan({ status: 'DEFAULTED' }), now, true),

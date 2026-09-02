@@ -114,6 +114,12 @@ const lendingStages = {
     isTerminal: false,
     meaning: 'The loan is live and inside its term. Interest is accruing to you each day.',
   },
+  'Listed for sale': {
+    tone: 'active',
+    isTerminal: false,
+    meaning:
+      'Your position is on the secondary market at your ask. The first buyer takes it and the money lands in your balance; withdraw the sale to keep the position.',
+  },
   'Past grace': {
     tone: 'warning',
     isTerminal: false,

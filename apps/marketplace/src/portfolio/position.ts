@@ -4,6 +4,7 @@ import type {
   LoanResponse,
   MyListingResponse,
   MyOfferResponse,
+  NoteSaleSummary,
   RedemptionStatusDto,
 } from '@depawn/contracts';
 import { isTerminal, toneOf } from './stages';
@@ -20,7 +21,16 @@ import type { StageName } from './stages';
 export type PositionSide = 'borrowing' | 'lending';
 
 export type PositionActionKind =
-  'publish' | 'accept' | 'withdraw' | 'reclaim' | 'repay' | 'default' | 'collect' | 'claim';
+  | 'publish'
+  | 'accept'
+  | 'withdraw'
+  | 'reclaim'
+  | 'repay'
+  | 'default'
+  | 'collect'
+  | 'claim'
+  | 'sell'
+  | 'withdrawSale';
 
 export interface PositionAction {
   readonly label: string;
@@ -139,6 +149,11 @@ export interface Position {
   readonly photographSrc: string | null;
   /* Null for anything that is not a listing or an offer. */
   readonly pending: PendingFigures | null;
+  /* The claim a lent loan pays into, which is what a sale sells. Null on
+     every other kind of row. */
+  readonly lenderNoteId: string | null;
+  /* The open sale on this position, when one is standing. */
+  readonly noteSale: { readonly id: string; readonly askPrice: string } | null;
   readonly action: PositionAction | null;
   readonly needsAttention: boolean;
 }
@@ -325,6 +340,8 @@ export function positionOfListing(listing: MyListingResponse, asOf: number): Pos
     listingId: listing.id,
     loanId: null,
     offerId: null,
+    lenderNoteId: null,
+    noteSale: null,
     metrics: null,
     photographSrc: photographOf(listing.receiptId, listing.hasPhotograph),
     amount: formatAmount(listing.requestedPrincipal),
@@ -394,6 +411,8 @@ export function positionOfOffer(offer: MyOfferResponse, asOf: number): Position 
     listingId: offer.listingId,
     loanId: null,
     offerId: offer.id,
+    lenderNoteId: null,
+    noteSale: null,
     metrics: null,
     photographSrc: photographOf(offer.receiptId, offer.hasPhotograph),
     amount: formatAmount(offer.principal),
@@ -465,6 +484,8 @@ export function positionOfBorrowedLoan(
     listingId: null,
     loanId: loan.id,
     offerId: null,
+    lenderNoteId: null,
+    noteSale: null,
     metrics: metricsOf(loan, asOf, 'borrowing'),
     amount: formatAmount(loan.principal),
     pending: null,
@@ -559,7 +580,12 @@ export function positionOfBorrowedLoan(
    the loan, which stays DEFAULTED for ever, so the loan alone cannot say. The
    receipt can: claiming moves it into the claimant's name, which puts it in
    their own inventory. */
-export function positionOfLentLoan(loan: LoanResponse, asOf: number, hasClaimed = false): Position {
+export function positionOfLentLoan(
+  loan: LoanResponse,
+  asOf: number,
+  hasClaimed = false,
+  openSale: NoteSaleSummary | null = null,
+): Position {
   const base = {
     id: `lent-${loan.id}`,
     side: 'lending' as const,
@@ -567,6 +593,9 @@ export function positionOfLentLoan(loan: LoanResponse, asOf: number, hasClaimed 
     listingId: null,
     loanId: loan.id,
     offerId: null,
+    lenderNoteId: loan.lenderNoteId,
+    noteSale:
+      openSale === null ? null : { id: openSale.id, askPrice: formatMoney(openSale.askPrice) },
     metrics: metricsOf(loan, asOf, 'lending'),
     amount: formatAmount(loan.principal),
     pending: null,
@@ -589,13 +618,24 @@ export function positionOfLentLoan(loan: LoanResponse, asOf: number, hasClaimed 
         needsAttention: true,
       };
     }
+    if (base.noteSale !== null) {
+      return {
+        ...base,
+        ...staged('Listed for sale', 'lending'),
+        term: termOf(loan, asOf),
+        caption: 'On the secondary market, waiting for a buyer',
+        figure: { label: 'Ask', value: base.noteSale.askPrice },
+        action: { label: 'Withdraw sale', kind: 'withdrawSale' },
+        needsAttention: false,
+      };
+    }
     return {
       ...base,
       ...staged('Earning', 'lending'),
       term: termOf(loan, asOf),
       caption: `${rateOf(loan.annualPercentageRateBasisPoints)} p.a.`,
       figure: { label: 'Earned so far', value: formatMoney(loan.accruedInterest) },
-      action: null,
+      action: { label: 'Sell position', kind: 'sell' },
       needsAttention: false,
     };
   }

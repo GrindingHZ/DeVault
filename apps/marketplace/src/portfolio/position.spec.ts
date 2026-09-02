@@ -406,8 +406,35 @@ describe('a loan the reader is owed', () => {
     expect(position.needsAttention).toBe(true);
   });
 
-  it('leaves a loan inside its grace alone', () => {
-    expect(positionOfLentLoan(loan(), now).action).toBeNull();
+  it('offers to sell a position that is earning', () => {
+    const position = positionOfLentLoan(loan(), now);
+    expect(position.action).toEqual({ label: 'Sell position', kind: 'sell' });
+    expect(position.lenderNoteId).toBe('NOTE1');
+  });
+
+  it('offers the withdrawal once the position is listed for sale', () => {
+    const position = positionOfLentLoan(loan(), now, false, {
+      id: 'SALE1',
+      loanId: 'LN1',
+      lenderNoteId: 'NOTE1',
+      sellerAccountId: 'gita',
+      status: 'OPEN',
+      askPrice: money('380000'),
+      createdAt: '2026-08-20T12:00:00.000Z',
+      itemDescription: 'Omega Speedmaster',
+      itemCategory: 'WATCH',
+      principal: money('400000'),
+      annualPercentageRateBasisPoints: 1800,
+      startedAt: '2026-08-01T12:00:00.000Z',
+      maturesAt: '2026-09-30T12:00:00.000Z',
+      accruedInterest: money('5917'),
+      currentValue: money('405917'),
+      maturityValue: money('411780'),
+    });
+    expect(position.stage).toBe('Listed for sale');
+    expect(position.action).toEqual({ label: 'Withdraw sale', kind: 'withdrawSale' });
+    expect(position.figure).toEqual({ label: 'Ask', value: 'USD 3,800.00' });
+    expect(position.noteSale?.id).toBe('SALE1');
   });
 
   /* Claiming does not change the loan, which stays DEFAULTED for ever, so

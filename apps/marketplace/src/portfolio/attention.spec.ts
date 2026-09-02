@@ -24,6 +24,8 @@ function position(overrides: Partial<Position> = {}): Position {
     photographSrc: null,
     amount: '2,500.00',
     figure: null,
+    lenderNoteId: null,
+    noteSale: null,
     action: null,
     needsAttention: false,
     ...overrides,

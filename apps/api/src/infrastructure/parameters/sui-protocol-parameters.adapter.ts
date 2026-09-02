@@ -15,8 +15,9 @@ import { ProtocolParametersRegistry } from './protocol-parameters.registry';
 /* Versions stay in the database with their effective instants, which is
    what answers what applied on any past day. The chain config carries the
    version in force, written when a version is effective at or before the
-   write; a future dated version reaches the chain when a later write or a
-   restart applies it, which docs/OPEN-QUESTIONS.md records. */
+   write. A version dated ahead of its write is not mirrored here, and
+   nothing mirrors it later: the chain config lags the database until the
+   next write, which docs/OPEN-QUESTIONS.md Q-031 records. */
 @Injectable()
 export class SuiProtocolParametersAdapter implements ProtocolParametersPort {
   constructor(

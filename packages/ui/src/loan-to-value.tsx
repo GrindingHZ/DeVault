@@ -36,7 +36,10 @@ export function LoanToValue({ basisPoints, testId }: LoanToValueProps): ReactEle
       title={`Loan to value: ${tone.label}`}
       className={[
         'inline-flex items-center gap-1 rounded-full px-2 py-0.5',
-        'font-mono text-xs tabular-nums',
+        /* Tabular figures in the body face. The digits still line up, which
+           is the only reason a chip like this ever wanted a monospace, and
+           the two letters beside them stop reading as a typewriter. */
+        'font-body text-xs tabular-nums',
         tone.className,
       ].join(' ')}
     >

@@ -48,13 +48,13 @@ export function IndexStrip({
               isSelected ? 'bg-surface-raised' : ''
             }`}
           >
-            <span className="font-mono text-xs uppercase tracking-wide text-ink-secondary">
+            <span className="font-body text-xs font-medium uppercase tracking-wide text-ink-secondary">
               {entry.categoryName}
             </span>
             {entry.averageRateBasisPoints === null ? (
               /* No offers is not a rate of zero, and saying zero here would
                  read as free money. */
-              <span className="font-mono text-xs text-ink-secondary">no offers</span>
+              <span className="font-body text-xs text-ink-secondary">no offers</span>
             ) : (
               <MarketDelta
                 compact
@@ -63,7 +63,7 @@ export function IndexStrip({
                 role={role}
               />
             )}
-            <span className="font-mono text-xs text-ink-secondary">{entry.liveListings} live</span>
+            <span className="font-body text-xs text-ink-secondary">{entry.liveListings} live</span>
           </button>
         );
       })}

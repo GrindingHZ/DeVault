@@ -71,7 +71,7 @@ export function PlaceOfferForm({
 
   return (
     <div className="p-3">
-      <h3 className="mb-3 font-mono text-xs uppercase tracking-wide text-ink-secondary">
+      <h3 className="mb-3 font-body text-xs font-medium uppercase tracking-wide text-ink-secondary">
         Place an offer
       </h3>
       <form

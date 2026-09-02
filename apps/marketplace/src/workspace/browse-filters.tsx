@@ -78,7 +78,7 @@ export function BrowseFilters(props: BrowseFiltersProps): ReactElement {
         aria-expanded={isOpen}
         aria-haspopup="dialog"
         onClick={() => setOpen((open) => !open)}
-        className={`ml-auto flex items-center gap-1 rounded-sm border px-2 py-1 font-mono text-xs transition-colors duration-control ease-enter focus-visible:outline focus-visible:outline-2 focus-visible:outline-status-active ${
+        className={`ml-auto flex items-center gap-1 rounded-sm border px-2 py-1 font-body text-xs transition-colors duration-control ease-enter focus-visible:outline focus-visible:outline-2 focus-visible:outline-status-active ${
           props.activeCount > 0
             ? 'border-accent text-accent'
             : 'border-edge-strong text-ink-secondary hover:text-ink-primary'
@@ -210,7 +210,7 @@ function Group({
 }): ReactElement {
   return (
     <div className="mb-2">
-      <p className="px-2 py-1 font-mono text-xs uppercase tracking-wide text-ink-secondary">
+      <p className="px-2 py-1 font-body text-xs font-medium uppercase tracking-wide text-ink-secondary">
         {label}
       </p>
       {children}

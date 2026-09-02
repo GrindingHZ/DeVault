@@ -154,6 +154,31 @@ no meaning, and a reader who cannot see it has lost nothing.
 loan and a rate moving your way are different ideas, and one should be able to change without
 dragging the other with it.
 
+## Where the monospace goes, amended P8f
+
+`--font-mono` is IBM Plex Mono, and a slab monospace set on words reads as a
+typewriter. It had spread from the amounts it was chosen for onto section
+headings, stage labels, filter groups, category names and phrases like
+"closes in 71d 23h", which is most of what made the product feel dated.
+
+The rule, which the token table above already implied and nobody was holding
+to:
+
+**Monospace is for figures that have to line up in a column. Everything a
+person reads as words is the body face.**
+
+| Monospace | Body face |
+|---|---|
+| Amounts, rates, percentages | Section and group headings |
+| Timestamps in a tape or a log | Stage and destination labels |
+| Identifiers and settlement references | Category names, status words |
+| Any column of numerals compared down | Countdowns and other phrases |
+
+A figure that sits inline in a sentence rather than in a column does not need
+the monospace to align, and takes `tabular-nums` in the body face instead. The
+loan to value chip is the example: the digits still line up, and the two
+letters beside them stop looking like a receipt.
+
 ## The five UX rules this product cares about most
 
 1. Focus states are visible on every interactive element; the console is keyboard first.

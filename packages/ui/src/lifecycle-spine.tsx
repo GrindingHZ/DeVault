@@ -142,7 +142,7 @@ export function LifecycleSpine({ role, stages, onSelectStage }: LifecycleSpinePr
             type="button"
             onClick={() => onSelectStage?.(stage.key)}
             aria-current={stage.state === 'current' ? 'step' : undefined}
-            className={`flex items-center gap-2 whitespace-nowrap rounded-sm px-2 py-1 font-mono text-xs transition-colors duration-control ease-enter hover:bg-surface-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-status-active ${textClasses[stage.state]}`}
+            className={`flex items-center gap-2 whitespace-nowrap rounded-sm px-2 py-1 font-body text-xs transition-colors duration-control ease-enter hover:bg-surface-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-status-active ${textClasses[stage.state]}`}
           >
             <span
               aria-hidden="true"

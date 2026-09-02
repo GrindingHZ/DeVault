@@ -34,8 +34,12 @@ export interface BrowsePaneProps {
   readonly onDensity: (value: BrowseDensity) => void;
 }
 
-/* Whole units only, and the largest that still says something true. A
-   countdown to the second on a listing closing tomorrow is noise. */
+/* One unit, the largest that still says something true, and the word after
+   it rather than a sentence before it.
+
+   "closes in 71d 23h" took a line of its own and read as prose while saying
+   almost nothing: at seventy one days the hours do not change any decision.
+   Under an hour they do, so that is the only case that keeps two figures. */
 export function closesIn(expiresAt: string, nowEpochMs: number): string {
   const remaining = Date.parse(expiresAt) - nowEpochMs;
   if (!Number.isFinite(remaining) || remaining <= 0) {
@@ -43,13 +47,13 @@ export function closesIn(expiresAt: string, nowEpochMs: number): string {
   }
   const minutes = Math.floor(remaining / 60_000);
   if (minutes < 60) {
-    return `closes in ${String(minutes)}m`;
+    return `${String(minutes)}m left`;
   }
   const hours = Math.floor(minutes / 60);
   if (hours < 24) {
-    return `closes in ${String(hours)}h ${String(minutes % 60)}m`;
+    return `${String(hours)}h left`;
   }
-  return `closes in ${String(Math.floor(hours / 24))}d ${String(hours % 24)}h`;
+  return `${String(Math.floor(hours / 24))}d left`;
 }
 
 function itemFrom(

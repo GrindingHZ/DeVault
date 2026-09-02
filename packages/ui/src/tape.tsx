@@ -75,14 +75,14 @@ export function Tape({
           type="button"
           tabIndex={ariaHidden ? -1 : undefined}
           onClick={() => onSelectListing?.(item.listingId)}
-          className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-sm px-2 py-0.5 font-mono text-xs transition-colors duration-control ease-enter hover:bg-surface-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-status-active ${
+          className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-sm px-2 py-0.5 font-body text-xs transition-colors duration-control ease-enter hover:bg-surface-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-status-active ${
             selectedListingId === item.listingId ? 'bg-surface-raised' : ''
           }`}
         >
-          <span className="text-ink-secondary">{timeOf(item.at)}</span>
+          <span className="font-mono tabular-nums text-ink-secondary">{timeOf(item.at)}</span>
           <span className="max-w-48 truncate text-ink-primary">{item.itemDescription}</span>
           <span className="text-ink-secondary">{verbs[item.kind]}</span>
-          <span className="font-semibold text-ink-primary">
+          <span className="font-mono font-semibold tabular-nums text-ink-primary">
             {formatRate(item.rateBasisPoints).replace(' p.a.', '')}
           </span>
           <span className="text-ink-secondary">{formatMoney(item.amount)}</span>

@@ -297,7 +297,7 @@ function OfferBookPanel({
 
   return (
     <div data-testid="offer-book" className="border-b border-edge">
-      <h3 className="border-b border-edge bg-surface-sunken px-3 py-1 font-mono text-xs uppercase tracking-wide text-ink-secondary">
+      <h3 className="border-b border-edge bg-surface-sunken px-3 py-1 font-body text-xs font-medium uppercase tracking-wide text-ink-secondary">
         Offer book
       </h3>
       {acceptError === null ? null : (

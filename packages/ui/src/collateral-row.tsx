@@ -43,7 +43,7 @@ function Relationship({ value }: { readonly value: CollateralRelationship }): Re
     return null;
   }
   return (
-    <span className="rounded-sm border border-edge-strong px-2 font-mono text-xs text-ink-secondary">
+    <span className="rounded-sm border border-edge-strong px-2 font-body text-xs text-ink-secondary">
       {reading}
     </span>
   );
@@ -54,7 +54,7 @@ function AskingRate({ basisPoints }: { readonly basisPoints: number | null }): R
      phrase broke onto a second line and pushed the row out of rhythm. */
   if (basisPoints === null) {
     return (
-      <span className="shrink-0 whitespace-nowrap font-mono text-xs text-ink-secondary">
+      <span className="shrink-0 whitespace-nowrap font-body text-xs text-ink-secondary">
         no offers
       </span>
     );
@@ -80,18 +80,23 @@ export function CollateralRow({ item, isSelected, onSelect }: CollateralProps): 
     >
       <ItemPhotograph src={item.photographSrc} alt={item.itemDescription} size="row" />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="flex items-baseline justify-between gap-2">
-          {/* The description is the identity. It is the only thing that tells
-              a lender what they would be lending against. */}
-          <span className="truncate font-body text-sm font-semibold text-ink-primary">
+        <span className="flex items-start justify-between gap-3">
+          {/* The description is the identity, and these run long: a real
+              appraisal names the maker, the model, the size and the
+              certificate. Truncating on one line cut off exactly the part
+              that told two of them apart, so it wraps to two instead. */}
+          <span className="line-clamp-2 font-body text-sm font-semibold leading-snug text-ink-primary">
             {item.itemDescription}
           </span>
           <AskingRate basisPoints={item.bestRateBasisPoints} />
         </span>
         {/* Three facts, not six. The category, the share of the appraisal and
             how long is left are what a lender sorts on; the amount is the
-            borrower's and is not something a lender competes on (rule M4). */}
-        <span className="flex flex-wrap items-center gap-2 font-mono text-xs text-ink-secondary">
+            borrower's and is not something a lender competes on (rule M4).
+
+            Body font, not mono. A monospace on words reads as a typewriter,
+            and DESIGN-BRIEF reserves the mono for amounts, rates and ids. */}
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1 font-body text-xs text-ink-secondary">
           <span>{item.categoryName}</span>
           <LoanToValue basisPoints={item.loanToValueBasisPoints} />
           <span>{item.closesIn}</span>
@@ -119,7 +124,7 @@ export function CollateralCard({ item, isSelected, onSelect }: CollateralProps):
       <span className="line-clamp-2 font-body text-sm font-medium text-ink-primary">
         {item.itemDescription}
       </span>
-      <span className="flex flex-wrap items-center gap-2 font-mono text-xs text-ink-secondary">
+      <span className="flex flex-wrap items-center gap-2 font-body text-xs text-ink-secondary">
         <LoanToValue basisPoints={item.loanToValueBasisPoints} />
         <AskingRate basisPoints={item.bestRateBasisPoints} />
         <Relationship value={item.relationship} />

@@ -44,7 +44,7 @@ export function ToastRegion({ messages, onDismiss }: ToastRegionProps): ReactEle
               type="button"
               onClick={() => onDismiss(message.id)}
               aria-label={`Dismiss: ${message.text}`}
-              className="shrink-0 rounded-sm px-1 font-mono text-sm text-ink-secondary transition-colors duration-control ease-enter hover:text-ink-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-status-active"
+              className="shrink-0 rounded-sm px-1 font-body text-sm text-ink-secondary transition-colors duration-control ease-enter hover:text-ink-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-status-active"
             >
               {dismissGlyph}
             </button>

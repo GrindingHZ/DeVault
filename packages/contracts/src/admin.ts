@@ -18,6 +18,10 @@ export const pauseSystemRequestSchema = z.object({
 export type PauseSystemRequest = z.infer<typeof pauseSystemRequestSchema>;
 
 export const auditEntryResponseSchema = z.object({
+  /* Who acted, in words. Null when the account no longer exists, which the
+     screen falls back to showing the identifier for rather than hiding the
+     entry. */
+  actorLabel: z.string().nullable(),
   id: z.string(),
   actorType: z.string(),
   actorId: z.string(),

@@ -86,6 +86,10 @@ export const receiptResponseSchema = z.object({
   id: z.string(),
   vaultId: z.string(),
   holderAccountId: z.string(),
+  /* Who holds it, in words. Staff at a counter need to know whose item this
+     is, and an account identifier does not tell them. Null on the screens
+     where the holder is the reader and naming them would be noise. */
+  holderLabel: z.string().nullable(),
   intakeRecordHash: z.string(),
   appraisedValue: moneySchema,
   appraisedAt: z.string(),

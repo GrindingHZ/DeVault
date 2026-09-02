@@ -185,7 +185,7 @@ export class LedgerSettlementAdapter implements SettlementPort {
     }
 
     return this.write(
-      this.transferKindOf(command),
+      command.reason,
       command.reference,
       [debit(from, command.amount), credit(to, command.amount)],
       context,
@@ -205,19 +205,6 @@ export class LedgerSettlementAdapter implements SettlementPort {
       WHERE account_id = ${account.id}
     `;
     return Money.of(rows[0]?.balance ?? 0n, currency);
-  }
-
-  /* The port has no kind parameter, so the kind is derived from the
-     participants: the float is the counterparty for external movement, and
-     the only remaining user to user transfer in v1 is repayment. */
-  private transferKindOf(command: TransferCommand): LedgerTransactionKind {
-    if (command.fromAccountId === platformAccountIds.float) {
-      return 'DEPOSIT';
-    }
-    if (command.toAccountId === platformAccountIds.float) {
-      return 'WITHDRAW';
-    }
-    return 'REPAY_LOAN';
   }
 
   private async write(

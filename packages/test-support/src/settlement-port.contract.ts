@@ -192,6 +192,51 @@ export function describeSettlementPortContract(
       expect(await subject.heldBalanceOf(lender)).toBe(1000n);
     });
 
+    it('moves available funds between accounts and files the reason as the kind', async () => {
+      const buyer = await subject.createAccountWithBalance(5000n);
+      const seller = await subject.createAccountWithBalance(0n);
+
+      const settlementRef = await subject.runInUnitOfWork((context) =>
+        subject.port.transfer(
+          {
+            fromAccountId: buyer,
+            toAccountId: seller,
+            amount: Money.of(3000n, usd),
+            reference: 'contract-transfer',
+            reason: 'SELL_NOTE',
+          },
+          context,
+        ),
+      );
+
+      expect(await subject.availableBalanceOf(buyer)).toBe(2000n);
+      expect(await subject.availableBalanceOf(seller)).toBe(3000n);
+      // The participants no longer determine the kind: a note sale and a
+      // repayment are both user to user, and only the caller knows which.
+      expect(await subject.transactionKindOf(settlementRef.reference)).toBe('SELL_NOTE');
+    });
+
+    it('rejects a transfer exceeding the available balance', async () => {
+      const from = await subject.createAccountWithBalance(100n);
+      const to = await subject.createAccountWithBalance(0n);
+
+      await expect(
+        subject.runInUnitOfWork((context) =>
+          subject.port.transfer(
+            {
+              fromAccountId: from,
+              toAccountId: to,
+              amount: Money.of(101n, usd),
+              reference: 'contract-transfer-over',
+              reason: 'REPAY_LOAN',
+            },
+            context,
+          ),
+        ),
+      ).rejects.toThrow();
+      expect(await subject.availableBalanceOf(from)).toBe(100n);
+    });
+
     it('returns a settlement reference that resolves to the movement', async () => {
       const account = await subject.createAccountWithBalance(500n);
       const hold = await subject.runInUnitOfWork((context) =>

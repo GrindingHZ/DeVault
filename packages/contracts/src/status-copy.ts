@@ -72,6 +72,7 @@ const ledgerKinds: Record<string, string> = {
   REFUND_HOLD: 'Hold returned',
   ORIGINATE_LOAN: 'Loan funded',
   REPAY_LOAN: 'Loan repaid',
+  SELL_NOTE: 'Position sold',
   SETTLE_LIQUIDATION: 'Sale settled',
   WITHDRAW: 'Withdrawal',
 };

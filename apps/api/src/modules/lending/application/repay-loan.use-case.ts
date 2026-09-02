@@ -90,6 +90,7 @@ export class RepayLoanUseCase {
             toAccountId: noteHolder,
             amount: recorded.value.total,
             reference: loan.id,
+            reason: 'REPAY_LOAN',
           },
           context,
         );

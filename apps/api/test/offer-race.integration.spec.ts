@@ -86,6 +86,7 @@ describe('offer race', () => {
             toAccountId: lender,
             amount: Money.of(250_000n, usd),
             reference: `seed-${round}`,
+            reason: 'DEPOSIT',
           },
           context,
         ),

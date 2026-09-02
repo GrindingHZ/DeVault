@@ -50,6 +50,7 @@ describeSettlementPortContract('ledger', async () => {
               toAccountId: accountId,
               amount: Money.of(minorUnits, usd),
               reference: `seed-${accountCounter}`,
+              reason: 'DEPOSIT',
             },
             context,
           ),

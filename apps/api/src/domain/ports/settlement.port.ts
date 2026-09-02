@@ -16,11 +16,18 @@ export interface FundsHold {
   readonly settlementRef: SettlementRef;
 }
 
+/* Why money is moving, which the ledger records as the kind. Named at the
+   call site for the same reason releaseHold names its reason (Q-010): once a
+   note sale exists there are two user to user movements, and the adapter can
+   no longer tell them apart from the participants. */
+export type TransferReason = 'DEPOSIT' | 'WITHDRAW' | 'REPAY_LOAN' | 'SELL_NOTE';
+
 export interface TransferCommand {
   readonly fromAccountId: AccountId;
   readonly toAccountId: AccountId;
   readonly amount: Money;
   readonly reference: string;
+  readonly reason: TransferReason;
 }
 
 /* Why a hold is being released, which the ledger records as the kind of the

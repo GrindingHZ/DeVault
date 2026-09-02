@@ -62,6 +62,15 @@ function readerLocale(): string {
    The currency code leads rather than a symbol. A marketplace that will one
    day quote in more than one currency should never make a reader guess which
    dollar they are looking at. */
+/* The amount without its currency code, for a dense table that names the
+   currency once in the column header instead of twenty times down the
+   column. Never use it where the currency is not already stated: this
+   product will one day quote in more than one, and a bare number would make
+   the reader guess which dollar they are looking at. */
+export function formatAmount(value: MoneyValue, locale = readerLocale()): string {
+  return formatMoney(value, locale).slice(value.currency.length + 1);
+}
+
 export function formatMoney(value: MoneyValue, locale = readerLocale()): string {
   const exponent = minorUnitExponentFor(value.currency);
   const divisor = 10n ** BigInt(exponent);

@@ -37,3 +37,5 @@ export * from './icons';
 export * from './nav-rail';
 export * from './collateral-bar';
 export * from './interest';
+export * from './summary-strip';
+export * from './position-row';

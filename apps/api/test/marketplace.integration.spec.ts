@@ -255,6 +255,8 @@ describe('marketplace', () => {
 
     const offers = await server().get('/api/v1/me/offers').set('Cookie', lenderCookies).expect(200);
     expect(offers.body.items[0].status).toBe('SUPERSEDED');
+    // Money still out there, and the row says so.
+    expect(offers.body.items[0].isHoldHeld).toBe(true);
 
     // The hold is still committed until the lender reclaims (rule M8).
     const heldBefore = await server()
@@ -279,6 +281,16 @@ describe('marketplace', () => {
     expect(await harness.prisma.ledgerTransaction.count({ where: { kind: 'REFUND_HOLD' } })).toBe(
       1,
     );
+
+    /* The offer keeps its status, because superseded is what happened to it,
+       so the hold is the only thing that can say the money is home. Without
+       this the screen went on offering to reclaim what it already had. */
+    const afterReclaim = await server()
+      .get('/api/v1/me/offers')
+      .set('Cookie', lenderCookies)
+      .expect(200);
+    expect(afterReclaim.body.items[0].status).toBe('SUPERSEDED');
+    expect(afterReclaim.body.items[0].isHoldHeld).toBe(false);
 
     const balance = await server()
       .get('/api/v1/me/balance')

@@ -19,6 +19,14 @@ export interface MyOfferRow {
   readonly expiresAt: Date;
   readonly createdAt: Date;
   readonly status: OfferStatus;
+  /* Whether the money behind this offer is still held.
+
+     The offer row cannot answer that on its own. Reclaiming refunds the hold
+     without writing a status back, deliberately: a superseded offer stays
+     superseded because that is what happened to it (rule M8). So the hold is
+     the only thing that knows whether there is anything left to reclaim, and
+     a screen without it goes on asking for money that is already home. */
+  readonly isHoldHeld: boolean;
 }
 
 @Injectable()
@@ -45,10 +53,12 @@ export class MyOffersQuery {
              o.duration_ms AS "durationMs",
              o.expires_at AS "expiresAt",
              o.offered_at AS "createdAt",
-             o.status
+             o.status,
+             h.status = 'HELD' AS "isHoldHeld"
       FROM offer o
       JOIN listing l ON l.id = o.listing_id
       JOIN custody_receipt r ON r.id = l.receipt_id
+      JOIN funds_hold h ON h.id = o.funds_hold_id
       WHERE o.lender_account_id = ${lender}
       ORDER BY o.offered_at DESC
     `;

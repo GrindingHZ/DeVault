@@ -58,6 +58,7 @@ function offer(overrides: Partial<MyOfferResponse> = {}): MyOfferResponse {
     itemDescription: 'Omega Speedmaster',
     receiptId: 'R1',
     hasPhotograph: true,
+    isHoldHeld: true,
     ...overrides,
   };
 }
@@ -176,6 +177,20 @@ describe('the status legend', () => {
          darken a stage's own tone. It must never brighten one. */
       if (position.tone !== 'warning') {
         expect(position.tone).toBe(toneOf(position.stage, position.side));
+      }
+    }
+  });
+
+  /* Attention is a claim that there is something to do, so there has to be
+     something to do. A defaulted loan used to ring the bell at a borrower
+     who has no control on the screen and never will, which is a count that
+     can never be cleared. */
+  it('never raises a position it gives the reader no way to act on', () => {
+    for (const position of everyPosition) {
+      if (position.needsAttention) {
+        expect(position.action, `${position.side} ${position.stage} asks with no control`).not.toBe(
+          null,
+        );
       }
     }
   });

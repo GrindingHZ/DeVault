@@ -366,21 +366,28 @@ export function positionOfListing(listing: MyListingResponse, asOf: number): Pos
   }
 
   if (listing.status === 'ACTIVE') {
+    /* Nothing expires a listing on a timer, so one past its date sits ACTIVE
+       with the date behind it. Acceptance refuses it (LISTING_EXPIRED), so
+       offering the button anyway is offering one that fails. */
+    const hasRunOut = Date.parse(listing.expiresAt) < asOf;
     return {
       ...base,
-      ...staged('Taking offers', 'borrowing'),
+      ...staged(hasRunOut ? 'Expired' : 'Taking offers', 'borrowing'),
       term: closesIn(listing.expiresAt, asOf),
-      caption:
-        listing.offerCount === 0
+      caption: hasRunOut
+        ? 'It ran out of time. List the item again to start over'
+        : listing.offerCount === 0
           ? 'Waiting for a lender'
           : `${plural(listing.offerCount, 'lender')} competing`,
       figure:
         listing.bestOfferRateBasisPoints === null
           ? { label: 'Best offer', value: 'none yet' }
           : { label: 'Best offer', value: rateOf(listing.bestOfferRateBasisPoints) },
-      /* Only offer-able when there is something to accept. A button that
-         opens an empty book is a button that wasted a click. */
-      action: listing.offerCount > 0 ? { label: 'Accept an offer', kind: 'accept' } : null,
+      /* Only offer-able when there is something to accept and time to accept
+         it in. A button that opens an empty book is a button that wasted a
+         click; one the server refuses is worse. */
+      action:
+        listing.offerCount > 0 && !hasRunOut ? { label: 'Accept an offer', kind: 'accept' } : null,
       needsAttention: false,
     };
   }
@@ -423,7 +430,13 @@ export function positionOfOffer(offer: MyOfferResponse, asOf: number): Position 
     },
   };
 
-  if (offer.status === 'PENDING') {
+  /* Nothing sweeps a pending offer into EXPIRED when its own date passes:
+     the status is written lazily, because acceptance refuses an expired
+     offer anyway and the api can afford to notice late. A screen cannot.
+     Read against the clock, an offer past its date is standing in name only
+     and its money is as stranded as an outbid hold. */
+  const hasRunOut = Date.parse(offer.expiresAt) < asOf;
+  if (offer.status === 'PENDING' && !hasRunOut) {
     return {
       ...base,
       ...staged('Standing', 'lending'),
@@ -437,11 +450,29 @@ export function positionOfOffer(offer: MyOfferResponse, asOf: number): Position 
 
   /* The one nobody ever finds. Money sitting in a hold that lost is earning
      nothing and will sit there until its owner asks for it back, because
-     refunds are pull and not push (docs/10-flows.md flow 9). */
-  if (offer.status === 'SUPERSEDED' || offer.status === 'EXPIRED') {
+     refunds are pull and not push (docs/10-flows.md flow 9).
+
+     Whether there is anything left to ask for comes from the hold rather
+     than from the status: reclaiming refunds the money and deliberately
+     leaves the offer superseded, so a row reading the status alone went on
+     asking for money that was already home, and the bell went on counting
+     it. */
+  if (offer.status === 'SUPERSEDED' || offer.status === 'EXPIRED' || hasRunOut) {
+    const stage = offer.status === 'SUPERSEDED' ? 'Outbid' : 'Expired';
+    if (!offer.isHoldHeld) {
+      return {
+        ...base,
+        ...staged(stage, 'lending'),
+        term: null,
+        caption: 'Your money is back in your balance',
+        figure: null,
+        action: null,
+        needsAttention: false,
+      };
+    }
     return {
       ...base,
-      ...staged(offer.status === 'SUPERSEDED' ? 'Outbid' : 'Expired', 'lending'),
+      ...staged(stage, 'lending'),
       term: null,
       caption: 'Your money is still held, and earning nothing',
       figure: { label: 'Held', value: formatMoney(offer.principal) },
@@ -476,6 +507,13 @@ export function positionOfBorrowedLoan(
   loan: LoanResponse,
   asOf: number,
   redemption: RedemptionStatusDto | null = null,
+  /* Whether the item behind this loan is actually there to be collected.
+     The loan cannot answer that: it only knows it was paid off. The item
+     may since have been listed again, pledged against a second loan, or
+     already collected under a different loan entirely, and in every one of
+     those cases the errand belongs somewhere else. Decided once per item by
+     `usePositions`, which can see the receipt and the listings. */
+  isItemCollectable = true,
 ): Position {
   const base = {
     id: `borrowed-${loan.id}`,
@@ -542,6 +580,21 @@ export function positionOfBorrowedLoan(
         needsAttention: false,
       };
     }
+    if (!isItemCollectable) {
+      /* Paid off, and the item has moved on: listed again, pledged again, or
+         already walked out under another loan. The row is a record of a loan
+         that closed, and the item's own story is told by whichever row owns
+         it now. */
+      return {
+        ...base,
+        ...staged('Repaid', 'borrowing'),
+        term: null,
+        caption: 'Paid off in full',
+        figure: null,
+        action: null,
+        needsAttention: false,
+      };
+    }
     return {
       ...base,
       ...staged('Repaid', 'borrowing'),
@@ -561,7 +614,11 @@ export function positionOfBorrowedLoan(
       caption: 'You did not repay in time, and the lender may claim the item',
       figure: { label: 'Principal', value: formatMoney(loan.principal) },
       action: null,
-      needsAttention: true,
+      /* Bad news, and nothing the borrower can do about it: the lender takes
+         the collateral or the item goes to sale, and neither is a control on
+         this screen. A notification with no action behind it can never be
+         cleared, so it would sit on the bell for good. */
+      needsAttention: false,
     };
   }
 

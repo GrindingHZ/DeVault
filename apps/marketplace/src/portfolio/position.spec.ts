@@ -49,6 +49,7 @@ function offer(overrides: Partial<MyOfferResponse> = {}): MyOfferResponse {
     itemDescription: 'Omega Speedmaster',
     receiptId: 'R1',
     hasPhotograph: true,
+    isHoldHeld: true,
     ...overrides,
   };
 }
@@ -161,6 +162,28 @@ describe('an offer as a position', () => {
     expect(position.figure).toEqual({ label: 'Held', value: 'USD 4,000.00' });
   });
 
+  /* Reclaiming refunds the hold and deliberately leaves the offer
+     superseded, so the status alone cannot say whether there is anything
+     left to ask for. Reading it alone was a row that went on asking for
+     money the reader already had back, and a bell that never cleared. */
+  it.each(['SUPERSEDED', 'EXPIRED'] as const)('stops asking once a %s hold is home', (status) => {
+    const position = offerPosition(offer({ status, isHoldHeld: false }));
+    expect(position.action).toBeNull();
+    expect(position.needsAttention).toBe(false);
+    expect(position.caption).toBe('Your money is back in your balance');
+  });
+
+  /* Nothing sweeps a pending offer into EXPIRED when its date passes, so one
+     that has run out sits PENDING with its money as stranded as an outbid
+     hold, and used to read "Standing" as though it were still in the run. */
+  it('treats an offer past its own date as expired, not standing', () => {
+    const ranOut = new Date(now - oneDay).toISOString();
+    const position = offerPosition(offer({ expiresAt: ranOut }));
+    expect(position.stage).toBe('Expired');
+    expect(position.action?.kind).toBe('reclaim');
+    expect(position.needsAttention).toBe(true);
+  });
+
   it('leaves an accepted offer to the loan it became', () => {
     expect(positionOfOffer(offer({ status: 'ACCEPTED' }), now)).toBeNull();
   });
@@ -175,6 +198,23 @@ describe('an offer as a position', () => {
 
   it('names the item, not the listing it belongs to', () => {
     expect(offerPosition(offer()).itemDescription).toBe('Omega Speedmaster');
+  });
+});
+
+describe('a listing that ran out of time', () => {
+  /* Nothing expires a listing on a timer, so one past its date sits ACTIVE
+     with the date behind it. Acceptance refuses it, so the button was one
+     the server would always turn down. */
+  it('offers nothing to accept once the date has passed', () => {
+    const ranOut = new Date(now - oneDay).toISOString();
+    const position = listingPosition(listing({ expiresAt: ranOut }));
+    expect(position.stage).toBe('Expired');
+    expect(position.action).toBeNull();
+    expect(position.caption).toContain('ran out of time');
+  });
+
+  it('still offers to accept while there is time left', () => {
+    expect(listingPosition(listing()).action?.kind).toBe('accept');
   });
 });
 
@@ -247,12 +287,6 @@ describe('a loan the reader owes', () => {
   it('tells a repaid borrower to go and collect the item', () => {
     const position = positionOfBorrowedLoan(loan({ status: 'REPAID' }), now);
     expect(position.action?.kind).toBe('collect');
-    expect(position.needsAttention).toBe(true);
-  });
-
-  it('raises a default without offering an action the borrower does not have', () => {
-    const position = positionOfBorrowedLoan(loan({ status: 'DEFAULTED' }), now);
-    expect(position.action).toBeNull();
     expect(position.needsAttention).toBe(true);
   });
 });
@@ -535,6 +569,25 @@ describe('open and closed', () => {
     ['a sold loan', () => positionOfBorrowedLoan(loan({ status: 'LIQUIDATED' }), now)],
   ])('files %s into history', (_name, build) => {
     expect(isOpen(build())).toBe(false);
+  });
+
+  /* The errand belongs to the item, not to the loan. Once the item has been
+     listed again, pledged again, or collected under a later loan, the row
+     that closed has nothing left to ask for. */
+  it('stops offering to collect an item that has moved on', () => {
+    const position = positionOfBorrowedLoan(loan({ status: 'REPAID' }), now, null, false);
+    expect(position.stage).toBe('Repaid');
+    expect(position.action).toBeNull();
+    expect(position.needsAttention).toBe(false);
+    expect(position.caption).toBe('Paid off in full');
+  });
+
+  /* Bad news the borrower cannot act on. A notification with no action
+     behind it can never be cleared, so it would sit on the bell for good. */
+  it('does not ring the bell about a default nobody can act on', () => {
+    const position = positionOfBorrowedLoan(loan({ status: 'DEFAULTED' }), now);
+    expect(position.action).toBeNull();
+    expect(position.needsAttention).toBe(false);
   });
 
   /* Paid off is finished, whatever is still on a shelf. The control that

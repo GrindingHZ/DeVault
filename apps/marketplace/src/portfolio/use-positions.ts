@@ -99,9 +99,49 @@ export function usePositions(): Positions {
     redemptionByReceipt.set(request.receiptId, request.status);
   }
 
+  /* Which items are actually sitting in the vault waiting to be walked out
+     of, decided once per item rather than once per loan.
+
+     A repaid loan used to conclude on its own that its collateral must be
+     waiting, which was true right up until the reader listed the item again,
+     borrowed against it a second time, or collected it under a later loan.
+     After any of those the row went on offering to collect something that had
+     moved on, and the bell went on counting it. The receipt knows: it is in
+     the vault, under nobody's loan, with nothing listed against it. */
+  const listedReceiptIds = new Set(
+    (listingsQuery.data?.items ?? [])
+      .filter((listing) => listing.status === 'DRAFT' || listing.status === 'ACTIVE')
+      .map((listing) => listing.receiptId),
+  );
+  const collectableReceiptIds = new Set(
+    (receiptsQuery.data?.items ?? [])
+      .filter(
+        (receipt) =>
+          receipt.status === 'IN_VAULT' &&
+          !listedReceiptIds.has(receipt.id) &&
+          !redemptionByReceipt.has(receipt.id),
+      )
+      .map((receipt) => receipt.id),
+  );
+  /* One errand per item, on the loan that most recently pledged it. Two
+     loans against the same thing would otherwise each ask for it back, and
+     only one of them can be collected. */
+  const latestLoanIdByReceipt = new Map<string, string>();
+  for (const loan of [...borrowedLoans].sort(
+    (left, right) => Date.parse(left.startedAt) - Date.parse(right.startedAt),
+  )) {
+    latestLoanIdByReceipt.set(loan.receiptId, loan.id);
+  }
+
   const borrowedLoanPositions = borrowedLoans
     .map((loan) =>
-      positionOfBorrowedLoan(loan, borrowedAsOf, redemptionByReceipt.get(loan.receiptId) ?? null),
+      positionOfBorrowedLoan(
+        loan,
+        borrowedAsOf,
+        redemptionByReceipt.get(loan.receiptId) ?? null,
+        collectableReceiptIds.has(loan.receiptId) &&
+          latestLoanIdByReceipt.get(loan.receiptId) === loan.id,
+      ),
     )
     .sort(byItem);
   const heldReceiptIds = new Set((receiptsQuery.data?.items ?? []).map((receipt) => receipt.id));

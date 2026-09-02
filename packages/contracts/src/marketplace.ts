@@ -143,6 +143,11 @@ export const myOfferResponseSchema = offerResponseSchema.extend({
   itemDescription: z.string(),
   receiptId: z.string(),
   hasPhotograph: z.boolean(),
+  /* Whether there is still money behind this offer to ask for. A superseded
+     offer keeps its status after the hold is refunded, so the status alone
+     cannot say, and a screen reading it alone goes on asking for money the
+     reader already has back. */
+  isHoldHeld: z.boolean(),
 });
 
 export type MyOfferResponse = z.infer<typeof myOfferResponseSchema>;

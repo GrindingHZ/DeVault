@@ -28,3 +28,4 @@ fixture file the TypeScript reads.
 The review also asked for commit c7bff39 to be split so the escrow module lands under a feat
 header. docs/11-execution-pipeline.md forbids amending or rebasing a commit already made and
 the repository settings deny both commands, so the record stays as it is with this note.
+- [x] test(move): refuse an overpaid payout and a bad liquidation fee

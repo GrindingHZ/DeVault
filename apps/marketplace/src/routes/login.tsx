@@ -26,7 +26,13 @@ function LoginPage(): ReactElement {
   const loginMutation = useMutation({
     mutationFn: login,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: currentAccountKeys.me });
+      /* Refetched, not invalidated. Invalidation only refetches a query
+         something is currently observing, and nothing on this page observes
+         the account. The landing page does, though, so by the time a reader
+         reaches the form the cache is already holding the signed out answer,
+         and the destination would read that stale null and bounce them
+         straight back here. */
+      await queryClient.refetchQueries({ queryKey: currentAccountKeys.me });
       /* Into the product, not back to the landing page. `/` is public
          marketing now, and signing in only to be shown the pitch again
          reads as the form having failed. */

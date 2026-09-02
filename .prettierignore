@@ -12,3 +12,6 @@ packages/move
 **/routeTree.gen.ts
 
 .playwright-mcp
+
+# The design handoff bundle is a vendor deliverable, kept as it was shipped.
+claude_design_handover/

@@ -119,7 +119,7 @@ GET    /me/note-sales          the caller's sales, open and settled
 
 New error codes: `NOTE_SALE_NOT_OPEN`, `ASK_EXCEEDS_CURRENT_VALUE`, `CANNOT_BUY_OWN_POSITION`.
 Reused: `NOTE_TRANSFER_DISABLED` when the gate is off, `LOAN_NOT_ACTIVE`, `INSUFFICIENT_FUNDS`,
-`NOT_RESOURCE_OWNER`, `VALIDATION_FAILED`.
+`FORBIDDEN`, `VALIDATION_FAILED`.
 
 `POST /notes/:id/transfer` stays unbuilt. The sale endpoints subsume it, `docs/04-api-contract.md`
 gets amended to say so, and Q-002's implementation note is corrected to match reality.

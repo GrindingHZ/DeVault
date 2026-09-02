@@ -117,6 +117,44 @@ export function useEnterProgress(ref: RefObject<HTMLElement | null>): number {
   return progress;
 }
 
+/* How far one element has risen through the viewport, on its own account:
+   zero as its top crosses the bottom edge, one once it has climbed a little
+   past the middle.
+
+   A section wide progress cannot drive a row that is a thousand pixels down
+   the section. By the time the section has arrived, the number is spent, and
+   every row in it is already at its end state before the reader reaches any
+   of them. Each row measures itself instead, so it fills as it comes into
+   view and the stagger comes from the scrolling rather than from an offset
+   somebody had to guess. */
+export function useViewportProgress(ref: RefObject<HTMLElement | null>): number {
+  const [progress, setProgress] = useState(0);
+  const latest = useRef(0);
+
+  useEffect(() => {
+    function read(): void {
+      const element = ref.current;
+      if (element === null) {
+        return;
+      }
+      const rect = element.getBoundingClientRect();
+      const viewport = window.innerHeight;
+      /* Filled by the time the row sits a little above the middle, so it has
+         finished moving before the reader's eye settles on it. */
+      const travel = viewport * 0.45;
+      const next = quantise(Math.min(Math.max((viewport - rect.top) / travel, 0), 1));
+      if (next !== latest.current) {
+        latest.current = next;
+        setProgress(next);
+      }
+    }
+    read();
+    return subscribe(read);
+  }, [ref]);
+
+  return progress;
+}
+
 /* Whether the reader has left the hero, as a fraction of the viewport. The
    nav is the only thing that asks, and it asks on the same ticker as
    everything else rather than adding a scroll listener of its own. */

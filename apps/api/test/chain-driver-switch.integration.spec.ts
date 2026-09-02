@@ -112,8 +112,9 @@ describe('chain driver switch', () => {
 
   it('fails custody at the port', async () => {
     const custody = harness.app.get<CustodyPort>(CUSTODY_PORT);
-    await expect(
-      harness.app.get(PrismaUnitOfWork).run((context) =>
+    const failure = await harness.app
+      .get(PrismaUnitOfWork)
+      .run((context) =>
         custody.issueReceipt(
           {
             vaultId: vaultIdOf(vaultId),
@@ -129,8 +130,13 @@ describe('chain driver switch', () => {
           },
           context,
         ),
-      ),
-    ).rejects.toThrow(/CustodyPort/);
+      )
+      .then(
+        () => null,
+        (error: unknown) => error,
+      );
+    expect(failure).toBeInstanceOf(ChainDriverNotReady);
+    expect(failure instanceof ChainDriverNotReady ? failure.port : null).toBe('CustodyPort');
   });
 });
 

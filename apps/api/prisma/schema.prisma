@@ -449,7 +449,7 @@ enum LiquidationStatus {
 
 model Liquidation {
   id                     String            @id
-  loanId                 String            @unique @map("loan_id")
+  loanId                 String            @map("loan_id")
   receiptId              String            @map("receipt_id")
   reservePriceMinorUnits BigInt            @map("reserve_price_minor_units")
   currency               String
@@ -464,6 +464,10 @@ model Liquidation {
   bids                   LiquidationBid[]
 
   @@index([status])
+  /* Unique per loan while the sale is live, which Prisma cannot say: the
+     partial index lives in the migration so a cancelled sale gives the loan
+     its slot back. */
+  @@index([loanId])
   @@map("liquidation")
 }
 

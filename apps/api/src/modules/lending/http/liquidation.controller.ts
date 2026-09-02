@@ -1,13 +1,16 @@
-import { Body, Controller, Get, Param, Post, Query, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, Post, Query, UseInterceptors } from '@nestjs/common';
 import {
+  cancelLiquidationRequestSchema,
   liquidationStatusSchema,
   openLiquidationRequestSchema,
   placeBidRequestSchema,
   scheduleLiquidationRequestSchema,
 } from '@depawn/contracts';
 import type {
+  CancelLiquidationRequest,
   LiquidationListResponse,
   LiquidationResponse,
+  MyBidsResponse,
   OpenLiquidationRequest,
   PlaceBidRequest,
   ScheduleLiquidationRequest,
@@ -15,6 +18,8 @@ import type {
 } from '@depawn/contracts';
 import type { Account } from '../../../domain/accounts/account';
 import type { LiquidationStatus } from '../../../domain/lending/liquidation';
+import { CLOCK_PORT } from '../../../domain/ports/clock.port';
+import type { ClockPort } from '../../../domain/ports/clock.port';
 import { liquidationIdOf, loanIdOf } from '../../../domain/shared/identifiers';
 import { CurrentAccount } from '../../shared/http/current-account.decorator';
 import { DomainErrorHttpException } from '../../shared/http/domain-error-http.exception';
@@ -23,13 +28,15 @@ import { IdempotencyInterceptor } from '../../shared/http/idempotency.intercepto
 import { toMoney, toSettlementRefDto } from '../../shared/http/money.mapper';
 import { Roles } from '../../shared/http/roles.decorator';
 import { ZodValidationPipe } from '../../shared/http/zod-validation.pipe';
+import { CancelLiquidationUseCase } from '../application/cancel-liquidation.use-case';
 import { CloseLiquidationUseCase } from '../application/close-liquidation.use-case';
 import { LiquidationQuery } from '../application/liquidation.query';
+import { MyBidsQuery } from '../application/my-bids.query';
 import { OpenLiquidationUseCase } from '../application/open-liquidation.use-case';
 import { PlaceBidUseCase } from '../application/place-bid.use-case';
 import { ReclaimBidUseCase } from '../application/reclaim-bid.use-case';
 import { ScheduleLiquidationUseCase } from '../application/schedule-liquidation.use-case';
-import { toLiquidationResponse } from './lending-response.mapper';
+import { isoOf, toLiquidationResponse } from './lending-response.mapper';
 
 @Controller()
 export class LiquidationController {
@@ -39,7 +46,10 @@ export class LiquidationController {
     private readonly placeBid: PlaceBidUseCase,
     private readonly closeLiquidation: CloseLiquidationUseCase,
     private readonly reclaimBid: ReclaimBidUseCase,
+    private readonly cancelLiquidation: CancelLiquidationUseCase,
     private readonly liquidations: LiquidationQuery,
+    private readonly myBidsQuery: MyBidsQuery,
+    @Inject(CLOCK_PORT) private readonly clock: ClockPort,
   ) {}
 
   @Roles('OPERATIONS')
@@ -55,6 +65,29 @@ export class LiquidationController {
       loanId: loanIdOf(loanId),
       requestedBy: account.id,
       reservePrice: toMoney(body.reservePrice),
+    });
+    if (!result.ok) {
+      throw new DomainErrorHttpException(result.error, domainErrorStatusFor(result.error.code));
+    }
+    return toLiquidationResponse(result.value);
+  }
+
+  /* Calling off a sale that was scheduled and never opened. Only from
+     SCHEDULED, because an open sale holds every bidder's money and nothing
+     gives it back in bulk (docs/14-state-machines.md). */
+  @Roles('OPERATIONS')
+  @Post('liquidations/:liquidationId/cancel')
+  @UseInterceptors(IdempotencyInterceptor)
+  async cancel(
+    @Param('liquidationId') liquidationId: string,
+    @CurrentAccount() account: Account,
+    @Body(new ZodValidationPipe(cancelLiquidationRequestSchema))
+    body: CancelLiquidationRequest,
+  ): Promise<LiquidationResponse> {
+    const result = await this.cancelLiquidation.execute({
+      liquidationId: liquidationIdOf(liquidationId),
+      requestedBy: account.id,
+      reason: body.reason,
     });
     if (!result.ok) {
       throw new DomainErrorHttpException(result.error, domainErrorStatusFor(result.error.code));
@@ -79,6 +112,30 @@ export class LiquidationController {
       throw new DomainErrorHttpException(result.error, domainErrorStatusFor(result.error.code));
     }
     return toLiquidationResponse(result.value);
+  }
+
+  /* A bidder's own bids, which nothing answered before. Money committed to a
+     sale is as invisible as money committed to an offer, and a beaten bid
+     stays committed until its owner asks for it back (rule M8). */
+  @Get('me/bids')
+  async myBids(@CurrentAccount() account: Account): Promise<MyBidsResponse> {
+    const rows = await this.myBidsQuery.listFor(account.id);
+    return {
+      items: rows.map((row) => ({
+        id: row.id,
+        liquidationId: row.liquidationId,
+        itemDescription: row.itemDescription,
+        receiptId: row.receiptId,
+        hasPhotograph: row.hasPhotograph,
+        amount: { minorUnits: row.amountMinorUnits.toString(), currency: row.currency },
+        placedAt: row.placedAt.toISOString(),
+        liquidationStatus: row.liquidationStatus,
+        closesAt: row.closesAt === null ? null : row.closesAt.toISOString(),
+        isStanding: row.isStanding,
+        isHoldHeld: row.isHoldHeld,
+      })),
+      asOf: isoOf(this.clock.now()),
+    };
   }
 
   @Get('liquidations')

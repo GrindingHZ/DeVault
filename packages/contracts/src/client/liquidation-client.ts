@@ -1,8 +1,14 @@
-import { liquidationListResponseSchema, liquidationResponseSchema } from '../liquidation';
+import {
+  liquidationListResponseSchema,
+  liquidationResponseSchema,
+  myBidsResponseSchema,
+} from '../liquidation';
 import type {
+  CancelLiquidationRequest,
   LiquidationListResponse,
   LiquidationResponse,
   LiquidationStatusDto,
+  MyBidsResponse,
   OpenLiquidationRequest,
   PlaceBidRequest,
   ScheduleLiquidationRequest,
@@ -86,6 +92,20 @@ export function closeLiquidation(
   });
 }
 
+export function cancelLiquidation(
+  liquidationId: string,
+  body: CancelLiquidationRequest,
+  options: RequestOptions,
+): Promise<LiquidationResponse> {
+  return requestJson({
+    method: 'POST',
+    path: `${basePath}/liquidations/${liquidationId}/cancel`,
+    body,
+    options,
+    responseSchema: liquidationResponseSchema,
+  });
+}
+
 export function reclaimBid(
   liquidationId: string,
   bidId: string,
@@ -97,5 +117,13 @@ export function reclaimBid(
     body: {},
     options,
     responseSchema: settlementResponseSchema,
+  });
+}
+
+export function fetchMyBids(): Promise<MyBidsResponse> {
+  return requestJson({
+    method: 'GET',
+    path: `${basePath}/me/bids`,
+    responseSchema: myBidsResponseSchema,
   });
 }

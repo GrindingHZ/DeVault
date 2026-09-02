@@ -473,6 +473,146 @@ describe('liquidation', () => {
       .expect(403);
   });
 
+  /* The reclaim above only works if somebody knows there is anything to
+     reclaim. Nothing answered that question until this endpoint: a beaten
+     bid held its owner's money and no screen in the product could name it
+     (docs/14-state-machines.md finding 1). */
+  it('tells a bidder what they have bid and whether the money is still held', async () => {
+    const loan = await defaultedLoan();
+    harness.clock.advanceBy(31n * oneDay);
+    const liquidationId = await biddingLiquidation(loan, '200000');
+
+    const beaten = await loginAs(`beaten-${randomUUID().slice(0, 8)}@liq.test`, 'MEMBER');
+    const topper = await loginAs(`topper-${randomUUID().slice(0, 8)}@liq.test`, 'MEMBER');
+    await signInAgain(loan.ops);
+    await fund(loan.ops, beaten.email, '400000');
+    await fund(loan.ops, topper.email, '400000');
+
+    const placed = await server()
+      .post(`/api/v1/liquidations/${liquidationId}/bids`)
+      .set('Cookie', beaten.cookies)
+      .set('Idempotency-Key', randomUUID())
+      .send({ amount: amount('250000') })
+      .expect(201);
+    const bidId = placed.body.bids[0].id;
+
+    const standing = await server()
+      .get('/api/v1/me/bids')
+      .set('Cookie', beaten.cookies)
+      .expect(200);
+    expect(standing.body.items).toHaveLength(1);
+    expect(standing.body.items[0]).toMatchObject({
+      id: bidId,
+      liquidationId,
+      amount: { minorUnits: '250000', currency: 'USD' },
+      liquidationStatus: 'BIDDING',
+      isStanding: true,
+      isHoldHeld: true,
+    });
+    expect(standing.body.items[0].itemDescription).toBeTruthy();
+
+    await server()
+      .post(`/api/v1/liquidations/${liquidationId}/bids`)
+      .set('Cookie', topper.cookies)
+      .set('Idempotency-Key', randomUUID())
+      .send({ amount: amount('300000') })
+      .expect(201);
+
+    // Beaten, and the money still committed. This is the row that has to appear.
+    const beatenView = await server()
+      .get('/api/v1/me/bids')
+      .set('Cookie', beaten.cookies)
+      .expect(200);
+    expect(beatenView.body.items[0]).toMatchObject({ isStanding: false, isHoldHeld: true });
+
+    /* And once pulled, the same row has to stop asking. The bid keeps its
+       row after the refund, so the hold is the only thing that can say. */
+    await server()
+      .post(`/api/v1/liquidations/${liquidationId}/bids/${bidId}/reclaim`)
+      .set('Cookie', beaten.cookies)
+      .set('Idempotency-Key', randomUUID())
+      .send({})
+      .expect(201);
+    const afterReclaim = await server()
+      .get('/api/v1/me/bids')
+      .set('Cookie', beaten.cookies)
+      .expect(200);
+    expect(afterReclaim.body.items[0]).toMatchObject({ isStanding: false, isHoldHeld: false });
+
+    // One bidder's bids, never anybody else's.
+    const topperView = await server()
+      .get('/api/v1/me/bids')
+      .set('Cookie', topper.cookies)
+      .expect(200);
+    expect(topperView.body.items).toHaveLength(1);
+    expect(topperView.body.items[0].isStanding).toBe(true);
+  });
+
+  /* CANCELLED was a state the schema could hold and the product could not
+     enter: the entity allowed it, nothing asked (docs/14-state-machines.md
+     finding 3). Scheduling a sale is a judgement, and a judgement sometimes
+     has to be taken back. */
+  it('calls off a scheduled sale, and refuses once bidding has opened', async () => {
+    const loan = await defaultedLoan();
+    harness.clock.advanceBy(31n * oneDay);
+    await signInAgain(loan.ops);
+
+    const scheduled = await server()
+      .post(`/api/v1/loans/${loan.loanId}/liquidations`)
+      .set('Cookie', loan.ops.cookies)
+      .set('Idempotency-Key', randomUUID())
+      .send({ reservePrice: amount('200000') })
+      .expect(201);
+
+    // Members do not call off sales.
+    await signInAgain(loan.borrower);
+    await server()
+      .post(`/api/v1/liquidations/${scheduled.body.id}/cancel`)
+      .set('Cookie', loan.borrower.cookies)
+      .set('Idempotency-Key', randomUUID())
+      .send({ reason: 'I would rather it did not happen' })
+      .expect(403);
+
+    await signInAgain(loan.ops);
+    const cancelled = await server()
+      .post(`/api/v1/liquidations/${scheduled.body.id}/cancel`)
+      .set('Cookie', loan.ops.cookies)
+      .set('Idempotency-Key', randomUUID())
+      .send({ reason: 'The borrower settled privately' })
+      .expect(201);
+    expect(cancelled.body.status).toBe('CANCELLED');
+
+    // And the reason is on the record, which is the point of demanding one.
+    const entry = await harness.prisma.auditLog.findFirst({
+      where: { subjectId: scheduled.body.id, action: 'cancel_liquidation' },
+    });
+    expect(JSON.stringify(entry?.after)).toContain('The borrower settled privately');
+
+    // A cancelled sale cannot then be opened.
+    await server()
+      .post(`/api/v1/liquidations/${scheduled.body.id}/open`)
+      .set('Cookie', loan.ops.cookies)
+      .set('Idempotency-Key', randomUUID())
+      .send({ biddingWindowMs: Number(7n * oneDay) })
+      .expect(409);
+
+    /* And the loan is free to be sold again, which is the whole point of
+       calling one off. A cancelled sale that kept the loan's only slot would
+       have been a worse state than never cancelling. */
+    const open = await biddingLiquidation(loan, '200000');
+
+    /* An open sale holds every bidder's money and nothing hands it back in
+       bulk, so cancelling one is refused rather than half done. */
+    await signInAgain(loan.ops);
+    const tooLate = await server()
+      .post(`/api/v1/liquidations/${open}/cancel`)
+      .set('Cookie', loan.ops.cookies)
+      .set('Idempotency-Key', randomUUID())
+      .send({ reason: 'Second thoughts' })
+      .expect(409);
+    expect(tooLate.body.error.code).toBe('LIQUIDATION_NOT_SCHEDULED');
+  });
+
   it('lets the losing bidder pull back after the sale settles', async () => {
     const loan = await defaultedLoan();
     harness.clock.advanceBy(31n * oneDay);

@@ -22,7 +22,9 @@ import { MarkDefaultUseCase } from './application/mark-default.use-case';
 import { PayoffQuoteQuery } from './application/payoff-quote.query';
 import { RepayLoanUseCase } from './application/repay-loan.use-case';
 import { CloseLiquidationUseCase } from './application/close-liquidation.use-case';
+import { CancelLiquidationUseCase } from './application/cancel-liquidation.use-case';
 import { LiquidationQuery } from './application/liquidation.query';
+import { MyBidsQuery } from './application/my-bids.query';
 import { OpenLiquidationUseCase } from './application/open-liquidation.use-case';
 import { PlaceBidUseCase } from './application/place-bid.use-case';
 import { ReclaimBidUseCase } from './application/reclaim-bid.use-case';
@@ -44,7 +46,9 @@ import { NoteSaleController } from './http/note-sale.controller';
     PlaceBidUseCase,
     CloseLiquidationUseCase,
     ReclaimBidUseCase,
+    CancelLiquidationUseCase,
     LiquidationQuery,
+    MyBidsQuery,
     ListNoteForSaleUseCase,
     WithdrawNoteSaleUseCase,
     PurchaseNoteSaleUseCase,

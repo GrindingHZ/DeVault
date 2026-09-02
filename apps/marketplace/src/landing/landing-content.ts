@@ -4,7 +4,7 @@ import content from './landing-content.json';
    than retyped.
 
    Every amount here is also in the seed, and the two have to agree: a page
-   that quotes AUD 19,500.00 for the Rolex while the demo behind the sign in
+   that quotes USD 19,500.00 for the Rolex while the demo behind the sign in
    button shows something else is worse than a page with no figures on it. The
    handoff shipped this as JSON for exactly that reason, so it is copied in
    whole and typed here rather than transcribed. */

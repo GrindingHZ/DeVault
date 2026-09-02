@@ -6,8 +6,11 @@ import { liquidity } from './landing-copy';
 import { Eyebrow, SectionHeading, SectionLede } from './landing-section';
 import { useViewportProgress } from './use-scroll-progress';
 
-function easeOut(value: number): number {
-  return 1 - Math.pow(1 - value, 3);
+/* Even at both ends rather than front loaded. A cubic ease out is two thirds
+   done a third of the way through, which is most of why the fill looked like
+   it had finished before it started. */
+function smoothStep(value: number): number {
+  return value * value * (3 - 2 * value);
 }
 
 /* The row the worked example is done on. The same watch the book bids for,
@@ -23,7 +26,7 @@ const worked = inventory.find((item) => item.name === 'Rolex Watch');
    stagger. */
 function Track({ track }: { readonly track: LiquidityTrack }): ReactElement {
   const row = useRef<HTMLLIElement>(null);
-  const fill = easeOut(useViewportProgress(row));
+  const fill = smoothStep(useViewportProgress(row));
   /* Matched on the rate rather than the name: a track is titled "Watches"
      and an item is categorised "Watch", and each cap is unique to one
      category anyway. */

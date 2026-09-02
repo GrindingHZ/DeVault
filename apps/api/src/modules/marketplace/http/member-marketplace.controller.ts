@@ -1,6 +1,8 @@
-import { Controller, Get, Param, Post, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Inject, Param, Post, UseInterceptors } from '@nestjs/common';
 import type { MyListingsResponse, MyOffersResponse, SettlementResponse } from '@depawn/contracts';
 import type { Account } from '../../../domain/accounts/account';
+import { CLOCK_PORT } from '../../../domain/ports/clock.port';
+import type { ClockPort } from '../../../domain/ports/clock.port';
 import { offerIdOf } from '../../../domain/shared/identifiers';
 import { CurrentAccount } from '../../shared/http/current-account.decorator';
 import { DomainErrorHttpException } from '../../shared/http/domain-error-http.exception';
@@ -21,18 +23,25 @@ export class MemberMarketplaceController {
     private readonly reclaimHold: ReclaimHoldUseCase,
     private readonly myListingsQuery: MyListingsQuery,
     private readonly myOffersQuery: MyOffersQuery,
+    @Inject(CLOCK_PORT) private readonly clock: ClockPort,
   ) {}
+
+  /* How long anything has left is worked out against this rather than the
+     browser, which a demo process runs weeks behind (flow 15). */
+  private now(): string {
+    return new Date(Number(this.clock.now().epochMilliseconds)).toISOString();
+  }
 
   @Get('listings')
   async myListings(@CurrentAccount() account: Account): Promise<MyListingsResponse> {
     const listings = await this.myListingsQuery.listFor(account.id);
-    return { items: listings.map((row) => toMyListingResponse(row, account.id)) };
+    return { items: listings.map((row) => toMyListingResponse(row, account.id)), asOf: this.now() };
   }
 
   @Get('offers')
   async myOffers(@CurrentAccount() account: Account): Promise<MyOffersResponse> {
     const offers = await this.myOffersQuery.listFor(account.id);
-    return { items: offers.map((row) => toMyOfferResponse(row, account.id)) };
+    return { items: offers.map((row) => toMyOfferResponse(row, account.id)), asOf: this.now() };
   }
 
   @Post('offers/:offerId/reclaim')

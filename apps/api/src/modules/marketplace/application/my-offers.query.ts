@@ -10,6 +10,8 @@ export interface MyOfferRow {
   readonly id: string;
   readonly listingId: string;
   readonly itemDescription: string;
+  readonly receiptId: string;
+  readonly hasPhotograph: boolean;
   readonly principalMinorUnits: bigint;
   readonly currency: string;
   readonly annualPercentageRateBasisPoints: number;
@@ -28,6 +30,15 @@ export class MyOffersQuery {
       SELECT o.id,
              o.listing_id AS "listingId",
              r.item_description AS "itemDescription",
+             r.id AS "receiptId",
+             -- Any evidence carrying a verified content type is servable.
+             -- Evidence written before uploads were checked has none, and the
+             -- media endpoint refuses it, so the two agree.
+             EXISTS (
+               SELECT 1 FROM intake_record i
+               WHERE i.sealed_hash = r.intake_record_hash
+                 AND jsonb_path_exists(i.evidence, '$[*].contentType')
+             ) AS "hasPhotograph",
              o.principal_minor_units AS "principalMinorUnits",
              o.currency,
              o.annual_percentage_rate_basis_points AS "annualPercentageRateBasisPoints",

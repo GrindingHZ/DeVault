@@ -44,6 +44,8 @@ export function toMyOfferResponse(row: MyOfferRow, lenderAccountId: string): MyO
     createdAt: row.createdAt.toISOString(),
     status: row.status,
     itemDescription: row.itemDescription,
+    receiptId: row.receiptId,
+    hasPhotograph: row.hasPhotograph,
   };
 }
 
@@ -130,6 +132,7 @@ export function toMyListingResponse(
     status: row.status,
     itemDescription: row.itemDescription,
     itemCategory: row.itemCategory,
+    hasPhotograph: row.hasPhotograph,
     bestOfferRateBasisPoints: row.bestOfferRateBasisPoints,
     offerCount: row.offerCount,
   };

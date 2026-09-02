@@ -108,6 +108,10 @@ export type ListingsPageResponse = z.infer<typeof listingsPageResponseSchema>;
 export const myListingResponseSchema = listingResponseSchema.extend({
   itemDescription: z.string(),
   itemCategory: itemCategorySchema,
+  /* Whether a photograph exists to fetch from `/receipts/{receiptId}/photo`.
+     The bytes are behind their own authorisation, so this only says whether
+     asking is worthwhile. */
+  hasPhotograph: z.boolean(),
   bestOfferRateBasisPoints: z.number().int().nullable(),
   offerCount: z.number().int().nonnegative(),
 });
@@ -116,6 +120,10 @@ export type MyListingResponse = z.infer<typeof myListingResponseSchema>;
 
 export const myListingsResponseSchema = z.object({
   items: z.array(myListingResponseSchema),
+  /* The server's clock when it answered. How long a listing has left is
+     worked out against this rather than the browser: a demo process runs
+     weeks ahead (docs/10-flows.md flow 15). */
+  asOf: z.iso.datetime(),
 });
 
 export type MyListingsResponse = z.infer<typeof myListingsResponseSchema>;
@@ -133,12 +141,15 @@ export type PlaceOfferRequest = z.infer<typeof placeOfferRequestSchema>;
    against an identifier, which is what the lender's own list used to be. */
 export const myOfferResponseSchema = offerResponseSchema.extend({
   itemDescription: z.string(),
+  receiptId: z.string(),
+  hasPhotograph: z.boolean(),
 });
 
 export type MyOfferResponse = z.infer<typeof myOfferResponseSchema>;
 
 export const myOffersResponseSchema = z.object({
   items: z.array(myOfferResponseSchema),
+  asOf: z.iso.datetime(),
 });
 
 export type MyOffersResponse = z.infer<typeof myOffersResponseSchema>;

@@ -16,6 +16,7 @@ export function toLoanResponse(readModel: LoanReadModel, now: Instant): LoanResp
     id: loan.id,
     receiptId: loan.receiptId,
     itemDescription: readModel.itemDescription,
+    hasPhotograph: readModel.hasPhotograph,
     borrowerAccountId: loan.borrowerAccountId,
     principal: toMoneyDto(loan.principal),
     annualPercentageRateBasisPoints: loan.annualPercentageRateBasisPoints,

@@ -16,6 +16,10 @@ export const loanResponseSchema = z.object({
   /* What the loan is secured against, so a row can name the thing rather
      than only the receipt it lives on. */
   itemDescription: z.string(),
+  /* Whether a photograph exists to fetch from `/receipts/{receiptId}/photo`.
+     A person recognises their own things by sight long before they read a
+     description. */
+  hasPhotograph: z.boolean(),
   borrowerAccountId: z.string(),
   principal: moneySchema,
   annualPercentageRateBasisPoints: z.number().int(),

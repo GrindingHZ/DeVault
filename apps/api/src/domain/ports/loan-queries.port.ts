@@ -7,6 +7,7 @@ export interface LoanReadModel {
   readonly loan: Loan;
   readonly lenderNoteHolderAccountId: AccountId;
   readonly itemDescription: string;
+  readonly hasPhotograph: boolean;
 }
 
 export type LoanParticipantRole = 'borrower' | 'lender';

@@ -17,6 +17,7 @@ export interface MyListingRow {
   readonly receiptId: string;
   readonly itemDescription: string;
   readonly itemCategory: ItemCategory;
+  readonly hasPhotograph: boolean;
   readonly requestedPrincipalMinorUnits: bigint;
   readonly currency: string;
   readonly maxAnnualPercentageRateBasisPoints: number;
@@ -42,6 +43,14 @@ export class MyListingsQuery {
              l.receipt_id AS "receiptId",
              r.item_description AS "itemDescription",
              r.item_category AS "itemCategory",
+             -- Any evidence carrying a verified content type is servable.
+             -- Evidence written before uploads were checked has none, and the
+             -- media endpoint refuses it, so the two agree.
+             EXISTS (
+               SELECT 1 FROM intake_record i
+               WHERE i.sealed_hash = r.intake_record_hash
+                 AND jsonb_path_exists(i.evidence, '$[*].contentType')
+             ) AS "hasPhotograph",
              l.requested_principal_minor_units AS "requestedPrincipalMinorUnits",
              l.currency,
              l.max_annual_percentage_rate_basis_points AS "maxAnnualPercentageRateBasisPoints",

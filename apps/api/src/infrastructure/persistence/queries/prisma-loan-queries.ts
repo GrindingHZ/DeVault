@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import type { Loan as LoanRow } from '@prisma/client';
 import type {
   LoanParticipantRole,
@@ -59,13 +60,33 @@ export class PrismaLoanQueries implements LoanQueries {
     );
     // One more query for the whole page rather than one per row, for the
     // same reason the note holders are resolved in a batch above.
+    const receiptIds = rows.map((row) => row.receiptId);
     const receipts = await this.prisma.custodyReceipt.findMany({
-      where: { id: { in: rows.map((row) => row.receiptId) } },
+      where: { id: { in: receiptIds } },
       select: { id: true, itemDescription: true },
     });
     const descriptionByReceiptId = new Map(
       receipts.map((receipt) => [receipt.id, receipt.itemDescription]),
     );
+    /* One more batched query rather than one per row, for the same reason
+       the descriptions above are resolved in a batch.
+
+       The predicate is the one the browse read model uses: any evidence
+       carrying a verified content type is servable, and evidence written
+       before uploads were checked has none, which is what the media endpoint
+       refuses. The two have to agree or a row promises a photograph the
+       endpoint will not hand over. */
+    const photographed = await this.prisma.$queryRaw<{ id: string }[]>`
+      SELECT r.id
+      FROM custody_receipt r
+      WHERE r.id IN (${Prisma.join(receiptIds)})
+        AND EXISTS (
+          SELECT 1 FROM intake_record i
+          WHERE i.sealed_hash = r.intake_record_hash
+            AND jsonb_path_exists(i.evidence, '$[*].contentType')
+        )
+    `;
+    const withPhotograph = new Set(photographed.map((row) => row.id));
     return rows.map((row) => {
       const holder = holderByLoanId.get(row.id);
       if (holder === undefined) {
@@ -75,6 +96,7 @@ export class PrismaLoanQueries implements LoanQueries {
         loan: toLoan(row),
         lenderNoteHolderAccountId: holder,
         itemDescription: descriptionByReceiptId.get(row.receiptId) ?? '',
+        hasPhotograph: withPhotograph.has(row.receiptId),
       };
     });
   }

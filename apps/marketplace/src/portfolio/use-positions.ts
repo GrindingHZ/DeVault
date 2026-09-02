@@ -14,10 +14,9 @@ import type { Position } from './position';
 export interface Positions {
   readonly borrowedLoans: readonly LoanResponse[];
   readonly lentLoans: readonly LoanResponse[];
-  readonly borrowedLoanPositions: readonly Position[];
-  readonly lentLoanPositions: readonly Position[];
-  readonly listingPositions: readonly Position[];
-  readonly offerPositions: readonly Position[];
+  /* One list per side, loans and the things that become loans together. */
+  readonly borrowing: readonly Position[];
+  readonly lending: readonly Position[];
   readonly everyPosition: readonly Position[];
   /* What the reader would regret not doing today, across both sides. */
   readonly attention: readonly Position[];
@@ -28,7 +27,15 @@ export interface Positions {
   readonly unavailable: readonly string[];
 }
 
+/* Money at work first, then money waiting on somebody else. A loan is a
+   position; a listing and an offer are closer to a working order. Within
+   each, by item, so anything about the same object sits together. */
 function byItem(left: Position, right: Position): number {
+  const leftAtWork = left.metrics === null ? 1 : 0;
+  const rightAtWork = right.metrics === null ? 1 : 0;
+  if (leftAtWork !== rightAtWork) {
+    return leftAtWork - rightAtWork;
+  }
   return left.itemDescription.localeCompare(right.itemDescription);
 }
 
@@ -68,29 +75,27 @@ export function usePositions(): Positions {
   const lentLoanPositions = lentLoans
     .map((loan) => positionOfLentLoan(loan, lentAsOf))
     .sort(byItem);
+  const listingAsOf = Date.parse(listingsQuery.data?.asOf ?? '') || Date.now();
+  const offerAsOf = Date.parse(offersQuery.data?.asOf ?? '') || Date.now();
+
   const listingPositions = (listingsQuery.data?.items ?? [])
-    .map(positionOfListing)
+    .map((listing) => positionOfListing(listing, listingAsOf))
     .filter((one): one is Position => one !== null)
     .sort(byItem);
   const offerPositions = (offersQuery.data?.items ?? [])
-    .map(positionOfOffer)
+    .map((offer) => positionOfOffer(offer, offerAsOf))
     .filter((one): one is Position => one !== null)
     .sort(byItem);
 
-  const everyPosition = [
-    ...borrowedLoanPositions,
-    ...lentLoanPositions,
-    ...listingPositions,
-    ...offerPositions,
-  ];
+  const borrowing = [...borrowedLoanPositions, ...listingPositions].sort(byItem);
+  const lending = [...lentLoanPositions, ...offerPositions].sort(byItem);
+  const everyPosition = [...borrowing, ...lending];
 
   return {
     borrowedLoans,
     lentLoans,
-    borrowedLoanPositions,
-    lentLoanPositions,
-    listingPositions,
-    offerPositions,
+    borrowing,
+    lending,
     everyPosition,
     attention: attentionOf(everyPosition),
     isPending:

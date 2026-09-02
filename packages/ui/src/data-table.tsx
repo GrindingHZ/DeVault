@@ -18,6 +18,10 @@ export interface DataTableProps<Row> {
   readonly rows: readonly Row[];
   readonly rowKey: (row: Row) => string;
   readonly emptyTitle: string;
+  /* What to do about it. An empty table that only says it is empty leaves
+     the reader to work out whether that is a problem and what would fix
+     it. */
+  readonly emptyDescription?: string;
 }
 
 function labelOf<Row>(column: DataTableColumn<Row>): string {
@@ -43,9 +47,10 @@ export function DataTable<Row>({
   rows,
   rowKey,
   emptyTitle,
+  emptyDescription,
 }: DataTableProps<Row>): ReactElement {
   if (rows.length === 0) {
-    return <EmptyState title={emptyTitle} />;
+    return <EmptyState title={emptyTitle} description={emptyDescription} />;
   }
 
   return (

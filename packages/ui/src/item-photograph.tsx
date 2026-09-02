@@ -9,6 +9,10 @@ export interface ItemPhotographProps {
 }
 
 const boxBySize = {
+  /* A dense table row. Small enough that seven columns still fit beside it,
+     large enough to tell a gold bar from a watch at a glance, which is the
+     whole job. */
+  compact: 'h-10 w-10 rounded',
   thumbnail: 'h-14 w-14 rounded-md',
   /* The browse rail. A lender is deciding whether to lend against this
      specific object, so the photograph is the largest thing in the row. */

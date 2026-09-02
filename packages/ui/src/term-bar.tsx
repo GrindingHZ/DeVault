@@ -26,7 +26,10 @@ const fillByTone: Record<StatusTone, string> = {
 export function TermBar({ elapsedBasisPoints, note, tone }: TermBarProps): ReactElement {
   const percent = Math.min(100, Math.max(0, elapsedBasisPoints / 100));
   return (
-    <span className="flex w-full min-w-24 flex-col gap-1">
+    /* A fixed width, not `w-full`. Inside a table cell a full width bar
+       grew the column to whatever was left over and pushed the action button
+       off the side of the table. */
+    <span className="flex w-24 flex-col gap-1">
       <span
         role="progressbar"
         aria-valuemin={0}

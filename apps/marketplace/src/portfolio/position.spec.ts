@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { LoanResponse, MyListingResponse, MyOfferResponse } from '@depawn/contracts';
 import {
+  isOpen,
   maturityWarningMs,
   positionOfBorrowedLoan,
   positionOfLentLoan,
@@ -27,6 +28,7 @@ function listing(overrides: Partial<MyListingResponse> = {}): MyListingResponse 
     status: 'ACTIVE',
     itemDescription: 'Omega Speedmaster',
     itemCategory: 'WATCH',
+    hasPhotograph: true,
     bestOfferRateBasisPoints: 1100,
     offerCount: 3,
     ...overrides,
@@ -45,6 +47,8 @@ function offer(overrides: Partial<MyOfferResponse> = {}): MyOfferResponse {
     createdAt: '2026-08-20T12:00:00.000Z',
     status: 'PENDING',
     itemDescription: 'Omega Speedmaster',
+    receiptId: 'R1',
+    hasPhotograph: true,
     ...overrides,
   };
 }
@@ -54,6 +58,7 @@ function loan(overrides: Partial<LoanResponse> = {}): LoanResponse {
     id: 'LN1',
     receiptId: 'R1',
     itemDescription: 'Omega Speedmaster',
+    hasPhotograph: true,
     borrowerAccountId: 'ada',
     principal: money('400000'),
     annualPercentageRateBasisPoints: 1800,
@@ -79,7 +84,7 @@ const screamingSnakeCase = /^[A-Z][A-Z0-9_]*$/;
 /* The two mappers that can decline. Unwrapping here rather than at every
    call keeps the assertions about the mapping rather than about null. */
 function listingPosition(input: MyListingResponse) {
-  const position = positionOfListing(input);
+  const position = positionOfListing(input, now);
   if (position === null) {
     throw new Error('the listing produced no position');
   }
@@ -87,7 +92,7 @@ function listingPosition(input: MyListingResponse) {
 }
 
 function offerPosition(input: MyOfferResponse) {
-  const position = positionOfOffer(input);
+  const position = positionOfOffer(input, now);
   if (position === null) {
     throw new Error('the offer produced no position');
   }
@@ -123,7 +128,7 @@ describe('a listing as a position', () => {
      this one would, only currently. A matched listing still reading "Funded"
      beside a loan since repaid was the screen contradicting itself. */
   it('leaves a matched listing to the loan it produced', () => {
-    expect(positionOfListing(listing({ status: 'MATCHED' }))).toBeNull();
+    expect(positionOfListing(listing({ status: 'MATCHED' }), now)).toBeNull();
   });
 
   it('says how many lenders are competing rather than a bare count', () => {
@@ -156,7 +161,7 @@ describe('an offer as a position', () => {
   });
 
   it('leaves an accepted offer to the loan it became', () => {
-    expect(positionOfOffer(offer({ status: 'ACCEPTED' }))).toBeNull();
+    expect(positionOfOffer(offer({ status: 'ACCEPTED' }), now)).toBeNull();
   });
 
   /* "You lent" is false here. The offer lost, and the caption has to be able
@@ -253,28 +258,28 @@ describe('what a loan is worth', () => {
 
   /* Twenty two days of a sixty day term, which is 36.67 percent. */
   it('reports how far through the term it is', () => {
-    const term = positionOfBorrowedLoan(sixtyDays, now).metrics?.term;
+    const term = positionOfBorrowedLoan(sixtyDays, now).term;
     expect(term?.elapsedBasisPoints).toBe(3667);
-    expect(term?.note).toBe('38 days to maturity');
+    expect(term?.note).toBe('38 days left');
   });
 
   /* Interest stops at maturity (rule L1). A bar that kept filling through
      grace would say the opposite of what the arithmetic does. */
   it('holds the bar full through grace rather than overflowing', () => {
     const inGrace = Date.parse('2026-10-03T12:00:00.000Z');
-    const term = positionOfBorrowedLoan(sixtyDays, inGrace).metrics?.term;
+    const term = positionOfBorrowedLoan(sixtyDays, inGrace).term;
     expect(term?.elapsedBasisPoints).toBe(10_000);
-    expect(term?.note).toBe('matured, 4 days of grace left');
+    expect(term?.note).toBe('4 days of grace left');
   });
 
   it('says so once grace has run out', () => {
     const after = Date.parse('2026-10-20T12:00:00.000Z');
-    expect(positionOfBorrowedLoan(sixtyDays, after).metrics?.term.note).toBe('grace has run out');
+    expect(positionOfBorrowedLoan(sixtyDays, after).term?.note).toBe('grace has run out');
   });
 
   it('never fills the bar before the loan starts', () => {
     const before = Date.parse('2026-07-01T12:00:00.000Z');
-    expect(positionOfBorrowedLoan(sixtyDays, before).metrics?.term.elapsedBasisPoints).toBe(0);
+    expect(positionOfBorrowedLoan(sixtyDays, before).term?.elapsedBasisPoints).toBe(0);
   });
 
   /* The server recomputes accrual against its own clock on every read, so a
@@ -293,7 +298,7 @@ describe('what a loan is worth', () => {
 
   it('survives a term that makes no sense rather than dividing by zero', () => {
     const broken = loan({ maturesAt: loan().startedAt });
-    expect(positionOfBorrowedLoan(broken, now).metrics?.term.elapsedBasisPoints).toBe(0);
+    expect(positionOfBorrowedLoan(broken, now).term?.elapsedBasisPoints).toBe(0);
     expect(positionOfBorrowedLoan(broken, now).metrics?.interestToCome).toBe('0.00');
   });
 });
@@ -378,5 +383,82 @@ describe('the model as a whole', () => {
   it('keeps a listing apart from an offer that shares its identifier', () => {
     const collidingOffer = offer({ id: 'L1' });
     expect(listingPosition(listing()).id).not.toBe(offerPosition(collidingOffer).id);
+  });
+});
+
+/* The split the screen is built on: what is still running, and what is
+   behind you. */
+describe('open and closed', () => {
+  it.each([
+    ['a running loan', () => positionOfBorrowedLoan(loan(), now)],
+    ['a listing taking offers', () => listingPosition(listing())],
+    ['a standing offer', () => offerPosition(offer())],
+    [
+      'an outbid hold, which still has money in it',
+      () => offerPosition(offer({ status: 'SUPERSEDED' })),
+    ],
+  ])('keeps %s open', (_name, build) => {
+    expect(isOpen(build())).toBe(true);
+  });
+
+  it.each([
+    ['a settled loan', () => positionOfLentLoan(loan({ status: 'REPAID' }), now)],
+    ['a withdrawn offer', () => offerPosition(offer({ status: 'WITHDRAWN' }))],
+    ['a cancelled listing', () => listingPosition(listing({ status: 'CANCELLED' }))],
+    ['a sold loan', () => positionOfBorrowedLoan(loan({ status: 'LIQUIDATED' }), now)],
+  ])('files %s into history', (_name, build) => {
+    expect(isOpen(build())).toBe(false);
+  });
+
+  /* Finished as a loan, unfinished as an errand. Burying it under history
+     would hide the only control that ends it. */
+  it('keeps a repaid loan open while the item is still to be collected', () => {
+    const repaid = positionOfBorrowedLoan(loan({ status: 'REPAID' }), now);
+    expect(repaid.action?.kind).toBe('collect');
+    expect(isOpen(repaid)).toBe(true);
+  });
+});
+
+describe('how long is left', () => {
+  it('counts a live listing down to its closing date', () => {
+    const closes = new Date(now + 20 * oneDay).toISOString();
+    const term = listingPosition(listing({ expiresAt: closes })).term;
+    expect(term?.note).toBe('closes in 20 days');
+    /* No bar. Neither a listing nor an offer records when it began, so a
+       proportion would be drawn from a guess. */
+    expect(term?.elapsedBasisPoints).toBeNull();
+  });
+
+  it('says a listing closes today rather than in zero days', () => {
+    const closes = new Date(now + 60 * 60 * 1000).toISOString();
+    expect(listingPosition(listing({ expiresAt: closes })).term?.note).toBe('closes today');
+  });
+
+  /* Every other column on a closed row shows a dash. The term did not, and
+     read as a lowercase word in a row of uppercase statuses. */
+  it('leaves no term on a closed position', () => {
+    expect(positionOfBorrowedLoan(loan({ status: 'REPAID' }), now).term).toBeNull();
+    expect(offerPosition(offer({ status: 'WITHDRAWN' })).term).toBeNull();
+  });
+
+  /* The status is what settles this, not the dates. A loan can be marked
+     defaulted while its maturity date is still ahead. */
+  it('says a defaulted loan is over whatever its dates say', () => {
+    expect(positionOfLentLoan(loan({ status: 'DEFAULTED' }), now).term?.note).toBe(
+      'term ended in default',
+    );
+  });
+});
+
+describe('the photograph', () => {
+  it('points at the receipt it belongs to', () => {
+    expect(positionOfBorrowedLoan(loan(), now).photographSrc).toBe('/api/v1/receipts/R1/photo');
+    expect(offerPosition(offer()).photographSrc).toBe('/api/v1/receipts/R1/photo');
+  });
+
+  /* Null rather than a URL that answers not found. The row reserves the
+     space either way, so nothing shifts when one loads. */
+  it('asks for nothing when there is no photograph', () => {
+    expect(positionOfBorrowedLoan(loan({ hasPhotograph: false }), now).photographSrc).toBeNull();
   });
 });

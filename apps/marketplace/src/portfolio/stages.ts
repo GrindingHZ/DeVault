@@ -16,46 +16,60 @@ import type { PositionSide } from './position';
 
 export interface StageMeaning {
   readonly tone: StatusTone;
+  /* Whether the story is over. A terminal position drops out of what the
+     reader is watching and into the history behind it, unless it still has
+     something to do: a repaid loan whose item is still in a vault is
+     finished as a loan and not finished as an errand. */
+  readonly isTerminal: boolean;
   readonly meaning: string;
 }
 
 const borrowingStages = {
   Draft: {
     tone: 'neutral',
+    isTerminal: false,
     meaning: 'Written but not published. No lender can see it yet.',
   },
   'Taking offers': {
     tone: 'active',
+    isTerminal: false,
     meaning: 'Live on the market. Lenders are competing by lowering the rate they will accept.',
   },
   Cancelled: {
     tone: 'neutral',
+    isTerminal: true,
     meaning: 'You took the listing down. Any holds against it were released.',
   },
   Expired: {
     tone: 'neutral',
+    isTerminal: true,
     meaning: 'The listing ran out of time before anyone funded it.',
   },
   Running: {
     tone: 'active',
+    isTerminal: false,
     meaning: 'Live and inside its term. Interest is building each day you hold it.',
   },
   'In grace': {
     tone: 'warning',
+    isTerminal: false,
     meaning:
       'Past the maturity date but still inside the grace period. Interest stopped at maturity, so what you owe is now fixed. Repay before grace ends or the item can be taken.',
   },
   Repaid: {
     tone: 'success',
+    isTerminal: true,
     meaning: 'Settled in full. The item is back under your name and waiting in the vault.',
   },
   Defaulted: {
     tone: 'danger',
+    isTerminal: true,
     meaning:
       'Grace ran out without a repayment. The lender holds the receipt and the item goes to sale.',
   },
   Sold: {
     tone: 'danger',
+    isTerminal: true,
     meaning: 'The item was sold to cover the loan. It is no longer yours to redeem.',
   },
 } as const satisfies Record<string, StageMeaning>;
@@ -63,40 +77,49 @@ const borrowingStages = {
 const lendingStages = {
   Standing: {
     tone: 'active',
+    isTerminal: false,
     meaning: 'Your offer is live and your money is held against it. Nobody has undercut you.',
   },
   Outbid: {
     tone: 'warning',
+    isTerminal: false,
     meaning:
       'Somebody offered a lower rate. Your money is still held and earning nothing until you reclaim it.',
   },
   Expired: {
     tone: 'warning',
+    isTerminal: false,
     meaning: 'Your offer ran out of time. The hold is still yours to reclaim.',
   },
   Withdrawn: {
     tone: 'neutral',
+    isTerminal: true,
     meaning: 'You pulled the offer before it was taken. The hold went back to your balance.',
   },
   Earning: {
     tone: 'active',
+    isTerminal: false,
     meaning: 'The loan is live and inside its term. Interest is accruing to you each day.',
   },
   'Past grace': {
     tone: 'warning',
+    isTerminal: false,
     meaning:
       'The borrower did not repay and grace has run out. Nothing happens on its own: mark it defaulted to take the collateral.',
   },
   Settled: {
     tone: 'success',
+    isTerminal: true,
     meaning: 'The borrower repaid in full. Your principal and interest are back in your balance.',
   },
   Defaulted: {
     tone: 'danger',
+    isTerminal: true,
     meaning: 'You hold the receipt. Claim the collateral and the item goes to sale on your behalf.',
   },
   Sold: {
     tone: 'neutral',
+    isTerminal: true,
     meaning: 'The collateral was sold and you were paid from the proceeds.',
   },
 } as const satisfies Record<string, StageMeaning>;
@@ -126,4 +149,9 @@ export function stagesFor(side: PositionSide): readonly (StageMeaning & { label:
 export function meaningOf(stage: StageName, side: PositionSide): string | null {
   const table: Record<string, StageMeaning> = bySide[side];
   return table[stage]?.meaning ?? null;
+}
+
+export function isTerminal(stage: StageName, side: PositionSide): boolean {
+  const table: Record<string, StageMeaning> = bySide[side];
+  return table[stage]?.isTerminal ?? false;
 }

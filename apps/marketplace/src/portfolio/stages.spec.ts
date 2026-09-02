@@ -9,6 +9,10 @@ import {
 } from './position';
 import type { Position } from './position';
 
+const positionOfListing2 = (l: Parameters<typeof positionOfListing>[0]) =>
+  positionOfListing(l, now);
+const positionOfOffer2 = (o: Parameters<typeof positionOfOffer>[0]) => positionOfOffer(o, now);
+
 const now = Date.parse('2026-08-23T12:00:00.000Z');
 const oneDay = 24 * 60 * 60 * 1000;
 
@@ -28,6 +32,7 @@ function listing(overrides: Partial<MyListingResponse> = {}): MyListingResponse 
     status: 'ACTIVE',
     itemDescription: 'Omega Speedmaster',
     itemCategory: 'WATCH',
+    hasPhotograph: true,
     bestOfferRateBasisPoints: 1100,
     offerCount: 3,
     ...overrides,
@@ -46,6 +51,8 @@ function offer(overrides: Partial<MyOfferResponse> = {}): MyOfferResponse {
     createdAt: '2026-08-20T12:00:00.000Z',
     status: 'PENDING',
     itemDescription: 'Omega Speedmaster',
+    receiptId: 'R1',
+    hasPhotograph: true,
     ...overrides,
   };
 }
@@ -55,6 +62,7 @@ function loan(overrides: Partial<LoanResponse> = {}): LoanResponse {
     id: 'LN1',
     receiptId: 'R1',
     itemDescription: 'Omega Speedmaster',
+    hasPhotograph: true,
     borrowerAccountId: 'ada',
     principal: money('400000'),
     annualPercentageRateBasisPoints: 1800,
@@ -79,14 +87,14 @@ const wellPast = Date.parse('2026-11-30T12:00:00.000Z');
    in the legend, the type will refuse it, and if it is in the legend but on
    the wrong side, the coverage test below catches it. */
 const everyPosition: readonly Position[] = [
-  positionOfListing(listing()),
-  positionOfListing(listing({ status: 'DRAFT' })),
-  positionOfListing(listing({ status: 'CANCELLED' })),
-  positionOfListing(listing({ status: 'EXPIRED' })),
-  positionOfOffer(offer()),
-  positionOfOffer(offer({ status: 'SUPERSEDED' })),
-  positionOfOffer(offer({ status: 'EXPIRED' })),
-  positionOfOffer(offer({ status: 'WITHDRAWN' })),
+  positionOfListing2(listing()),
+  positionOfListing2(listing({ status: 'DRAFT' })),
+  positionOfListing2(listing({ status: 'CANCELLED' })),
+  positionOfListing2(listing({ status: 'EXPIRED' })),
+  positionOfOffer2(offer()),
+  positionOfOffer2(offer({ status: 'SUPERSEDED' })),
+  positionOfOffer2(offer({ status: 'EXPIRED' })),
+  positionOfOffer2(offer({ status: 'WITHDRAWN' })),
   positionOfBorrowedLoan(loan(), now),
   positionOfBorrowedLoan(loan(), wellPast),
   positionOfBorrowedLoan(loan({ status: 'REPAID' }), now),

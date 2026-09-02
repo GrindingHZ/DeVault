@@ -1,7 +1,7 @@
 import { formatAmount, formatMoney, formatRate, interestOver } from '@depawn/ui';
 import type { StatusTone } from '@depawn/ui';
 import type { LoanResponse, MyListingResponse, MyOfferResponse } from '@depawn/contracts';
-import { toneOf } from './stages';
+import { isTerminal, toneOf } from './stages';
 import type { StageName } from './stages';
 
 /* Four screens rendered four database entities in four vocabularies, and a
@@ -30,8 +30,12 @@ export interface PositionFigure {
 export interface TermProgress {
   /* How far through the term, in basis points, clamped to the term. Past
      maturity it stays at ten thousand: interest stopped there (rule L1) and
-     a bar that kept filling would say otherwise. */
-  readonly elapsedBasisPoints: number;
+     a bar that kept filling would say otherwise.
+
+     Null when there is a deadline but no start to measure from. A listing
+     and an offer both expire, and neither records when it began, so they get
+     the words without the bar rather than a bar drawn from a guess. */
+  readonly elapsedBasisPoints: number | null;
   readonly note: string;
   readonly tone: StatusTone;
 }
@@ -41,7 +45,6 @@ export interface TermProgress {
 export interface PositionMetrics {
   /* Named once, in the column headers. Every figure below is bare. */
   readonly currency: string;
-  readonly principal: string;
   readonly rate: string;
   /* What it has cost or earned to the moment the server answered. */
   readonly interestSoFar: string;
@@ -55,7 +58,6 @@ export interface PositionMetrics {
   readonly settlement: PositionFigure;
   /* The same figure without its currency code, for the table column. */
   readonly settlementAmount: string;
-  readonly term: TermProgress;
 }
 
 /* What a listing or an offer turns on. A loan has `metrics`; these two have
@@ -93,8 +95,22 @@ export interface Position {
   /* The one number this kind of position turns on, for the attention band,
      which is one narrow column rather than a table. */
   readonly figure: PositionFigure | null;
+  /* How much is at stake: what a loan is for, what a listing asks, what an
+     offer holds. Known for every row including a closed one, which is why it
+     sits here rather than inside `metrics`: what a settled loan was worth is
+     a fact, and only its interest figure is untrustworthy (Q-029). Bare,
+     because the column header names the currency. */
+  readonly amount: string | null;
   /* Null for anything that is not a live loan. See `metricsOf`. */
   readonly metrics: PositionMetrics | null;
+  /* How long is left, whatever the thing is: a loan runs to maturity, a
+     listing and an offer run to their expiry. Null once nothing is counting
+     down any more, which is what a closed row shows. */
+  readonly term: TermProgress | null;
+  /* Where to fetch the photograph, or null when there is none to fetch.
+     A person recognises their own things by sight long before they read a
+     description, which is why the browse rail leads with one. */
+  readonly photographSrc: string | null;
   /* Null for anything that is not a listing or an offer. */
   readonly pending: PendingFigures | null;
   readonly action: PositionAction | null;
@@ -127,6 +143,30 @@ function amount(minorUnits: bigint, currency: string): string {
   return formatAmount({ minorUnits: minorUnits.toString(), currency });
 }
 
+function photographOf(receiptId: string, hasPhotograph: boolean): string | null {
+  return hasPhotograph ? `/api/v1/receipts/${receiptId}/photo` : null;
+}
+
+/* A deadline with no start to measure from: the words, and no bar. */
+function closesIn(expiresAtIso: string, asOf: number): TermProgress {
+  const expiresAt = Date.parse(expiresAtIso);
+  if (!Number.isFinite(expiresAt)) {
+    return { elapsedBasisPoints: null, note: 'no closing date', tone: 'neutral' };
+  }
+  if (asOf > expiresAt) {
+    return { elapsedBasisPoints: null, note: 'past its closing date', tone: 'warning' };
+  }
+  const remaining = expiresAt - asOf;
+  if (remaining < oneDay) {
+    return { elapsedBasisPoints: null, note: 'closes today', tone: 'warning' };
+  }
+  return {
+    elapsedBasisPoints: null,
+    note: `closes in ${plural(daysBetween(asOf, expiresAt), 'day')}`,
+    tone: 'active',
+  };
+}
+
 function termOf(loan: LoanResponse, asOf: number): TermProgress {
   /* The status is what settles this, not the dates. A loan can be marked
      defaulted while its maturity date is still ahead, and a row reading
@@ -151,13 +191,15 @@ function termOf(loan: LoanResponse, asOf: number): TermProgress {
   if (asOf > maturesAt) {
     return {
       elapsedBasisPoints: 10_000,
-      note: `matured, ${plural(daysBetween(asOf, graceEndsAt), 'day')} of grace left`,
+      note: `${plural(daysBetween(asOf, graceEndsAt), 'day')} of grace left`,
       tone: 'warning',
     };
   }
   return {
     elapsedBasisPoints,
-    note: `${plural(daysBetween(asOf, maturesAt), 'day')} to maturity`,
+    /* Short. The column is called Term, so "to maturity" was a phrase
+       repeated on every row that pushed the action button off the side. */
+    note: `${plural(daysBetween(asOf, maturesAt), 'day')} left`,
     tone: 'active',
   };
 }
@@ -188,7 +230,6 @@ function metricsOf(loan: LoanResponse, asOf: number, side: PositionSide): Positi
 
   return {
     currency,
-    principal: amount(principal, currency),
     rate: `${rateOf(loan.annualPercentageRateBasisPoints)} p.a.`,
     interestSoFar: amount(soFar, currency),
     interestToCome: amount(toCome, currency),
@@ -206,7 +247,6 @@ function metricsOf(loan: LoanResponse, asOf: number, side: PositionSide): Positi
             value: formatMoney({ minorUnits: (principal + wholeTerm).toString(), currency }),
           },
     settlementAmount: amount(principal + (side === 'borrowing' ? soFar : wholeTerm), currency),
-    term: termOf(loan, asOf),
   };
 }
 
@@ -220,7 +260,7 @@ function staged(
 /* Null when the loan says the same thing better. A matched listing and an
    accepted offer are both the prologue to a loan that is already a row of its
    own, and showing all three was the duplication this screen exists to end. */
-export function positionOfListing(listing: MyListingResponse): Position | null {
+export function positionOfListing(listing: MyListingResponse, asOf: number): Position | null {
   const base = {
     id: `listing-${listing.id}`,
     side: 'borrowing' as const,
@@ -229,6 +269,8 @@ export function positionOfListing(listing: MyListingResponse): Position | null {
     loanId: null,
     offerId: null,
     metrics: null,
+    photographSrc: photographOf(listing.receiptId, listing.hasPhotograph),
+    amount: formatAmount(listing.requestedPrincipal),
     pending: {
       currency: listing.requestedPrincipal.currency,
       principal: formatAmount(listing.requestedPrincipal),
@@ -241,6 +283,7 @@ export function positionOfListing(listing: MyListingResponse): Position | null {
     return {
       ...base,
       ...staged('Draft', 'borrowing'),
+      term: null,
       caption: 'Nobody can see this until you publish it',
       figure: { label: 'Asking', value: formatMoney(listing.requestedPrincipal) },
       action: { label: 'Publish', kind: 'publish' },
@@ -252,6 +295,7 @@ export function positionOfListing(listing: MyListingResponse): Position | null {
     return {
       ...base,
       ...staged('Taking offers', 'borrowing'),
+      term: closesIn(listing.expiresAt, asOf),
       caption:
         listing.offerCount === 0
           ? 'Waiting for a lender'
@@ -277,6 +321,7 @@ export function positionOfListing(listing: MyListingResponse): Position | null {
   return {
     ...base,
     ...staged(listing.status === 'CANCELLED' ? 'Cancelled' : 'Expired', 'borrowing'),
+    term: null,
     caption: listing.status === 'CANCELLED' ? 'You took it down' : 'It ran out of time',
     figure: null,
     action: null,
@@ -284,7 +329,7 @@ export function positionOfListing(listing: MyListingResponse): Position | null {
   };
 }
 
-export function positionOfOffer(offer: MyOfferResponse): Position | null {
+export function positionOfOffer(offer: MyOfferResponse, asOf: number): Position | null {
   const base = {
     id: `offer-${offer.id}`,
     side: 'lending' as const,
@@ -293,6 +338,8 @@ export function positionOfOffer(offer: MyOfferResponse): Position | null {
     loanId: null,
     offerId: offer.id,
     metrics: null,
+    photographSrc: photographOf(offer.receiptId, offer.hasPhotograph),
+    amount: formatAmount(offer.principal),
     pending: {
       currency: offer.principal.currency,
       principal: formatAmount(offer.principal),
@@ -304,6 +351,7 @@ export function positionOfOffer(offer: MyOfferResponse): Position | null {
     return {
       ...base,
       ...staged('Standing', 'lending'),
+      term: closesIn(offer.expiresAt, asOf),
       caption: 'Your money is held against this',
       figure: { label: 'Your rate', value: rateOf(offer.annualPercentageRateBasisPoints) },
       action: { label: 'Withdraw', kind: 'withdraw' },
@@ -318,6 +366,7 @@ export function positionOfOffer(offer: MyOfferResponse): Position | null {
     return {
       ...base,
       ...staged(offer.status === 'SUPERSEDED' ? 'Outbid' : 'Expired', 'lending'),
+      term: null,
       caption: 'Your money is still held, and earning nothing',
       figure: { label: 'Held', value: formatMoney(offer.principal) },
       action: { label: 'Reclaim funds', kind: 'reclaim' },
@@ -333,6 +382,7 @@ export function positionOfOffer(offer: MyOfferResponse): Position | null {
   return {
     ...base,
     ...staged('Withdrawn', 'lending'),
+    term: null,
     caption: 'You pulled it before it was taken',
     figure: null,
     action: null,
@@ -349,7 +399,9 @@ export function positionOfBorrowedLoan(loan: LoanResponse, asOf: number): Positi
     loanId: loan.id,
     offerId: null,
     metrics: metricsOf(loan, asOf, 'borrowing'),
+    amount: formatAmount(loan.principal),
     pending: null,
+    photographSrc: photographOf(loan.receiptId, loan.hasPhotograph),
   };
 
   if (loan.status === 'ACTIVE') {
@@ -363,6 +415,7 @@ export function positionOfBorrowedLoan(loan: LoanResponse, asOf: number): Positi
       /* Warning overrides the stage's own tone: a loan due tomorrow is still
          "Running" and still wants the reader's eye. */
       tone: isDue ? 'warning' : toneOf(stage, 'borrowing'),
+      term: termOf(loan, asOf),
       caption: `${rateOf(loan.annualPercentageRateBasisPoints)} p.a.`,
       figure: base.metrics?.settlement ?? null,
       action: { label: 'Repay', kind: 'repay' },
@@ -377,6 +430,7 @@ export function positionOfBorrowedLoan(loan: LoanResponse, asOf: number): Positi
     return {
       ...base,
       ...staged('Repaid', 'borrowing'),
+      term: null,
       caption: 'Paid off, and the item is waiting in the vault under your name',
       figure: null,
       action: { label: 'Collect the item', kind: 'collect' },
@@ -388,6 +442,7 @@ export function positionOfBorrowedLoan(loan: LoanResponse, asOf: number): Positi
     return {
       ...base,
       ...staged('Defaulted', 'borrowing'),
+      term: termOf(loan, asOf),
       caption: 'You did not repay in time, and the lender may claim the item',
       figure: { label: 'Principal', value: formatMoney(loan.principal) },
       action: null,
@@ -398,6 +453,7 @@ export function positionOfBorrowedLoan(loan: LoanResponse, asOf: number): Positi
   return {
     ...base,
     ...staged('Sold', 'borrowing'),
+    term: null,
     caption: 'The item was sold to cover the loan',
     figure: { label: 'Principal', value: formatMoney(loan.principal) },
     action: null,
@@ -414,7 +470,9 @@ export function positionOfLentLoan(loan: LoanResponse, asOf: number): Position {
     loanId: loan.id,
     offerId: null,
     metrics: metricsOf(loan, asOf, 'lending'),
+    amount: formatAmount(loan.principal),
     pending: null,
+    photographSrc: photographOf(loan.receiptId, loan.hasPhotograph),
   };
 
   if (loan.status === 'ACTIVE') {
@@ -426,6 +484,7 @@ export function positionOfLentLoan(loan: LoanResponse, asOf: number): Position {
       return {
         ...base,
         ...staged('Past grace', 'lending'),
+        term: termOf(loan, asOf),
         caption: 'The borrower did not repay, and grace has run out',
         figure: { label: 'At risk', value: formatMoney(loan.principal) },
         action: { label: 'Mark defaulted', kind: 'default' },
@@ -435,6 +494,7 @@ export function positionOfLentLoan(loan: LoanResponse, asOf: number): Position {
     return {
       ...base,
       ...staged('Earning', 'lending'),
+      term: termOf(loan, asOf),
       caption: `${rateOf(loan.annualPercentageRateBasisPoints)} p.a.`,
       figure: { label: 'Earned so far', value: formatMoney(loan.accruedInterest) },
       action: null,
@@ -448,6 +508,7 @@ export function positionOfLentLoan(loan: LoanResponse, asOf: number): Position {
     return {
       ...base,
       ...staged('Defaulted', 'lending'),
+      term: termOf(loan, asOf),
       caption: 'The item is yours to claim',
       figure: { label: 'At risk', value: formatMoney(loan.principal) },
       action: { label: 'Claim the collateral', kind: 'claim' },
@@ -459,6 +520,7 @@ export function positionOfLentLoan(loan: LoanResponse, asOf: number): Position {
     return {
       ...base,
       ...staged('Settled', 'lending'),
+      term: null,
       caption: 'The borrower paid in full',
       figure: null,
       action: null,
@@ -469,9 +531,20 @@ export function positionOfLentLoan(loan: LoanResponse, asOf: number): Position {
   return {
     ...base,
     ...staged('Sold', 'lending'),
+    term: null,
     caption: 'The item was sold and you were paid from the proceeds',
     figure: null,
     action: null,
     needsAttention: false,
   };
+}
+
+/* What the reader is still watching, as against what is behind them.
+
+   Terminal by stage, except that something still to do keeps a position in
+   view: a repaid loan whose item is sitting in a vault is finished as a loan
+   and unfinished as an errand, and burying it under a disclosure would hide
+   the only control that ends it. */
+export function isOpen(position: Position): boolean {
+  return !isTerminal(position.stage, position.side) || position.action !== null;
 }

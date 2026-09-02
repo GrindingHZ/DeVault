@@ -17,8 +17,21 @@ export type PortfolioSide = (typeof sides)[number];
 
 export const defaultSide: PortfolioSide = 'borrowing';
 
+/* Open positions, or the history behind them.
+
+   Two tables side by side asked the reader to work out which of their own
+   things belonged in which. The real split is not what a row came from, it
+   is whether the story is still running: a broker shows working orders and
+   filled history in separate views for the same reason. */
+export const views = ['open', 'history'] as const;
+
+export type PortfolioView = (typeof views)[number];
+
+export const defaultView: PortfolioView = 'open';
+
 export const portfolioSearchSchema = z.object({
   side: z.enum(sides).optional(),
+  view: z.enum(views).optional(),
 });
 
 export type PortfolioSearch = z.infer<typeof portfolioSearchSchema>;

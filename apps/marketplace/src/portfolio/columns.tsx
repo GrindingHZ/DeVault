@@ -1,19 +1,23 @@
-import { Button, Legend, StatusBadge, TermBar } from '@depawn/ui';
+import { Button, ItemPhotograph, Legend, StatusBadge, TermBar } from '@depawn/ui';
 import type { DataTableColumn } from '@depawn/ui';
 import type { ReactElement } from 'react';
 import type { Position, PositionSide } from './position';
 import { stagesFor } from './stages';
 
-/* The columns each table carries.
+/* The columns each side carries.
 
-   Borrowing and lending are not one table with a filter. A borrower reads a
-   loan as a cost and a lender reads the same loan as a return, so the money
-   columns are named differently and mean different things. Writing them out
-   twice is the honest form; parameterising them would only hide that. */
+   One table per side, not one per entity. There were two, split by what the
+   row came from: loans in one, listings and offers in the other. That is the
+   same mistake the portfolio was built to end, only smaller, and it left a
+   reader asking why their own things were in two places. A listing and the
+   loan it becomes are one story, and the columns below are the questions
+   that story answers at every stage: how much, what has it cost or earned,
+   what does it settle at, how long is left.
 
-/* The item leads every table, and it is the way back to the thing itself.
-   A row with nowhere to go renders no control rather than a button that does
-   nothing when pressed. */
+   Borrowing and lending stay apart, because a borrower reads a loan as a
+   cost and a lender reads the same loan as a return. Writing them out twice
+   is the honest form; parameterising them would only hide it. */
+
 function ItemCell({
   position,
   onOpen,
@@ -21,38 +25,45 @@ function ItemCell({
   readonly position: Position;
   readonly onOpen: (() => void) | undefined;
 }): ReactElement {
-  /* A floor is set on the width because a table cell sizes to its content,
-     and with eight columns competing the item was squeezed to four lines
-     while the number columns sat half empty. A ceiling too, because a real
-     appraisal names the maker, the model, the size and the certificate, and
-     one long description should not push the figures off the screen. */
+  /* A floor and a ceiling on the width. A table cell sizes to its content,
+     and with seven columns competing the item was squeezed to four lines
+     while the number columns sat half empty; a real appraisal also names the
+     maker, the model, the size and the certificate, and one long description
+     should not push the figures off the screen. */
   const reading = (
     <>
-      <span className="font-body text-sm font-semibold leading-snug text-ink-primary">
-        {position.itemDescription}
+      <ItemPhotograph src={position.photographSrc} alt={position.itemDescription} size="compact" />
+      <span className="flex min-w-0 flex-col gap-0.5">
+        <span className="font-body text-sm font-semibold leading-snug text-ink-primary">
+          {position.itemDescription}
+        </span>
+        <span className="font-body text-xs text-ink-secondary">{position.caption}</span>
       </span>
-      <span className="font-body text-xs text-ink-secondary">{position.caption}</span>
     </>
   );
+  const box = 'flex min-w-44 max-w-64 items-center gap-2.5 py-1.5 text-left';
   if (onOpen === undefined) {
-    return <span className="flex min-w-40 max-w-60 flex-col gap-0.5 py-1">{reading}</span>;
+    return <span className={box}>{reading}</span>;
   }
   return (
     <button
       type="button"
       data-testid="position-item"
       onClick={onOpen}
-      className="flex min-w-40 max-w-60 flex-col gap-0.5 py-1 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-status-active"
+      className={`${box} focus-visible:outline focus-visible:outline-2 focus-visible:outline-status-active`}
     >
       {reading}
     </button>
   );
 }
 
-/* Never wraps. "AUD 2,500.00" broke onto two lines in a column this narrow,
-   which is why the currency moved to the header and the figure stayed
-   whole. */
-function Amount({ value, strong }: { readonly value: string; readonly strong?: boolean }) {
+function Amount({
+  value,
+  strong,
+}: {
+  readonly value: string;
+  readonly strong?: boolean;
+}): ReactElement {
   return (
     <span
       className={`whitespace-nowrap font-figure text-sm tabular-nums text-ink-primary ${
@@ -64,19 +75,23 @@ function Amount({ value, strong }: { readonly value: string; readonly strong?: b
   );
 }
 
-/* The currency, once. Every figure in the column below is bare. */
-function head(label: string, currency: string): ReactElement {
-  return <span className="whitespace-nowrap">{`${label} (${currency})`}</span>;
+/* A closed row has no live figure to show. The server recomputes accrual
+   against its own clock on every read, so a repaid loan would report a whole
+   term's interest rather than what was paid (Q-029). A dash says nothing,
+   which is the truth, rather than a number that is wrong. */
+const nothingToShow = '-';
+
+/* Headers carry no currency. It is stated once above the table instead: a
+   "(AUD)" on each of three money columns cost about a hundred pixels of
+   width and pushed the action button off the side, which is a poor trade for
+   repeating something that never changes down the page. */
+function head(label: string): ReactElement {
+  return <span className="whitespace-nowrap">{label}</span>;
 }
 
 /* Both interest figures in one cell: what has built up, over what the whole
-   term comes to.
-
-   They started as two columns. Eight columns in the width available pushed
-   the status and the action off the side of the table, and those are the two
-   things a reader came for. Paired like this they also read better: a number
-   over its total is a progress reading, which is what interest accruing
-   actually is. */
+   term comes to. A number over its total is a progress reading, which is
+   what interest accruing actually is. */
 function InterestCell({ position }: { readonly position: Position }): ReactElement {
   if (position.metrics === null) {
     return <Amount value={nothingToShow} />;
@@ -91,26 +106,16 @@ function InterestCell({ position }: { readonly position: Position }): ReactEleme
   );
 }
 
-/* A closed loan has no live interest figure to show. The server recomputes
-   accrual against its own clock on every read, so a repaid loan would report
-   a whole term's interest rather than what was paid (Q-029). A dash says
-   nothing, which is the truth, rather than a number that is wrong. */
-const nothingToShow = '-';
-
-function statusHeader(side: PositionSide, label: string): ReactElement {
-  return (
-    <span className="inline-flex items-center">
-      {label}
-      <Legend noun="status" testId={`status-legend-${side}`} entries={stagesFor(side)} />
-    </span>
-  );
-}
-
 function statusColumn(side: PositionSide): DataTableColumn<Position> {
   return {
     key: 'status',
     label: 'Status',
-    header: statusHeader(side, 'Status'),
+    header: (
+      <span className="inline-flex items-center">
+        Status
+        <Legend noun="status" testId={`status-legend-${side}`} entries={stagesFor(side)} />
+      </span>
+    ),
     render: (position) => <StatusBadge tone={position.tone} label={position.stage} />,
   };
 }
@@ -132,35 +137,47 @@ function actionColumn(onAct: (position: Position) => void): DataTableColumn<Posi
   };
 }
 
+/* How long is left, whatever the row is. A loan runs to maturity and gets a
+   bar; a listing and an offer run to an expiry with no recorded start, so
+   they get the words alone rather than a bar drawn from a guess. A closed
+   row gets a dash, like every other column with nothing true to say. */
 function termColumn(): DataTableColumn<Position> {
   return {
     key: 'term',
     label: 'Term',
-    header: 'Term',
-    render: (position) =>
-      position.metrics === null ? (
-        <span className="font-body text-xs text-ink-secondary">closed</span>
-      ) : (
+    header: <span className="whitespace-nowrap">Term</span>,
+    render: (position) => {
+      if (position.term === null) {
+        return <Amount value={nothingToShow} />;
+      }
+      if (position.term.elapsedBasisPoints === null) {
+        return (
+          /* Wraps. "closes in 14 days" on one line was as wide as the bar
+             it stands in for, and the column is not worth that. */
+          <span className="block w-24 font-body text-xs text-ink-secondary">
+            {position.term.note}
+          </span>
+        );
+      }
+      return (
         <TermBar
-          elapsedBasisPoints={position.metrics.term.elapsedBasisPoints}
-          note={position.metrics.term.note}
-          tone={position.metrics.term.tone}
+          elapsedBasisPoints={position.term.elapsedBasisPoints}
+          note={position.term.note}
+          tone={position.term.tone}
         />
-      ),
+      );
+    },
   };
 }
 
 export interface RowHandlers {
   readonly onAct: (position: Position) => void;
   readonly openerFor: (position: Position) => (() => void) | undefined;
-  /* Stated in the headers so it is not repeated down every column. */
-  readonly currency: string;
 }
 
-export function borrowedLoanColumns({
+export function openBorrowingColumns({
   onAct,
   openerFor,
-  currency,
 }: RowHandlers): readonly DataTableColumn<Position>[] {
   return [
     {
@@ -170,21 +187,21 @@ export function borrowedLoanColumns({
       render: (p) => <ItemCell position={p} onOpen={openerFor(p)} />,
     },
     {
-      key: 'principal',
-      label: 'Borrowed',
-      header: head('Borrowed', currency),
-      render: (p) => <Amount value={p.metrics?.principal ?? nothingToShow} />,
+      key: 'amount',
+      label: 'Amount',
+      header: head('Amount'),
+      render: (p) => <Amount value={p.amount ?? nothingToShow} />,
     },
     {
       key: 'interest',
       label: 'Interest',
-      header: head('Interest', currency),
+      header: head('Interest'),
       render: (p) => <InterestCell position={p} />,
     },
     {
       key: 'settlement',
       label: 'Owed today',
-      header: head('Owed today', currency),
+      header: head('Owed today'),
       render: (p) => <Amount value={p.metrics?.settlementAmount ?? nothingToShow} strong />,
     },
     termColumn(),
@@ -193,10 +210,9 @@ export function borrowedLoanColumns({
   ];
 }
 
-export function lentLoanColumns({
+export function openLendingColumns({
   onAct,
   openerFor,
-  currency,
 }: RowHandlers): readonly DataTableColumn<Position>[] {
   return [
     {
@@ -206,21 +222,21 @@ export function lentLoanColumns({
       render: (p) => <ItemCell position={p} onOpen={openerFor(p)} />,
     },
     {
-      key: 'principal',
-      label: 'Lent',
-      header: head('Lent', currency),
-      render: (p) => <Amount value={p.metrics?.principal ?? nothingToShow} />,
+      key: 'amount',
+      label: 'Amount',
+      header: head('Amount'),
+      render: (p) => <Amount value={p.amount ?? nothingToShow} />,
     },
     {
       key: 'interest',
       label: 'Earned',
-      header: head('Earned', currency),
+      header: head('Earned'),
       render: (p) => <InterestCell position={p} />,
     },
     {
       key: 'settlement',
       label: 'At maturity',
-      header: head('At maturity', currency),
+      header: head('At maturity'),
       render: (p) => <Amount value={p.metrics?.settlementAmount ?? nothingToShow} strong />,
     },
     termColumn(),
@@ -229,72 +245,27 @@ export function lentLoanColumns({
   ];
 }
 
-/* Listings and offers have no term and no accrual, so they get a narrower
-   table of their own rather than five empty columns in the loan table.
+/* History carries less, because less is true about it.
 
-   Two tables rather than one shared shape: a listing is waiting for a rate
-   and an offer is holding money at one, so the columns are different facts.
-   A single shared column briefly labelled a rate "Held (AUD)". */
-export function listingColumns({
-  onAct,
-  openerFor,
-  currency,
-}: RowHandlers): readonly DataTableColumn<Position>[] {
+   Running the open columns over closed rows put a dash under Interest, under
+   the settlement and under Term on every line: four columns of nothing,
+   which is what made two tables look arbitrary in the first place. What is
+   still known about a finished position is what it was worth and how it
+   ended. */
+export function historyColumns(side: PositionSide): readonly DataTableColumn<Position>[] {
   return [
     {
       key: 'item',
-      label: 'Item',
-      header: 'Item',
-      render: (p) => <ItemCell position={p} onOpen={openerFor(p)} />,
+      label: side === 'borrowing' ? 'Item' : 'Collateral',
+      header: side === 'borrowing' ? 'Item' : 'Collateral',
+      render: (p) => <ItemCell position={p} onOpen={undefined} />,
     },
     {
-      key: 'asking',
-      label: 'Asking',
-      header: head('Asking', currency),
-      render: (p) => <Amount value={p.pending?.principal ?? nothingToShow} />,
+      key: 'amount',
+      label: 'Amount',
+      header: head('Amount'),
+      render: (p) => <Amount value={p.amount ?? nothingToShow} />,
     },
-    {
-      key: 'best-offer',
-      label: 'Best offer',
-      header: <span className="whitespace-nowrap">Best offer</span>,
-      /* Null means nobody has offered, which is not a rate of nothing. */
-      render: (p) =>
-        p.pending?.rate === null || p.pending === null ? (
-          <span className="whitespace-nowrap font-body text-sm text-ink-secondary">none yet</span>
-        ) : (
-          <Amount value={p.pending.rate} strong />
-        ),
-    },
-    statusColumn('borrowing'),
-    actionColumn(onAct),
-  ];
-}
-
-export function offerColumns({
-  onAct,
-  openerFor,
-  currency,
-}: RowHandlers): readonly DataTableColumn<Position>[] {
-  return [
-    {
-      key: 'item',
-      label: 'Collateral',
-      header: 'Collateral',
-      render: (p) => <ItemCell position={p} onOpen={openerFor(p)} />,
-    },
-    {
-      key: 'rate',
-      label: 'Your rate',
-      header: <span className="whitespace-nowrap">Your rate</span>,
-      render: (p) => <Amount value={p.pending?.rate ?? nothingToShow} strong />,
-    },
-    {
-      key: 'held',
-      label: 'Held',
-      header: head('Held', currency),
-      render: (p) => <Amount value={p.pending?.principal ?? nothingToShow} />,
-    },
-    statusColumn('lending'),
-    actionColumn(onAct),
+    statusColumn(side),
   ];
 }

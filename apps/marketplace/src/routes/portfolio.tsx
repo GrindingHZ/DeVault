@@ -15,18 +15,14 @@ import type { ReactElement } from 'react';
 import { useCurrentAccount } from '../current-account';
 import { MarketShell } from '../market-shell';
 import { PayoffCard } from '../payoff-card';
-import {
-  borrowedLoanColumns,
-  lentLoanColumns,
-  listingColumns,
-  offerColumns,
-} from '../portfolio/columns';
+import { historyColumns, openBorrowingColumns, openLendingColumns } from '../portfolio/columns';
 import { totalsOf } from '../portfolio/portfolio-summary';
+import { isOpen } from '../portfolio/position';
 import type { Position } from '../portfolio/position';
 import { usePositionActions } from '../portfolio/use-position-actions';
 import { usePositions } from '../portfolio/use-positions';
-import { defaultSide, parsePortfolioSearch, sides } from '../portfolio-search';
-import type { PortfolioSide } from '../portfolio-search';
+import { defaultSide, defaultView, parsePortfolioSearch, sides, views } from '../portfolio-search';
+import type { PortfolioSide, PortfolioView } from '../portfolio-search';
 
 export const Route = createFileRoute('/portfolio')({
   validateSearch: parsePortfolioSearch,
@@ -70,10 +66,35 @@ const sideDescriptions: Record<PortfolioSide, string> = {
   lending: 'What you have put out against other people, what it has earned, and what is at risk.',
 };
 
+const viewLabels: Record<PortfolioView, string> = {
+  open: 'Open',
+  history: 'History',
+};
+
+/* Said in the reader's terms, and pointing at the next step rather than
+   stopping at the bad news. An empty screen that names what to do about
+   itself is the cheapest onboarding there is. */
+const whenNothingOpen: Record<PortfolioSide, { readonly title: string; readonly next: string }> = {
+  borrowing: {
+    title: 'Nothing running',
+    next: 'List an item from My items to raise money against it.',
+  },
+  lending: {
+    title: 'Nothing at work',
+    next: 'Browse listings to make an offer and put your balance to work.',
+  },
+};
+
+const whenNoHistory: Record<PortfolioSide, string> = {
+  borrowing: 'Anything you have repaid or lost will be kept here.',
+  lending: 'Anything you have funded or offered will be kept here once it closes.',
+};
+
 function PortfolioBody(): ReactElement {
   const navigate = useNavigate();
   const search = Route.useSearch();
   const side = search.side ?? defaultSide;
+  const view = search.view ?? defaultView;
   const isBorrowing = side === 'borrowing';
   /* Repaying opens a quote below the table rather than on its own screen, so
      a borrower never loses sight of the rest of what they owe. The id rather
@@ -103,22 +124,29 @@ function PortfolioBody(): ReactElement {
     onOpen: (position) => openerFor(position)?.(),
   });
 
-  const loanPositions = isBorrowing ? positions.borrowedLoanPositions : positions.lentLoanPositions;
-  const pendingPositions = isBorrowing ? positions.listingPositions : positions.offerPositions;
+  const ofSide = isBorrowing ? positions.borrowing : positions.lending;
+  const open = ofSide.filter(isOpen);
+  const closed = ofSide.filter((one) => !isOpen(one));
+  const rows = view === 'open' ? open : closed;
+
   const totals = totalsOf({
     loans: isBorrowing ? positions.borrowedLoans : positions.lentLoans,
-    positions: positions.everyPosition.filter((one) => one.side === side),
+    positions: ofSide,
     side,
   });
   const currency = totals.currency ?? 'AUD';
   const amount = (minorUnits: bigint): string =>
     formatMoney({ minorUnits: minorUnits.toString(), currency });
 
-  const handlers = { onAct: actOn, openerFor, currency };
+  const handlers = { onAct: actOn, openerFor };
 
   const payoffLoan = positions.borrowedLoans.find(
     (one) => one.id === payoffLoanId && one.status === 'ACTIVE',
   );
+
+  function go(next: { readonly side?: PortfolioSide; readonly view?: PortfolioView }): void {
+    void navigate({ to: '/portfolio', search: { side, view, ...next } });
+  }
 
   /* The same three numbers on both sides with opposite signs, named for the
      side reading them. A borrower's cost is a lender's return. */
@@ -154,7 +182,7 @@ function PortfolioBody(): ReactElement {
           testId: 'total-interest-to-come',
         },
         {
-          label: 'Value at maturity',
+          label: 'At maturity',
           value: amount(totals.settlementMinorUnits),
           testId: 'total-settlement',
         },
@@ -164,8 +192,12 @@ function PortfolioBody(): ReactElement {
     <div className="flex flex-col gap-5">
       <PageHeader title="Portfolio" description={sideDescriptions[side]} />
 
-      {/* Two screens, not one screen with a filter. The columns below differ
-          because the questions differ. */}
+      {/* Two axes, and they answer different questions: which side of the
+          market am I on, and am I looking at what is running or at what is
+          behind me. Neither is a filter over one list. The columns differ by
+          side, and an open row and a closed one have almost nothing in
+          common, which is why one table tried to serve both and ended up
+          mostly dashes. */}
       <TabStrip label="Which side">
         {sides.map((one) => (
           <Tab
@@ -173,7 +205,7 @@ function PortfolioBody(): ReactElement {
             label={sideLabels[one]}
             isActive={side === one}
             testId={`side-${one}`}
-            onSelect={() => void navigate({ to: '/portfolio', search: { side: one } })}
+            onSelect={() => go({ side: one })}
           />
         ))}
       </TabStrip>
@@ -184,42 +216,53 @@ function PortfolioBody(): ReactElement {
           place to check and a second thing to keep in step. */}
       <SummaryStrip figures={figures} />
 
-      {positions.unavailable.length === 0 ? null : (
-        <p role="alert" className="font-body text-sm text-status-danger">
-          {`The figures leave out ${positions.unavailable.join(' and ')}, which could not be loaded.`}
-        </p>
-      )}
-
       {positions.isPending ? (
         <Skeleton lineCount={6} />
       ) : (
-        <>
-          <Card title={isBorrowing ? 'Loans you are running' : 'Loans you have funded'}>
-            <div data-testid="my-loans">
-              <DataTable
-                columns={isBorrowing ? borrowedLoanColumns(handlers) : lentLoanColumns(handlers)}
-                rows={loanPositions}
-                rowKey={(position) => position.id}
-                emptyTitle={
-                  isBorrowing
-                    ? 'You have not borrowed against anything yet'
-                    : 'You have not funded a loan yet'
-                }
-              />
-            </div>
-          </Card>
+        /* No card title. The tabs below are the heading, and repeating
+           "History" above a tab that already says it took a line and said
+           nothing. */
+        <Card>
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <TabStrip label="Open or history">
+              {views.map((one) => (
+                <Tab
+                  key={one}
+                  label={`${viewLabels[one]} ${one === 'open' ? open.length : closed.length}`}
+                  isActive={view === one}
+                  testId={`view-${one}`}
+                  onSelect={() => go({ view: one })}
+                />
+              ))}
+            </TabStrip>
+            {/* The currency, once for the whole table. */}
+            <span className="ml-auto font-body text-xs text-ink-secondary">
+              {`Amounts in ${currency}`}
+            </span>
+          </div>
 
-          <Card title={isBorrowing ? 'Listings waiting for a lender' : 'Offers you have standing'}>
-            <div data-testid={isBorrowing ? 'my-listings' : 'my-offers'}>
-              <DataTable
-                columns={isBorrowing ? listingColumns(handlers) : offerColumns(handlers)}
-                rows={pendingPositions}
-                rowKey={(position) => position.id}
-                emptyTitle={isBorrowing ? 'You have nothing listed' : 'You have no offers standing'}
-              />
-            </div>
-          </Card>
-        </>
+          {positions.unavailable.length === 0 ? null : (
+            <p role="alert" className="mb-3 font-body text-sm text-status-danger">
+              {`This leaves out ${positions.unavailable.join(' and ')}, which could not be loaded.`}
+            </p>
+          )}
+
+          <div data-testid={view === 'open' ? 'portfolio-open' : 'portfolio-history'}>
+            <DataTable
+              columns={
+                view === 'history'
+                  ? historyColumns(side)
+                  : isBorrowing
+                    ? openBorrowingColumns(handlers)
+                    : openLendingColumns(handlers)
+              }
+              rows={rows}
+              rowKey={(position) => position.id}
+              emptyTitle={view === 'open' ? whenNothingOpen[side].title : 'Nothing has closed yet'}
+              emptyDescription={view === 'open' ? whenNothingOpen[side].next : whenNoHistory[side]}
+            />
+          </div>
+        </Card>
       )}
 
       {payoffLoan === undefined ? null : <PayoffCard loan={payoffLoan} />}

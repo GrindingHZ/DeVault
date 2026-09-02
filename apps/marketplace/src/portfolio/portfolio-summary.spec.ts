@@ -10,6 +10,7 @@ function loan(overrides: Partial<LoanResponse> = {}): LoanResponse {
     id: 'LN1',
     receiptId: 'R1',
     itemDescription: 'Omega Speedmaster',
+    hasPhotograph: true,
     borrowerAccountId: 'ada',
     principal: { minorUnits: '400000', currency: 'AUD' },
     annualPercentageRateBasisPoints: 1800,
@@ -42,6 +43,9 @@ function attentionPosition(): Position {
     figure: null,
     metrics: null,
     pending: null,
+    term: null,
+    photographSrc: null,
+    amount: '2,500.00',
     action: { label: 'Reclaim funds', kind: 'reclaim' },
     needsAttention: true,
   };

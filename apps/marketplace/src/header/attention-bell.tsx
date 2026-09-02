@@ -54,7 +54,11 @@ export function AttentionBell(): ReactElement {
           {count === 0 ? null : (
             <span
               data-testid="attention-count"
-              className="absolute -right-0.5 -top-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-status-warning px-1 font-figure text-[10px] font-semibold tabular-nums text-surface-base"
+              /* Inside the trigger rather than hung off its corner. The
+                 header is the topmost row on the screen and the trigger
+                 fills its height, so a badge offset outwards had its top
+                 clipped by the edge of the window. */
+              className="absolute right-0 top-0 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-status-warning px-1 font-figure text-[10px] font-semibold tabular-nums text-surface-base"
             >
               {count}
             </span>

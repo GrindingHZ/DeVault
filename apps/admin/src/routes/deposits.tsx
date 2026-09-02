@@ -1,11 +1,11 @@
 import { ApiError, deposit, messageForError } from '@depawn/contracts';
-import { AppShell, Button, Card, Field, Skeleton, toMinorUnits } from '@depawn/ui';
+import { Button, Card, Field, Page, PageHeader, Skeleton, toMinorUnits } from '@depawn/ui';
 import { useMutation } from '@tanstack/react-query';
 import { Navigate, createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import type { ReactElement } from 'react';
 import { useCurrentAccount } from '../current-account';
-import { AdminNavigation } from '../admin-navigation';
+import { AdminShell, useFeedback } from '../admin-shell';
 
 export const Route = createFileRoute('/deposits')({
   component: DepositsPage,
@@ -42,18 +42,15 @@ function DepositsPage(): ReactElement | null {
   }
 
   return (
-    <AppShell
-      productName="depawn admin"
-      navigation={
-        <>
-          <AdminNavigation current="/deposits" />
-        </>
-      }
-    >
-      <div className="max-w-md">
+    <AdminShell current="/deposits">
+      <Page>
+        <PageHeader
+          title="Deposits"
+          description="Credit a member account from the platform float."
+        />
         <DepositCard />
-      </div>
-    </AppShell>
+      </Page>
+    </AdminShell>
   );
 }
 
@@ -61,6 +58,7 @@ function DepositCard(): ReactElement {
   const [email, setEmail] = useState('');
   const [amountInput, setAmountInput] = useState('');
   const [inputError, setInputError] = useState<string | null>(null);
+  const feedback = useFeedback();
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
   const [lastReference, setLastReference] = useState<string | null>(null);
 
@@ -74,6 +72,7 @@ function DepositCard(): ReactElement {
         { idempotencyKey },
       ),
     onSuccess: (response) => {
+      feedback.reportSuccess('The deposit landed.');
       setLastReference(response.settlementRef.reference);
       setAmountInput('');
       setIdempotencyKey(crypto.randomUUID());

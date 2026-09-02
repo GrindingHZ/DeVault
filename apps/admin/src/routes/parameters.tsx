@@ -11,13 +11,13 @@ import type {
   ParameterVersionResponse,
   RequestMetricRowResponse,
 } from '@depawn/contracts';
-import { AppShell, Button, Card, DataTable, Field, Skeleton } from '@depawn/ui';
+import { Button, Card, DataTable, Field, Page, PageHeader, Skeleton } from '@depawn/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Navigate, createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import type { ReactElement } from 'react';
 import { useCurrentAccount } from '../current-account';
-import { AdminNavigation } from '../admin-navigation';
+import { AdminShell, useFeedback } from '../admin-shell';
 
 export const Route = createFileRoute('/parameters')({
   component: ParametersPage,
@@ -54,21 +54,18 @@ function ParametersPage(): ReactElement | null {
   }
 
   return (
-    <AppShell
-      productName="depawn admin"
-      navigation={
-        <>
-          <AdminNavigation current="/parameters" />
-        </>
-      }
-    >
-      <div className="flex max-w-5xl flex-col gap-6">
+    <AdminShell current="/parameters">
+      <Page>
+        <PageHeader
+          title="Protocol parameters"
+          description="The fees, the grace period and the holding period, with every version ever written."
+        />
         <ClockCard />
         <ParametersCard />
         <DeadLetterCard />
         <MetricsCard />
-      </div>
-    </AppShell>
+      </Page>
+    </AdminShell>
   );
 }
 
@@ -149,6 +146,7 @@ function ClockCard(): ReactElement | null {
 
 function ParametersCard(): ReactElement {
   const queryClient = useQueryClient();
+  const feedback = useFeedback();
   const [originationFee, setOriginationFee] = useState('');
   const [liquidationFee, setLiquidationFee] = useState('');
   const [effectiveAt, setEffectiveAt] = useState('');
@@ -179,6 +177,7 @@ function ParametersCard(): ReactElement {
       );
     },
     onSuccess: async () => {
+      feedback.reportSuccess('The new parameters are in force.');
       setIdempotencyKey(crypto.randomUUID());
       setOriginationFee('');
       setLiquidationFee('');

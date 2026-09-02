@@ -1,12 +1,28 @@
-import { fetchAuditPage, fetchSystemState, pauseSystem, unpauseSystem } from '@depawn/contracts';
+import {
+  fetchAuditPage,
+  fetchSystemState,
+  nameForAuditAction,
+  pauseSystem,
+  unpauseSystem,
+} from '@depawn/contracts';
 import type { AuditEntryResponse } from '@depawn/contracts';
-import { AppShell, Button, Card, DataTable, Field, Skeleton, StatusBadge } from '@depawn/ui';
+import {
+  Button,
+  Card,
+  DataTable,
+  DateTime,
+  Field,
+  Page,
+  PageHeader,
+  Skeleton,
+  StatusBadge,
+} from '@depawn/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Navigate, createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import type { ReactElement } from 'react';
 import { useCurrentAccount } from '../current-account';
-import { AdminNavigation } from '../admin-navigation';
+import { AdminShell } from '../admin-shell';
 
 export const Route = createFileRoute('/operations')({
   component: OperationsPage,
@@ -41,19 +57,13 @@ function OperationsPage(): ReactElement | null {
   }
 
   return (
-    <AppShell
-      productName="depawn admin"
-      navigation={
-        <>
-          <AdminNavigation current="/operations" />
-        </>
-      }
-    >
-      <div className="flex max-w-5xl flex-col gap-6">
+    <AdminShell current="/operations">
+      <Page>
+        <PageHeader title="Operations" description="The pause switch and the audit trail." />
         <PauseCard />
         <AuditCard />
-      </div>
-    </AppShell>
+      </Page>
+    </AdminShell>
   );
 }
 
@@ -205,26 +215,34 @@ function AuditCard(): ReactElement {
               {
                 key: 'when',
                 header: 'When',
-                render: (entry: AuditEntryResponse) => entry.recordedAt.slice(0, 19),
+                render: (entry: AuditEntryResponse) => (
+                  <DateTime iso={entry.recordedAt} precision="second" />
+                ),
               },
+              /* The whole purpose of this screen is answering who did what.
+                 It used to answer with two opaque strings: an account id and
+                 a snake case identifier. The id stays in the title, because
+                 an investigation sometimes needs the exact value. */
               {
                 key: 'actor',
-                header: 'Actor',
+                header: 'Who',
                 render: (entry: AuditEntryResponse) => (
-                  <span className="font-mono text-xs">{entry.actorId}</span>
+                  <span title={entry.actorId} className="font-body text-sm">
+                    {entry.actorLabel ?? entry.actorId}
+                  </span>
                 ),
               },
               {
                 key: 'action',
-                header: 'Action',
-                render: (entry: AuditEntryResponse) => entry.action,
+                header: 'Did what',
+                render: (entry: AuditEntryResponse) => nameForAuditAction(entry.action),
               },
               {
                 key: 'subject',
-                header: 'Subject',
+                header: 'To what',
                 render: (entry: AuditEntryResponse) => (
-                  <span className="font-mono text-xs">
-                    {entry.subjectType} {entry.subjectId}
+                  <span title={entry.subjectId} className="font-body text-sm">
+                    {entry.subjectType} {entry.subjectId.slice(-6).toUpperCase()}
                   </span>
                 ),
               },

@@ -31,6 +31,7 @@ export function IssueStep({ intake }: Omit<IntakeStepProps, 'onAdvance'>): React
   const issueMutation = useMutation({
     mutationFn: () => issueReceipt(intake.id, { insurancePolicyReference }, { idempotencyKey }),
     onSuccess: async (issued) => {
+      feedback.reportSuccess('The receipt is issued and the item is in the vault.');
       setIdempotencyKey(crypto.randomUUID());
       setConfirmOpen(false);
       setReceipt(issued);

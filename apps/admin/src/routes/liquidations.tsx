@@ -7,14 +7,23 @@ import {
   openLiquidation,
 } from '@depawn/contracts';
 import type { LiquidationResponse } from '@depawn/contracts';
-import { AppShell, Button, Card, DataTable, Money, Skeleton, StatusBadge } from '@depawn/ui';
+import {
+  Button,
+  Card,
+  DataTable,
+  Money,
+  Page,
+  PageHeader,
+  Skeleton,
+  StatusBadge,
+} from '@depawn/ui';
 import type { StatusTone } from '@depawn/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Navigate, createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import type { ReactElement } from 'react';
 import { useCurrentAccount } from '../current-account';
-import { AdminNavigation } from '../admin-navigation';
+import { AdminShell } from '../admin-shell';
 
 export const Route = createFileRoute('/liquidations')({
   component: LiquidationsPage,
@@ -77,18 +86,15 @@ function LiquidationsPage(): ReactElement | null {
   }
 
   return (
-    <AppShell
-      productName="depawn admin"
-      navigation={
-        <>
-          <AdminNavigation current="/liquidations" />
-        </>
-      }
-    >
-      <div className="max-w-5xl">
+    <AdminShell current="/liquidations">
+      <Page>
+        <PageHeader
+          title="Liquidations"
+          description="Defaulted loans, the sales against them, and where each one stands."
+        />
         <LiquidationsCard />
-      </div>
-    </AppShell>
+      </Page>
+    </AdminShell>
   );
 }
 

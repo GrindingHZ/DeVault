@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { createTestApplication } from './create-test-application';
 import type { TestApplication } from './create-test-application';
+import type { Role } from '@prisma/client';
 
 /* An identifier may be a secondary reference. It may never be the only thing
    naming a person. The audit trail is the sharpest case: its whole purpose is
@@ -30,10 +31,10 @@ describe('naming the people behind an identifier', () => {
     return request(harness.app.getHttpServer());
   }
 
-  async function registerWithRole(email: string, role: string): Promise<string> {
+  async function registerWithRole(email: string, role: Role): Promise<string> {
     await server().post('/api/v1/auth/register').send({ email, password }).expect(201);
     if (role !== 'MEMBER') {
-      await harness.prisma.account.update({ where: { email }, data: { role } });
+      await harness.prisma.account.update({ where: { email }, data: { roles: [role] } });
     }
     const account = await harness.prisma.account.findUnique({ where: { email } });
     return account?.id ?? '';

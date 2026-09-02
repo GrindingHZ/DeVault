@@ -112,6 +112,33 @@ export function WalletIcon(props: IconProps): ReactElement {
   );
 }
 
+export function BellIcon(props: IconProps): ReactElement {
+  return (
+    <Icon {...props}>
+      <path d="M18 9a6 6 0 0 0-12 0c0 4.5-1.5 6-1.5 6h15S18 13.5 18 9" />
+      <path d="M10.3 19a2 2 0 0 0 3.4 0" />
+    </Icon>
+  );
+}
+
+export function ChevronDownIcon(props: IconProps): ReactElement {
+  return (
+    <Icon {...props}>
+      <path d="M6 9.5l6 6 6-6" />
+    </Icon>
+  );
+}
+
+export function LogOutIcon(props: IconProps): ReactElement {
+  return (
+    <Icon {...props}>
+      <path d="M10 20H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4" />
+      <path d="M16 8l4 4-4 4" />
+      <path d="M20 12H10" />
+    </Icon>
+  );
+}
+
 export function FilterIcon(props: IconProps): ReactElement {
   return (
     <Icon {...props}>

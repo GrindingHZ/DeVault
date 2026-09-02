@@ -48,6 +48,34 @@ fixed terminal in a lit room; a dark theme optimises for the wrong environment.
 
 Every badge carries its state name as text; colour is never the only signal.
 
+## The brand mark, P8h
+
+`VaultMark` and `BrandLockup` in `packages/ui/src/brand.tsx`. Drawn as geometry rather than shipped
+as a raster, so it scales, themes and diffs.
+
+Three ideas in one glyph: a hexagon broken into six segments is the distributed ledger the loan book
+moves onto in Phase 3; the shield inside it is custody, because somebody is physically holding your
+property; the counter knocked out of the shield is the D of the name.
+
+**It carries no colour of its own.** Every fill and stroke is `currentColor`, and `BrandLockup` sets
+`text-accent`, so the mark takes the green of whatever scope it lands in: `#2ea043` on the
+marketplace floor, `#15803d` on the two light consoles. Depth comes from opacity on the ring rather
+than from a second colour, which keeps one source of truth for the brand green and keeps
+`scripts/check-design-tokens.sh` satisfied. Do not add a hex value to this file to make a variant;
+change the accent token or wrap the mark in a different text colour.
+
+**Geometry is parametric and coupled.** The hexagon is pointy top with circumradius 13.5 on a 32
+grid, so its side is also 13.5 and the dash pattern divides the perimeter into exactly six segments
+with a gap centred on every vertex. Change the radius and the dashes have to be recomputed.
+
+**It is sized for 20 pixels and up.** Below that the six segments and their gaps stop being segments
+and become a smudge. The favicon is therefore its own file at `apps/*/public/favicon.svg` holding
+the shield alone, drawn fatter so the counter survives, and it is the one place a literal brand hex
+is allowed because an `.svg` asset has no token to reach for.
+
+**The wordmark is live text**, not paths, so it stays selectable, searchable and translatable and
+inherits the type scale rather than fighting it.
+
 ## Typefaces, amended P8g
 
 Two families, four roles. The amendment permitting the change, the rejected candidates and the

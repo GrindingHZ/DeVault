@@ -1,5 +1,5 @@
 import { Global, Module } from '@nestjs/common';
-import { loadConfiguration } from '../../config/configuration';
+import { isChainDriverEnabled, loadConfiguration } from '../../config/configuration';
 import { APPRAISAL_REPOSITORY } from '../../domain/custody/appraisal-repository';
 import { CUSTODY_RECEIPT_REPOSITORY } from '../../domain/custody/custody-receipt-repository';
 import { INTAKE_RECORD_REPOSITORY } from '../../domain/custody/intake-record-repository';
@@ -13,9 +13,19 @@ import { PrismaVaultRepository } from '../persistence/repositories/prisma-vault.
 import { DatabaseCustodyAdapter } from './database-custody.adapter';
 import { SuiCustodyAdapter } from './sui-custody.adapter';
 
-/* The Web3 switch for title, the twin of the one in settlement.module.ts. */
-function chooseCustodyPort(database: DatabaseCustodyAdapter, sui: SuiCustodyAdapter): CustodyPort {
-  return loadConfiguration().custodyDriver === 'chain' ? sui : database;
+/* The Web3 switch for title, the twin of the one in settlement.module.ts:
+   the chain adapter lives in the chain module and is optional here. */
+function chooseCustodyPort(
+  database: DatabaseCustodyAdapter,
+  sui: SuiCustodyAdapter | undefined,
+): CustodyPort {
+  if (loadConfiguration().custodyDriver !== 'chain') {
+    return database;
+  }
+  if (sui === undefined || !isChainDriverEnabled(loadConfiguration())) {
+    throw new Error('CUSTODY_DRIVER is chain and the chain module is not in the application');
+  }
+  return sui;
 }
 
 @Global()
@@ -26,7 +36,6 @@ function chooseCustodyPort(database: DatabaseCustodyAdapter, sui: SuiCustodyAdap
     PrismaAppraisalRepository,
     PrismaCustodyReceiptRepository,
     DatabaseCustodyAdapter,
-    SuiCustodyAdapter,
     { provide: VAULT_REPOSITORY, useClass: PrismaVaultRepository },
     { provide: INTAKE_RECORD_REPOSITORY, useClass: PrismaIntakeRecordRepository },
     { provide: APPRAISAL_REPOSITORY, useClass: PrismaAppraisalRepository },
@@ -34,7 +43,7 @@ function chooseCustodyPort(database: DatabaseCustodyAdapter, sui: SuiCustodyAdap
     {
       provide: CUSTODY_PORT,
       useFactory: chooseCustodyPort,
-      inject: [DatabaseCustodyAdapter, SuiCustodyAdapter],
+      inject: [DatabaseCustodyAdapter, { token: SuiCustodyAdapter, optional: true }],
     },
   ],
   exports: [

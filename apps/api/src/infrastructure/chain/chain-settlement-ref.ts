@@ -26,6 +26,13 @@ export class ChainSettlementRef implements SettlementRef {
   resolve(digest: string): void {
     this.digest = digest;
   }
+
+  /* The getter is not an own property, so a serialiser would otherwise write
+     the token under its own name and lose the reference the outbox, the
+     audit log and the attestation all read. */
+  toJSON(): { kind: 'chain'; reference: string; settledAt: Instant } {
+    return { kind: this.kind, reference: this.reference, settledAt: this.settledAt };
+  }
 }
 
 export const pendingReferencePrefix = 'pending:';

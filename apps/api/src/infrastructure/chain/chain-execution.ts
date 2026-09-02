@@ -40,7 +40,3 @@ export class ChainExecutionFailed extends Error {
     this.name = 'ChainExecutionFailed';
   }
 }
-
-export function eventName(event: ChainEvent): string {
-  return `${event.module}::${event.name}`;
-}

@@ -1,6 +1,15 @@
 import { fetchInventory, nameForReceiptStatus } from '@depawn/contracts';
 import type { ReceiptResponse } from '@depawn/contracts';
-import { Card, DataTable, Money, Select, Skeleton, StatusBadge } from '@depawn/ui';
+import {
+  Card,
+  DataTable,
+  Money,
+  Page,
+  PageHeader,
+  Select,
+  Skeleton,
+  StatusBadge,
+} from '@depawn/ui';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
@@ -19,7 +28,13 @@ function InventoryPage(): ReactElement {
   return (
     <StaffGuard>
       <ConsoleShell>
-        <InventoryCard />
+        <Page>
+          <PageHeader
+            title="Inventory"
+            description="Everything this vault is holding, and who it belongs to."
+          />
+          <InventoryCard />
+        </Page>
       </ConsoleShell>
     </StaffGuard>
   );
@@ -82,9 +97,15 @@ function InventoryCard(): ReactElement {
               },
               {
                 key: 'holder',
+                label: 'Holder',
                 header: 'Holder',
                 render: (receipt: ReceiptResponse) => (
-                  <span className="font-mono text-xs">{receipt.holderAccountId}</span>
+                  /* Whose item this is, which is the question staff at a
+                     counter are actually asking. The identifier stays in the
+                     title for anyone who has to quote it. */
+                  <span title={receipt.holderAccountId} className="font-mono text-xs">
+                    {receipt.holderLabel ?? receipt.holderAccountId}
+                  </span>
                 ),
               },
               {

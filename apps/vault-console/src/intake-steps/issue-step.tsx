@@ -4,6 +4,7 @@ import { Button, Card, Dialog, Field } from '@depawn/ui';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import type { ReactElement } from 'react';
+import { useFeedback } from '../console-shell';
 import { intakeKeys } from '../intake-keys';
 import type { IntakeStepProps } from './identify-step';
 
@@ -21,6 +22,7 @@ function messageFor(error: unknown): string {
 
 export function IssueStep({ intake }: Omit<IntakeStepProps, 'onAdvance'>): ReactElement {
   const queryClient = useQueryClient();
+  const feedback = useFeedback();
   const [insurancePolicyReference, setInsurancePolicyReference] = useState('');
   const [isConfirmOpen, setConfirmOpen] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptResponse | null>(null);

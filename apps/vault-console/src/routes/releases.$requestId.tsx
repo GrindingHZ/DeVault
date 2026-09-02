@@ -11,6 +11,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import type { ReactElement } from 'react';
+import { useFeedback } from '../console-shell';
 import { ConsoleShell } from '../console-shell';
 import { redemptionKeys } from '../redemption-keys';
 import { redemptionStatusTone } from '../redemption-status-tone';
@@ -82,6 +83,7 @@ function ReleaseDetail({ requestId }: { readonly requestId: string }): ReactElem
 
 function ReleaseSteps({ request }: { readonly request: RedemptionRequestResponse }): ReactElement {
   const queryClient = useQueryClient();
+  const feedback = useFeedback();
   const navigate = useNavigate();
   const [sealNumber, setSealNumber] = useState('');
   const [sealError, setSealError] = useState<string | null>(null);
@@ -91,6 +93,7 @@ function ReleaseSteps({ request }: { readonly request: RedemptionRequestResponse
   const verifyMutation = useMutation({
     mutationFn: () => verifyRedemption(request.id, { idempotencyKey: verifyKey }),
     onSuccess: async () => {
+      feedback.reportSuccess('Recorded.');
       setVerifyKey(crypto.randomUUID());
       await queryClient.invalidateQueries({ queryKey: redemptionKeys.queue });
     },

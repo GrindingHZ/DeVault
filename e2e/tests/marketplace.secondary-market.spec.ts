@@ -166,7 +166,7 @@ test('a lender exits early and another takes the position', async ({ page, reque
   // The buyer reads the chart and takes the position.
   await signIn(page, buyerEmail);
   await page.getByRole('link', { name: 'Browse' }).click();
-  await page.getByTestId('scope-positions').click();
+  await page.getByTestId('secondary-market-link').click();
   await expect(page.getByTestId('sale-grid')).toBeVisible();
   await expect(page.getByTestId('sale-chart')).toBeVisible();
   await expect(page.getByText('Position value')).toBeVisible();

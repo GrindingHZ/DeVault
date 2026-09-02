@@ -62,7 +62,7 @@ function Positions({ viewerAccountId }: { readonly viewerAccountId: string }): R
     <MarketShell>
       <Page>
         <PageHeader
-          title="Positions for sale"
+          title="Secondary Market"
           description="Lenders exiting early. The gap between the ask and the value is what a buyer earns on top of the remaining interest."
         />
         <TabStrip label="Which market">
@@ -75,7 +75,7 @@ function Positions({ viewerAccountId }: { readonly viewerAccountId: string }): R
             data-testid="market-positions-link"
             className={tabLinkClasses}
           >
-            <TabItem label="Positions for sale" isActive />
+            <TabItem label="Secondary Market" isActive />
           </Link>
         </TabStrip>
 

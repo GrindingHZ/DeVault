@@ -113,11 +113,17 @@ export function BrowseControls(props: BrowseControlsProps): ReactElement {
               onSelect={() => props.onScope(tab.value)}
             />
           ))}
-          {/* A destination among the view toggles, so it is a link rather
-              than a Tab: the secondary market is the other face of Browse
+          {/* Set apart from the scope toggles by the divider, because it is
+              not a fourth scope: it is the other face of Browse, a
+              destination, so it is a link rather than a Tab
               (docs/superpowers/specs/2026-08-24-secondary-market-design.md). */}
-          <Link to="/listings/positions" data-testid="scope-positions" className={tabLinkClasses}>
-            <TabItem label="Positions for sale" isActive={false} />
+          <span aria-hidden="true" className="mx-1 h-4 w-px shrink-0 self-center bg-edge" />
+          <Link
+            to="/listings/positions"
+            data-testid="secondary-market-link"
+            className={tabLinkClasses}
+          >
+            <TabItem label="Secondary Market" isActive={false} />
           </Link>
         </TabStrip>
       </div>

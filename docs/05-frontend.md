@@ -113,8 +113,8 @@ than silently retrying; the amount changed and the user must see it.
 **Reclaim funds.** A persistent banner when the account has superseded or expired holds. This is
 money the user cannot spend and does not know about. It should be impossible to miss.
 
-**Positions for sale.** The second face of Browse, reached from a link beside the workspace's scope
-tabs rather than a fifth rail destination (Q-028). One card per open sale, and the centre of each
+**Secondary Market.** The second face of Browse, reached from its own tab set apart from the
+workspace's scope toggles by a divider, rather than a fifth rail destination (Q-028). One card per open sale, and the centre of each
 card is a `ValueChart`: the solid line runs from the principal at origination to the full payoff at
 maturity, a marker pins today, and the dashed reference line is the ask. Every figure on the chart
 is priced by the server; the client draws and never computes money. Buying opens a dialog naming

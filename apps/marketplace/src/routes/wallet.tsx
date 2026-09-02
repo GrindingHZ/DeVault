@@ -28,6 +28,7 @@ import { useState } from 'react';
 import type { ReactElement } from 'react';
 import { currentAccountKeys, useCurrentAccount } from '../current-account';
 import { MarketShell, useFeedback } from '../market-shell';
+import { CapitalCard } from '../wallet/capital-card';
 import { walletKeys } from '../wallet-keys';
 
 export const Route = createFileRoute('/wallet')({
@@ -60,8 +61,9 @@ function WalletPage(): ReactElement | null {
       <Page>
         <PageHeader
           title="Wallet"
-          description="What you can spend, what is committed to offers, and every movement so far."
+          description="Everything you own, where it is working, and every movement so far."
         />
+        <CapitalCard />
         <BalanceCards />
         <WithdrawCard />
         <HistoryCard />

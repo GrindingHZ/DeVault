@@ -56,14 +56,22 @@ single-appraisal
 
 ## Q-006: who takes physical delivery after liquidation
 **Blocks:** the final step of Flow 8
-**Currently implemented:** nothing. This entry used to claim the winning bidder receives a newly
-issued receipt for the same item. They do not: `close-liquidation` burns the old receipt and issues
-none, so a buyer ends a settled sale holding no representation of the thing they paid for. Checked
-against the seeded demo, where both auction winners hold zero receipts for their items
-(docs/14-state-machines.md)
-**Needs:** founder
+**Currently implemented:** the winning bidder receives a newly issued receipt for the same item,
+and collects it at the counter through flow 6. For most of the build this entry claimed that and
+the code did the opposite: `close-liquidation` burned the old receipt and issued none, so a buyer
+ended a settled sale holding no representation of the thing they paid for, checked against the
+seeded demo where both auction winners held zero receipts (docs/14-state-machines.md)
+**Needs:** nothing further
 **Notes:** The alternative is that we ship it, which introduces logistics, insurance in transit, and
 a delivery-dispute flow.
+
+**Resolved 2026-08-25:** implemented as recorded. `close-liquidation` now calls
+`CustodyPort.reissueToBuyer`, which burns the seller's receipt and issues the buyer one for the same
+item, in the same transaction. Every descriptive field carries over, the intake record hash included,
+so the buyer's receipt shows the same photograph and serial numbers the borrower's did. The receipt
+lands `IN_VAULT` under the buyer, which means collecting it is flow 6 with no special case. The
+database index on `intake_record_hash` became partial on the live statuses to allow it: the
+invariant that matters is one live receipt per item, and a burned receipt is history.
 
 ## Q-007: minimum offer lifetime
 **Blocks:** rule M6

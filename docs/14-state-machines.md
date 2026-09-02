@@ -33,7 +33,7 @@ IN_VAULT ──encumber──────────▶ ENCUMBERED ──releas
 | `claimDefault` | ENCUMBERED to IN_VAULT under the claimant | loan DEFAULTED, caller holds the lender note | holder changes | `claim-receipt` |
 | `transferHolder` | IN_VAULT to IN_VAULT | not encumbered | holder changes | **nothing today** |
 | `burnForRedemption` | IN_VAULT to RELEASED | holder is the caller, not encumbered | redemption request opens in REQUESTED | `request-redemption` |
-| `burnForLiquidation` | IN_VAULT or ENCUMBERED to LIQUIDATED | sale settling | vault exposure falls | `close-liquidation` |
+| `burnForLiquidation` | IN_VAULT or ENCUMBERED to LIQUIDATED | sale settling | a fresh receipt is issued to the buyer for the same item | `close-liquidation` |
 
 Three disagreements with the drawing in `docs/02`, two of them recorded as Q-012 and undrawn for
 months. All three are now drawn:
@@ -161,7 +161,7 @@ SCHEDULED ──open──▶ BIDDING ──close──▶ SETTLED
 |---|---|---|---|---|
 | `open` | SCHEDULED to BIDDING | operations | sets `opensAt` and `closesAt` | `open-liquidation` |
 | `bid` | BIDDING, no status change | inside the window, at or above the reserve, above the standing high bid | holds the bidder's funds. The beaten bid stays held for its owner to pull | `place-bid` |
-| `close` | BIDDING to SETTLED | at least one bid | releases the winning hold across the waterfall, burns the receipt, marks the loan LIQUIDATED, `LiquidationSettled` | `close-liquidation` |
+| `close` | BIDDING to SETTLED | at least one bid | releases the winning hold across the waterfall, burns the receipt and issues the buyer one for the same item, marks the loan LIQUIDATED, `LiquidationSettled` | `close-liquidation` |
 | `cancel` | SCHEDULED to CANCELLED | operations | audit entry carrying the reason. The loan's sale slot is freed | `cancel-liquidation` |
 
 `docs/02` drew `cancel` hanging off BIDDING. The code allows it only from SCHEDULED, and the code is
@@ -212,11 +212,21 @@ reclaiming refunds the hold and writes nothing back. `positionOfBid` turns each 
 lending side, so a beaten bid raises attention with a Reclaim funds control until the money is
 home.
 
-**2. `docs/OPEN-QUESTIONS.md` Q-006 records a decision that is not implemented.** It says the winning
-bidder receives a newly issued receipt for the same item. `close-liquidation` burns the old receipt
-and issues nothing. After a sale the buyer holds no representation of the item at all. Either the
-issuance is missing or the recorded answer is stale, and until one of them moves the file is telling
-a reader something untrue.
+**2. `docs/OPEN-QUESTIONS.md` Q-006 recorded a decision that was not implemented. Fixed.** It said
+the winning bidder receives a newly issued receipt for the same item. `close-liquidation` burned the
+old receipt and issued nothing, so after a sale the buyer held no representation of the item at all:
+they owned a thing the product could not name and no flow could release to them.
+
+`CustodyPort.reissueToBuyer` now does both halves in one operation, which is what it is: the item
+never leaves the vault, only the paper changes hands. The buyer's receipt lands `IN_VAULT` under
+them, carrying every descriptive field across including the intake record hash, so it shows the same
+photograph and serial numbers and collecting it is flow 6 with no special case. The port contract
+suite carries it, so a Phase 3 adapter has to destroy the old object and mint the new one too.
+
+Reaching it needed the same kind of unpicking as the cancel did. `custody_receipt.intake_record_hash`
+was plainly unique, which forbade an item carrying a burned receipt and a live one at once. The index
+is now partial on the live statuses: the invariant that matters is one live receipt per item, and a
+burned receipt is history rather than a competitor.
 
 **3. Three transitions were drawn and coded and never fired:** `Listing.expire`, `Offer.expire` and
 `Liquidation.cancel`. The first two are contained and stay lazy: every guard that matters reads the
@@ -240,7 +250,8 @@ arrow hanging off the wrong state. All three now match the code, and each carrie
 why the code is the right reading.
 
 None of these was a live money defect. The ledger balances, every guard holds, and no transition can
-be fired from a state that forbids it. What they were is a set of places where the map and the ground
+be fired from a state that forbids it. Finding 2 was the closest to one: no money went astray, but an
+item did, in the sense that nobody could point at who owned it. What they were is a set of places where the map and the ground
 disagreed, which is the kind of thing that is cheap now and expensive at the Move rewrite, when the
 map is what somebody will build from.
 

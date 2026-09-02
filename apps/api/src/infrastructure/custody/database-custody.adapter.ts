@@ -114,6 +114,38 @@ export class DatabaseCustodyAdapter implements CustodyPort {
     return this.custodyReference();
   }
 
+  async reissueToBuyer(
+    receiptId: ReceiptId,
+    buyer: AccountId,
+    context: UnitOfWorkContext,
+  ): Promise<CustodyReceipt> {
+    const sold = await this.load(receiptId, context);
+    const burned = sold.burnForLiquidation();
+    if (!burned.ok) {
+      throw burned.error;
+    }
+    await this.receipts.save(burned.value, context);
+
+    /* The same item under a new holder, not a new item. Only the id and the
+       holder differ; everything that describes what is in the vault is copied
+       across, because nothing about the item changed when it was sold. */
+    const reissued = CustodyReceipt.issue({
+      id: receiptIdOf(this.idGenerator.generate()),
+      vaultId: sold.vaultId,
+      holderAccountId: buyer,
+      intakeRecordHash: sold.intakeRecordHash,
+      appraisedValue: sold.appraisedValue,
+      appraisedAt: sold.appraisedAt,
+      appraiserId: sold.appraiserId,
+      itemCategory: sold.itemCategory,
+      itemDescription: sold.itemDescription,
+      serialNumbers: sold.serialNumbers,
+      insurancePolicyReference: sold.insurancePolicyReference,
+    });
+    await this.receipts.save(reissued, context);
+    return reissued;
+  }
+
   private async load(receiptId: ReceiptId, context: UnitOfWorkContext): Promise<CustodyReceipt> {
     const receipt = await this.receipts.findById(receiptId, context);
     if (receipt === null) {

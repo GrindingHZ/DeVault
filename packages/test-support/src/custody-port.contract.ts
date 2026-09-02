@@ -125,6 +125,57 @@ export function describeCustodyPortContract(
       expect(claimed?.encumberedByLoanId).toBeNull();
     });
 
+    /* What a buyer walks away holding. Without it the winner of a sale owns
+       an item the product cannot name and no flow can release to them
+       (docs/OPEN-QUESTIONS.md Q-006). A Phase 3 adapter has to do the same
+       thing in one transaction: destroy the old object, mint the new one. */
+    it('ends the seller title and grants the buyer one for the same item', async () => {
+      const receipt = await issue();
+      const buyer = accountIdOf('CONTRACT-BUYER');
+      await subject.runInUnitOfWork((context) =>
+        subject.port.encumberReceipt(receipt.id, loanIdOf('CONTRACT-LOAN-7'), context),
+      );
+
+      const reissued = await subject.runInUnitOfWork((context) =>
+        subject.port.reissueToBuyer(receipt.id, buyer, context),
+      );
+
+      // The old title is spent, and spent is terminal.
+      const sold = await subject.receiptById(receipt.id);
+      expect(sold?.status).toBe('LIQUIDATED');
+
+      /* The new one is a different receipt for the same item, in the vault
+         under the buyer, so redeeming it is the ordinary flow. */
+      expect(reissued.id).not.toBe(receipt.id);
+      const held = await subject.receiptById(reissued.id);
+      expect(held?.status).toBe('IN_VAULT');
+      expect(held?.holderAccountId).toBe(buyer);
+      expect(held?.encumberedByLoanId).toBeNull();
+
+      /* Nothing about the item changed when it was sold, so everything that
+         describes it carries over. The intake record hash especially: it is
+         what the photograph and the sealed evidence hang off, and a buyer
+         holding a receipt that cannot show the item would be holding paper. */
+      expect(held?.intakeRecordHash).toBe(receipt.intakeRecordHash);
+      expect(held?.itemDescription).toBe(receipt.itemDescription);
+      expect(held?.itemCategory).toBe(receipt.itemCategory);
+      expect(held?.serialNumbers).toEqual(receipt.serialNumbers);
+      expect(held?.appraisedValue.minorUnits).toBe(receipt.appraisedValue.minorUnits);
+      expect(held?.vaultId).toBe(receipt.vaultId);
+    });
+
+    it('reissues nothing for a receipt already spent', async () => {
+      const receipt = await issue();
+      await subject.runInUnitOfWork((context) =>
+        subject.port.reissueToBuyer(receipt.id, accountIdOf('CONTRACT-BUYER-2'), context),
+      );
+      await expect(
+        subject.runInUnitOfWork((context) =>
+          subject.port.reissueToBuyer(receipt.id, accountIdOf('CONTRACT-BUYER-3'), context),
+        ),
+      ).rejects.toThrow();
+    });
+
     it('refuses a claim against collateral that is not encumbered', async () => {
       const receipt = await issue();
       await expect(

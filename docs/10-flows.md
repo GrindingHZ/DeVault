@@ -363,8 +363,15 @@ Note that step 1 must remain available while the system is paused (rule S2).
    > | 3 | Borrower | Surplus |
    > | 4 | Platform rounding | Remainder from integer division |
    >
-   > Burn the receipt → `LIQUIDATED`. Set the loan `LIQUIDATED`. Emit `LiquidationSettled`. The
-   > winning bidder gets a new receipt or takes physical delivery per your operating policy.
+   > Burn the receipt → `LIQUIDATED` and issue the winning bidder a new one for the same item,
+   > `IN_VAULT` under them. Set the loan `LIQUIDATED`. Emit `LiquidationSettled`.
+   >
+   > One custody operation, not two: the item never leaves the vault, only the paper changes hands,
+   > and Phase 3 destroys the old object and mints the new one in a single transaction. Every
+   > descriptive field carries over, the intake record hash included, so the buyer's receipt shows
+   > the same photograph and serial numbers the borrower's did. They collect it through flow 6 like
+   > anybody else holding a receipt, which is why it lands `IN_VAULT` rather than anywhere clever
+   > (Q-006).
 
 **Surplus returns to the borrower.** Whether this is legally required depends on jurisdiction and on
 whether the arrangement is a pawn or a secured loan. Returning it is both the safer posture and the

@@ -263,6 +263,70 @@ describe('liquidation', () => {
     ).toBe(1);
   });
 
+  /* The half of a sale that used to happen to nobody. The money moved and the
+     item did not: the receipt burned and the winner was issued nothing, so
+     they owned a thing the product could not name and no flow could release
+     (docs/OPEN-QUESTIONS.md Q-006). */
+  it('gives the winner title to the item and lets them collect it', async () => {
+    const loan = await defaultedLoan();
+    harness.clock.advanceBy(31n * oneDay);
+    const liquidationId = await biddingLiquidation(loan, '200000');
+
+    const winner = await loginAs(`winner-${randomUUID().slice(0, 8)}@liq.test`, 'MEMBER');
+    await signInAgain(loan.ops);
+    await fund(loan.ops, winner.email, '400000');
+    await server()
+      .post(`/api/v1/liquidations/${liquidationId}/bids`)
+      .set('Cookie', winner.cookies)
+      .set('Idempotency-Key', randomUUID())
+      .send({ amount: amount('300000') })
+      .expect(201);
+
+    await signInAgain(loan.ops);
+    await server()
+      .post(`/api/v1/liquidations/${liquidationId}/close`)
+      .set('Cookie', loan.ops.cookies)
+      .set('Idempotency-Key', randomUUID())
+      .send({})
+      .expect(201);
+
+    // The seller's title is spent.
+    const sold = await harness.prisma.custodyReceipt.findUnique({
+      where: { id: loan.receiptId },
+    });
+    expect(sold?.status).toBe('LIQUIDATED');
+
+    /* And the buyer holds one of their own, for the same item. It shows up in
+       My items like anything else they hold, which is the whole point. */
+    await signInAgain(winner);
+    const mine = await server()
+      .get('/api/v1/me/receipts')
+      .set('Cookie', winner.cookies)
+      .expect(200);
+    expect(mine.body.items).toHaveLength(1);
+    const held = mine.body.items[0];
+    expect(held.id).not.toBe(loan.receiptId);
+    expect(held.status).toBe('IN_VAULT');
+    expect(held.itemDescription).toBe(sold?.itemDescription);
+
+    /* The sealed evidence carries over, which is what the photograph and the
+       serial numbers hang off. A buyer holding a receipt that could not show
+       the item would be holding paper. */
+    const heldRow = await harness.prisma.custodyReceipt.findUnique({ where: { id: held.id } });
+    expect(heldRow?.intakeRecordHash).toBe(sold?.intakeRecordHash);
+    expect(heldRow?.serialNumbers).toEqual(sold?.serialNumbers);
+
+    /* And collecting it is flow 6 with no special case, which is the reason
+       the receipt lands IN_VAULT rather than anywhere clever. */
+    const requested = await server()
+      .post(`/api/v1/receipts/${held.id}/redemption-requests`)
+      .set('Cookie', winner.cookies)
+      .set('Idempotency-Key', randomUUID())
+      .send({})
+      .expect(201);
+    expect(requested.body.status).toBe('REQUESTED');
+  });
+
   /* The fee is the one term read long after origination, so it is the one
      place an edit could reach an older loan. It cannot: the loan carries the
      fee it was written under. */

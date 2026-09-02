@@ -118,7 +118,7 @@ test('the demo runbook walks end to end exactly as docs/DEMO.md describes', asyn
   await expect(borrowerPage.getByTestId('my-listings')).toContainText('Taking offers');
   /* The row opens the listing rather than printing its identifier. The test
      takes the same route a reader does and reads the id off the URL. */
-  await borrowerPage.getByTestId('my-listings').getByTestId('position-row').first().click();
+  await borrowerPage.getByTestId('my-listings').getByTestId('position-item').first().click();
   await borrowerPage.waitForURL(/listing=/);
   const listingId = new URL(borrowerPage.url()).searchParams.get('listing') ?? '';
 

@@ -192,7 +192,7 @@ test('a lender reclaims an outbid hold from the attention band', async ({ page, 
   await expect(page.getByTestId('available-balance')).toHaveText('AUD 3,000.00');
 });
 
-test('one screen shows both sides and the tab never changes the totals', async ({
+test('the two sides ask different questions and answer them in their own columns', async ({
   page,
   request,
 }) => {
@@ -215,24 +215,54 @@ test('one screen shows both sides and the tab never changes the totals', async (
   await signIn(page, bothEmail);
   await page.goto('/portfolio');
 
-  const table = page.getByTestId('my-listings');
-  await expect(table).toContainText('Rolex Submariner 116610LN');
-  await expect(table).toContainText('One kilogram gold bar');
-
-  await page.getByTestId('side-borrowing').click();
-  await expect(table).toContainText('Rolex Submariner 116610LN');
-  await expect(table).not.toContainText('One kilogram gold bar');
-  /* The strip is not filtered. A reader on one side still wants to know
-     where they stand on the other. */
-  await expect(page.getByTestId('total-lent')).toBeVisible();
+  /* Borrowing is where a reader lands, because raising money against your own
+     things is the first thing anybody does here. */
+  await expect(page.getByTestId('side-borrowing')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('my-listings')).toContainText('Rolex Submariner 116610LN');
+  await expect(page.getByTestId('my-listings')).not.toContainText('One kilogram gold bar');
+  /* A borrower is asked what it costs. */
+  await expect(page.getByRole('columnheader', { name: 'Owed today' })).toBeVisible();
 
   await page.getByTestId('side-lending').click();
-  await expect(table).toContainText('One kilogram gold bar');
-  await expect(table).not.toContainText('Rolex Submariner 116610LN');
+  await expect(page.getByTestId('my-offers')).toContainText('One kilogram gold bar');
+  await expect(page.getByTestId('my-offers')).not.toContainText('Rolex Submariner 116610LN');
+  /* A lender is asked what it returns. The same loan, the other question. */
+  await expect(page.getByRole('columnheader', { name: 'Value at maturity' })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'Owed today' })).toHaveCount(0);
 
-  /* The selection is in the URL, so a reload restores the same view and the
-     link is something a person can send. */
+  /* The side is in the URL, so a reload restores the same view and the link
+     is something a person can send. */
   await page.reload();
   await expect(page.getByTestId('side-lending')).toHaveAttribute('aria-pressed', 'true');
-  await expect(table).toContainText('One kilogram gold bar');
+  await expect(page.getByTestId('my-offers')).toContainText('One kilogram gold bar');
+});
+
+test('the status column explains every status it can show', async ({ page, request }) => {
+  const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  const email = `reader-${stamp}@example.test`;
+  await registerMember(request, email);
+  await signIn(page, email);
+  await page.goto('/portfolio?side=borrowing');
+
+  /* Opens on click. A hover panel is a feature only some people get, so the
+     legend has to be reachable by pointer, touch and keyboard alike. */
+  const trigger = page.getByTestId('status-legend-borrowing').first();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  await trigger.click();
+
+  const panel = page.getByTestId('status-legend-borrowing-panel').first();
+  await expect(panel).toContainText('Running');
+  await expect(panel).toContainText('In grace');
+  await expect(panel).toContainText('Interest stopped at maturity');
+
+  await page.keyboard.press('Escape');
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+
+  /* The same word from the other end. An item being sold costs the borrower
+     the item and pays the lender out, and the legend says both. */
+  await page.getByTestId('side-lending').click();
+  await page.getByTestId('status-legend-lending').first().click();
+  await expect(page.getByTestId('status-legend-lending-panel').first()).toContainText(
+    'paid from the proceeds',
+  );
 });

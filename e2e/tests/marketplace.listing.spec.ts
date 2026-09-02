@@ -103,7 +103,7 @@ test('a receipt becomes a listing and takes a funded offer', async ({ page, brow
   /* The row opens the listing rather than printing its identifier. The id is
      how our systems refer to the thing, not what the thing is, so the test
      takes the same route a reader does and reads it off the URL. */
-  await page.getByTestId('my-listings').getByTestId('position-row').first().click();
+  await page.getByTestId('my-listings').getByTestId('position-item').first().click();
   await page.waitForURL(/listing=/);
   const listingId = new URL(page.url()).searchParams.get('listing') ?? '';
 
@@ -152,7 +152,7 @@ test('the offer form blocks a principal above the ceiling', async ({ page, reque
   await page.getByTestId('list-principal').fill('2500.00');
   await page.getByTestId('list-submit').click();
   await expect(page.getByTestId('my-listings')).toContainText('Taking offers');
-  await page.getByTestId('my-listings').getByTestId('position-row').first().click();
+  await page.getByTestId('my-listings').getByTestId('position-item').first().click();
   await page.waitForURL(/listing=/);
   const ceilingListingId = new URL(page.url()).searchParams.get('listing') ?? '';
   await page.getByRole('button', { name: 'Log out' }).click();

@@ -146,6 +146,7 @@ test('a lender takes the collateral once grace has run out', async ({ page, requ
 
   await signIn(page, lenderEmail);
   await page.getByRole('link', { name: 'Portfolio' }).click();
+  await page.getByTestId('side-lending').click();
   await expect(page.getByTestId('my-loans')).toContainText('Earning');
   /* Inside grace there is nothing to mark. The control does not appear at
      all rather than appearing and being refused, which is the difference
@@ -161,6 +162,7 @@ test('a lender takes the collateral once grace has run out', async ({ page, requ
   await signIn(page, lenderEmail);
   await page.getByRole('link', { name: 'Portfolio' }).click();
   await expect(page.getByTestId('attention-band')).toContainText('Past grace');
+  await page.getByTestId('side-lending').click();
   await page.getByRole('button', { name: 'Mark defaulted' }).first().click();
   await expect(page.getByTestId('my-loans')).toContainText('Defaulted');
 

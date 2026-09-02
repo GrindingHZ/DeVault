@@ -5,7 +5,7 @@ import { Inject } from '@nestjs/common';
 import { Money, currencyOf } from '../../../domain/shared/money';
 import { PrismaService } from '../../../infrastructure/persistence/prisma.service';
 
-const aud = currencyOf('USD');
+const usd = currencyOf('USD');
 
 export interface LoanBook {
   readonly outstandingCount: number;
@@ -51,7 +51,7 @@ export class LoanBookQuery {
 
     return {
       outstandingCount: outstanding._count,
-      outstandingPrincipal: Money.of(outstanding._sum.principalMinorUnits ?? 0n, aud),
+      outstandingPrincipal: Money.of(outstanding._sum.principalMinorUnits ?? 0n, usd),
       overdueCount: overdue,
       atRiskCount: atRisk,
       defaultedCount: defaulted,
@@ -74,8 +74,8 @@ export class LoanBookQuery {
     `;
     return rows.map((row) => ({
       vaultId: row.vault_id,
-      exposure: Money.of(row.exposure, aud),
-      insuredLimit: Money.of(row.insured_limit, aud),
+      exposure: Money.of(row.exposure, usd),
+      insuredLimit: Money.of(row.insured_limit, usd),
       receiptCount: Number(row.receipt_count),
     }));
   }

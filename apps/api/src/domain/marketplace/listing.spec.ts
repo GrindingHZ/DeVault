@@ -14,7 +14,7 @@ import { Offer, allowedOfferTransitions } from './offer';
 import type { OfferEvent, OfferStatus } from './offer';
 import type { ProtocolParameters } from './protocol-parameters';
 
-const aud = currencyOf('USD');
+const usd = currencyOf('USD');
 const now = Instant.fromEpochMilliseconds(1_700_000_000_000n);
 const later = now.plusMilliseconds(3_600_000n);
 
@@ -32,18 +32,18 @@ const parameters: ProtocolParameters = {
   liquidationFeeBasisPoints: 300,
   gracePeriodMs: 604_800_000n,
   statutoryHoldingPeriodMs: 2_592_000_000n,
-  dualAppraisalThreshold: Money.of(10_000_000n, aud),
+  dualAppraisalThreshold: Money.of(10_000_000n, usd),
   notesTransferable: false,
 };
 
-const appraisedValue = Money.of(500_000n, aud);
+const appraisedValue = Money.of(500_000n, usd);
 
 function listingIn(status: ListingStatus, offers: readonly Offer[] = []): Listing {
   return Listing.restore({
     id: listingIdOf('LST1'),
     borrowerAccountId: accountIdOf('BORROWER'),
     receiptId: receiptIdOf('R1'),
-    requestedPrincipal: Money.of(250_000n, aud),
+    requestedPrincipal: Money.of(250_000n, usd),
     maxAnnualPercentageRateBasisPoints: 2400,
     requestedDurationMs: 2_592_000_000n,
     expiresAt: now.plusMilliseconds(86_400_000n),
@@ -58,7 +58,7 @@ function offerIn(status: OfferStatus, id = 'OFF1', rate = 1800): Offer {
     id: offerIdOf(id),
     listingId: listingIdOf('LST1'),
     lenderAccountId: accountIdOf('LENDER'),
-    principal: Money.of(250_000n, aud),
+    principal: Money.of(250_000n, usd),
     annualPercentageRateBasisPoints: rate,
     durationMs: 2_592_000_000n,
     fundsHoldId: fundsHoldIdOf(`FH-${id}`),
@@ -111,7 +111,7 @@ describe('listing transitions', () => {
       id: listingIdOf('LST2'),
       borrowerAccountId: accountIdOf('BORROWER'),
       receiptId: receiptIdOf('R1'),
-      requestedPrincipal: Money.of(250_000n, aud),
+      requestedPrincipal: Money.of(250_000n, usd),
       maxAnnualPercentageRateBasisPoints: 2400,
       requestedDurationMs: 2_592_000_000n,
     };

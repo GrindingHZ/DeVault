@@ -25,7 +25,7 @@ export function describeSettlementPortContract(
   name: string,
   createSubject: () => Promise<SettlementPortTestSubject>,
 ): void {
-  const aud = currencyOf('USD');
+  const usd = currencyOf('USD');
 
   describe(`SettlementPort contract: ${name}`, () => {
     let subject: SettlementPortTestSubject;
@@ -42,7 +42,7 @@ export function describeSettlementPortContract(
       const account = await subject.createAccountWithBalance(10_000n);
       await subject.runInUnitOfWork((context) =>
         subject.port.hold(
-          { accountId: account, amount: Money.of(6000n, aud), reference: 'contract-hold' },
+          { accountId: account, amount: Money.of(6000n, usd), reference: 'contract-hold' },
           context,
         ),
       );
@@ -52,7 +52,7 @@ export function describeSettlementPortContract(
       await expect(
         subject.runInUnitOfWork((context) =>
           subject.port.hold(
-            { accountId: account, amount: Money.of(5000n, aud), reference: 'contract-hold-2' },
+            { accountId: account, amount: Money.of(5000n, usd), reference: 'contract-hold-2' },
             context,
           ),
         ),
@@ -64,7 +64,7 @@ export function describeSettlementPortContract(
       await expect(
         subject.runInUnitOfWork((context) =>
           subject.port.hold(
-            { accountId: account, amount: Money.of(101n, aud), reference: 'contract-over' },
+            { accountId: account, amount: Money.of(101n, usd), reference: 'contract-over' },
             context,
           ),
         ),
@@ -76,7 +76,7 @@ export function describeSettlementPortContract(
       const account = await subject.createAccountWithBalance(5000n);
       const hold = await subject.runInUnitOfWork((context) =>
         subject.port.hold(
-          { accountId: account, amount: Money.of(5000n, aud), reference: 'contract-refund' },
+          { accountId: account, amount: Money.of(5000n, usd), reference: 'contract-refund' },
           context,
         ),
       );
@@ -100,7 +100,7 @@ export function describeSettlementPortContract(
 
       const hold = await subject.runInUnitOfWork((context) =>
         subject.port.hold(
-          { accountId: lender, amount: Money.of(10_000n, aud), reference: 'contract-release' },
+          { accountId: lender, amount: Money.of(10_000n, usd), reference: 'contract-release' },
           context,
         ),
       );
@@ -108,8 +108,8 @@ export function describeSettlementPortContract(
         subject.port.releaseHold(
           hold,
           [
-            { accountId: borrower, amount: Money.of(9800n, aud) },
-            { accountId: feeCollector, amount: Money.of(200n, aud) },
+            { accountId: borrower, amount: Money.of(9800n, usd) },
+            { accountId: feeCollector, amount: Money.of(200n, usd) },
           ],
           'ORIGINATE_LOAN',
           context,
@@ -127,7 +127,7 @@ export function describeSettlementPortContract(
       const seller = await subject.createAccountWithBalance(0n);
       const hold = await subject.runInUnitOfWork((context) =>
         subject.port.hold(
-          { accountId: bidder, amount: Money.of(10_000n, aud), reference: 'contract-reason' },
+          { accountId: bidder, amount: Money.of(10_000n, usd), reference: 'contract-reason' },
           context,
         ),
       );
@@ -135,7 +135,7 @@ export function describeSettlementPortContract(
       const settlementRef = await subject.runInUnitOfWork((context) =>
         subject.port.releaseHold(
           hold,
-          [{ accountId: seller, amount: Money.of(10_000n, aud) }],
+          [{ accountId: seller, amount: Money.of(10_000n, usd) }],
           'SETTLE_LIQUIDATION',
           context,
         ),
@@ -151,11 +151,11 @@ export function describeSettlementPortContract(
       const borrower = await subject.createAccountWithBalance(0n);
       const hold = await subject.runInUnitOfWork((context) =>
         subject.port.hold(
-          { accountId: lender, amount: Money.of(2000n, aud), reference: 'contract-release-once' },
+          { accountId: lender, amount: Money.of(2000n, usd), reference: 'contract-release-once' },
           context,
         ),
       );
-      const distribution = [{ accountId: borrower, amount: Money.of(2000n, aud) }];
+      const distribution = [{ accountId: borrower, amount: Money.of(2000n, usd) }];
 
       const first = await subject.runInUnitOfWork((context) =>
         subject.port.releaseHold(hold, distribution, 'ORIGINATE_LOAN', context),
@@ -174,7 +174,7 @@ export function describeSettlementPortContract(
       const borrower = await subject.createAccountWithBalance(0n);
       const hold = await subject.runInUnitOfWork((context) =>
         subject.port.hold(
-          { accountId: lender, amount: Money.of(1000n, aud), reference: 'contract-mismatch' },
+          { accountId: lender, amount: Money.of(1000n, usd), reference: 'contract-mismatch' },
           context,
         ),
       );
@@ -183,7 +183,7 @@ export function describeSettlementPortContract(
         subject.runInUnitOfWork((context) =>
           subject.port.releaseHold(
             hold,
-            [{ accountId: borrower, amount: Money.of(999n, aud) }],
+            [{ accountId: borrower, amount: Money.of(999n, usd) }],
             'ORIGINATE_LOAN',
             context,
           ),
@@ -196,7 +196,7 @@ export function describeSettlementPortContract(
       const account = await subject.createAccountWithBalance(500n);
       const hold = await subject.runInUnitOfWork((context) =>
         subject.port.hold(
-          { accountId: account, amount: Money.of(500n, aud), reference: 'contract-ref' },
+          { accountId: account, amount: Money.of(500n, usd), reference: 'contract-ref' },
           context,
         ),
       );

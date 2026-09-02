@@ -539,7 +539,7 @@ async function issueReceipt(staff: DemoClient, borrowerEmail: string, item: Item
   const issued = await staff.call('POST', `/intakes/${intakeId}/issue-receipt`, {
     /* One policy covers the vault rather than the item, which is why every
        receipt issued here quotes the same reference. */
-    insurancePolicyReference: 'POL-SYD-2026-0114',
+    insurancePolicyReference: 'POL-NYC-2026-0114',
   });
   return identifierOf(issued);
 }

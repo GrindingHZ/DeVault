@@ -11,8 +11,8 @@
     "offerMinimumLiveMinutes": 10,
     "currency": "USD",
     "vault": "VAULT-DEMO-1",
-    "vaultCity": "Sydney",
-    "policy": "POL-SYD-2026-0114"
+    "vaultCity": "New York",
+    "policy": "POL-NYC-2026-0114"
   },
   "loanToValueByCategory": {
     "Bullion": 60,
@@ -248,7 +248,7 @@
     {
       "numeral": "( 003 )",
       "heading": "You get a receipt.",
-      "body": "One receipt, one sealed item, one insured position under policy POL-SYD-2026-0114. The receipt is the thing you borrow against. The object does not move again until you redeem it."
+      "body": "One receipt, one sealed item, one insured position under policy POL-NYC-2026-0114. The receipt is the thing you borrow against. The object does not move again until you redeem it."
     },
     {
       "numeral": "( 004 )",
@@ -269,7 +269,7 @@
         "label": "Receipt",
         "status": "Sealed",
         "statusColor": "#8b9aab",
-        "body": "Photographed, sealed, and insured under policy POL-SYD-2026-0114. The intake record is hashed at this point, so nothing about the object can be quietly edited later.",
+        "body": "Photographed, sealed, and insured under policy POL-NYC-2026-0114. The intake record is hashed at this point, so nothing about the object can be quietly edited later.",
         "fields": [
           {
             "label": "Appraised",
@@ -286,7 +286,7 @@
           },
           {
             "label": "Policy",
-            "value": "POL-SYD-2026-0114",
+            "value": "POL-NYC-2026-0114",
             "mono": true
           }
         ]
@@ -469,7 +469,7 @@
   ],
   "sectionCopy": {
     "heroEyebrow": "A pawn shop with a public order book",
-    "heroFactLine": "Vault VAULT-DEMO-1, Sydney. Rate ceiling 48% per year. Origination fee 2%.",
+    "heroFactLine": "Vault VAULT-DEMO-1, New York. Rate ceiling 48% per year. Origination fee 2%.",
     "heroCta": "See the order book",
     "howHeading": "Five steps, in order, and none of them are optional.",
     "howLede": "Thirty days is the term. The only thing that varies is the rate, and you do not set it, and neither do we.",
@@ -478,7 +478,7 @@
     "bookFootnote": "Demonstration book. Lenders are shown by reference only. An offer stays live for at least ten minutes and may not price above 48% per year.",
     "bookFigureNote": "Interest and total repayable are different numbers and people confuse them, so both are shown. Nothing compounds inside the term.",
     "lifeEyebrow": "The life of one receipt",
-    "vaultHeading": "Eight objects, sealed, in Sydney.",
+    "vaultHeading": "Eight objects, sealed, in New York.",
     "vaultLede": "Every one of them is a real position with a real appraisal behind it. Pick one to see what it borrows against.",
     "standInCaption": "DRAWN STAND-IN \u00b7 SEALED, NOT PHOTOGRAPHED HERE",
     "liquidityHeading": "We lend against 60 percent of a gold bar and 30 percent of a painting.",
@@ -488,14 +488,14 @@
     "custodyHeading": "This is not a pool, and it is not a protocol. Somebody is physically holding the watch.",
     "custodyLede": "Every loan on the book is secured by one identified object in one insured vault, and every dollar that moves is written twice in a ledger that will not let the two sides disagree.",
     "custodyCardHeading": "Custody is a physical fact",
-    "custodyCardBody": "The object is appraised, photographed, sealed and stored at VAULT-DEMO-1 in Sydney under policy POL-SYD-2026-0114. The intake record is hashed at the moment it is written, so it can be shown to a lender later and proved unedited.",
+    "custodyCardBody": "The object is appraised, photographed, sealed and stored at VAULT-DEMO-1 in New York under policy POL-NYC-2026-0114. The intake record is hashed at the moment it is written, so it can be shown to a lender later and proved unedited.",
     "holdCardHeading": "Your offer holds money, it does not spend it",
     "holdCardBody": "Placing an offer puts a hold on your balance. If you are outbid, the hold is yours to reclaim, and you release it yourself. Nothing moves your money without you asking for it, and every state change is recorded with who did it.",
     "chainEyebrow": "Built to move on chain",
     "chainParagraph": "Money, custody, identity and time each sit behind an interface. The ledger does not know whether a payment cleared through a bank or a chain, and the rules that decide what you owe do not change when that answer changes. Settling on Sui is a change of adapter. The loan book will not notice.",
     "footerClose": "Bring the object. Take the cheapest offer.",
     "footerMarkCaption": "The ledger, custody, and the name",
-    "footerFinePrint": "DeVault operates as a pawnbroker. Vault VAULT-DEMO-1, Sydney.",
+    "footerFinePrint": "DeVault operates as a pawnbroker. Vault VAULT-DEMO-1, New York.",
     "footerDemoNote": "Figures shown are for the seeded demonstration book.",
     "wordmark": "DEVAULT"
   },

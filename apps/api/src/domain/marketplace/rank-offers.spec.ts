@@ -13,14 +13,14 @@ import { Offer } from './offer';
 import type { OfferStatus } from './offer';
 import { rankOffers } from './rank-offers';
 
-const aud = currencyOf('USD');
+const usd = currencyOf('USD');
 const now = Instant.fromEpochMilliseconds(1_700_000_000_000n);
 
 const listing = Listing.restore({
   id: listingIdOf('LST1'),
   borrowerAccountId: accountIdOf('BORROWER'),
   receiptId: receiptIdOf('R1'),
-  requestedPrincipal: Money.of(250_000n, aud),
+  requestedPrincipal: Money.of(250_000n, usd),
   maxAnnualPercentageRateBasisPoints: 4800,
   requestedDurationMs: 30n * 24n * 60n * 60n * 1000n,
   expiresAt: now.plusMilliseconds(86_400_000n),
@@ -40,7 +40,7 @@ function offerWith(input: {
     id: offerIdOf(input.id),
     listingId: listingIdOf('LST1'),
     lenderAccountId: accountIdOf(`L-${input.id}`),
-    principal: Money.of(input.principalMinorUnits, aud),
+    principal: Money.of(input.principalMinorUnits, usd),
     annualPercentageRateBasisPoints: input.rateBasisPoints,
     durationMs: 30n * 24n * 60n * 60n * 1000n,
     fundsHoldId: fundsHoldIdOf(`FH-${input.id}`),

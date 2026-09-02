@@ -8,7 +8,7 @@ import { createTestApplication } from './create-test-application';
 import type { TestApplication } from './create-test-application';
 import { expectLedgerBalances } from './ledger-assertions';
 
-const aud = currencyOf('USD');
+const usd = currencyOf('USD');
 const vaultId = 'VAULT-RRACE-1';
 const password = 'a-long-enough-password';
 const oneDay = 24n * 60n * 60n * 1000n;
@@ -150,7 +150,7 @@ describe('repayment race and staleness', () => {
     const stale = await repayLoan.execute({
       loanId: loanIdOf(loan.loanId),
       requestedBy: accountIdOf(loan.borrower.accountId),
-      payment: Money.of(250_000n, aud),
+      payment: Money.of(250_000n, usd),
       quotedAt,
     });
     expect(stale.ok).toBe(false);
@@ -164,7 +164,7 @@ describe('repayment race and staleness', () => {
     const fresh = await repayLoan.execute({
       loanId: loanIdOf(loan.loanId),
       requestedBy: accountIdOf(loan.borrower.accountId),
-      payment: Money.of(251_232n, aud),
+      payment: Money.of(251_232n, usd),
       quotedAt: harness.clock.now(),
     });
     expect(fresh.ok).toBe(true);
@@ -182,7 +182,7 @@ describe('repayment race and staleness', () => {
         repayLoan.execute({
           loanId: loanIdOf(loan.loanId),
           requestedBy: accountIdOf(loan.borrower.accountId),
-          payment: Money.of(250_000n, aud),
+          payment: Money.of(250_000n, usd),
           quotedAt,
         });
       const results = await Promise.all([repayOnce(), repayOnce()]);

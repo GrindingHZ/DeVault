@@ -3,12 +3,12 @@ import { Instant } from '../shared/instant';
 import { Money, currencyOf } from '../shared/money';
 import { MILLISECONDS_PER_YEAR, calculateAccruedInterest } from './interest-calculator';
 
-const aud = currencyOf('USD');
+const usd = currencyOf('USD');
 const startedAt = Instant.fromEpochMilliseconds(1_700_000_000_000n);
 const oneDay = 24n * 60n * 60n * 1000n;
 const maturesAt = startedAt.plusMilliseconds(30n * oneDay);
 
-function interestAt(now: Instant, principal = Money.of(250_000n, aud), rate = 1_800): Money {
+function interestAt(now: Instant, principal = Money.of(250_000n, usd), rate = 1_800): Money {
   return calculateAccruedInterest(principal, rate, startedAt, maturesAt, now);
 }
 
@@ -30,7 +30,7 @@ describe('calculateAccruedInterest', () => {
     const yearStart = Instant.fromEpochMilliseconds(0n);
     const yearEnd = yearStart.plusMilliseconds(MILLISECONDS_PER_YEAR);
     const interest = calculateAccruedInterest(
-      Money.of(1_000_000n, aud),
+      Money.of(1_000_000n, usd),
       1_800,
       yearStart,
       yearEnd,
@@ -54,7 +54,7 @@ describe('calculateAccruedInterest', () => {
     // minor unit, so the exact figure is a fraction and the result is zero.
     const oneHour = 60n * 60n * 1000n;
     const interest = calculateAccruedInterest(
-      Money.of(1n, aud),
+      Money.of(1n, usd),
       1,
       startedAt,
       maturesAt,
@@ -64,7 +64,7 @@ describe('calculateAccruedInterest', () => {
   });
 
   it('does not overflow on a large principal held for a full term', () => {
-    const largePrincipal = Money.of(10_000_000_000n, aud);
+    const largePrincipal = Money.of(10_000_000_000n, usd);
     const yearStart = Instant.fromEpochMilliseconds(0n);
     const yearEnd = yearStart.plusMilliseconds(MILLISECONDS_PER_YEAR);
     const interest = calculateAccruedInterest(largePrincipal, 2_400, yearStart, yearEnd, yearEnd);
@@ -75,10 +75,10 @@ describe('calculateAccruedInterest', () => {
   });
 
   it('rejects a negative rate', () => {
-    expect(() => interestAt(maturesAt, Money.of(1_000n, aud), -1)).toThrow(RangeError);
+    expect(() => interestAt(maturesAt, Money.of(1_000n, usd), -1)).toThrow(RangeError);
   });
 
   it('keeps the principal currency', () => {
-    expect(interestAt(maturesAt).currency).toBe(aud);
+    expect(interestAt(maturesAt).currency).toBe(usd);
   });
 });

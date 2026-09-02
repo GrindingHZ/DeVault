@@ -10,7 +10,7 @@ import { createTestApplication } from './create-test-application';
 import type { TestApplication } from './create-test-application';
 import { expectLedgerBalances } from './ledger-assertions';
 
-const aud = currencyOf('USD');
+const usd = currencyOf('USD');
 const vaultId = 'VAULT-RACE-2';
 const raceRounds = 20;
 
@@ -84,7 +84,7 @@ describe('offer race', () => {
           {
             fromAccountId: platformAccountIds.float,
             toAccountId: lender,
-            amount: Money.of(250_000n, aud),
+            amount: Money.of(250_000n, usd),
             reference: `seed-${round}`,
           },
           context,
@@ -100,7 +100,7 @@ describe('offer race', () => {
         placeOffer.execute({
           listingId: listingIdOf(listingId),
           lenderAccountId: lender,
-          principal: Money.of(250_000n, aud),
+          principal: Money.of(250_000n, usd),
           annualPercentageRateBasisPoints: 1800,
           durationMs: 2_592_000_000n,
           expiresAt,

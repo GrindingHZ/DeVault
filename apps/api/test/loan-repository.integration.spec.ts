@@ -17,7 +17,7 @@ import {
 import { createTestApplication } from './create-test-application';
 import type { TestApplication } from './create-test-application';
 
-const aud = currencyOf('USD');
+const usd = currencyOf('USD');
 const startedAt = Instant.fromEpochMilliseconds(1_700_000_000_000n);
 
 function originated(id: string) {
@@ -25,7 +25,7 @@ function originated(id: string) {
     id: loanIdOf(id),
     receiptId: receiptIdOf(`RCP-${id}`),
     borrowerAccountId: accountIdOf('REPO-BORROWER'),
-    principal: Money.of(250_000n, aud),
+    principal: Money.of(250_000n, usd),
     annualPercentageRateBasisPoints: 1_800,
     startedAt,
     durationMs: 2_592_000_000n,
@@ -76,7 +76,7 @@ describe('loan repository', () => {
     const reloaded = await unitOfWork.run((context) => loans.findById(loanIdOf('L1'), context));
     expect(reloaded).not.toBeNull();
     expect(reloaded?.status).toBe('ACTIVE');
-    expect(reloaded?.principal.equals(Money.of(250_000n, aud))).toBe(true);
+    expect(reloaded?.principal.equals(Money.of(250_000n, usd))).toBe(true);
     expect(reloaded?.maturesAt.epochMilliseconds).toBe(1_700_000_000_000n + 2_592_000_000n);
     expect(reloaded?.lenderNoteId).toBe('LN-L1');
     expect(reloaded?.originationSettlementRef.reference).toBe('TX-L1');

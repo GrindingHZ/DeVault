@@ -12,7 +12,7 @@ import { Money, currencyOf } from '../shared/money';
 import { Liquidation, allowedLiquidationTransitions, canBeScheduled } from './liquidation';
 import type { Bid, LiquidationEvent, LiquidationStatus } from './liquidation';
 
-const aud = currencyOf('USD');
+const usd = currencyOf('USD');
 const now = Instant.fromEpochMilliseconds(1_700_000_000_000n);
 const oneDay = 24n * 60n * 60n * 1000n;
 const closesAt = now.plusMilliseconds(7n * oneDay);
@@ -23,7 +23,7 @@ function scheduled(): Liquidation {
     id: liquidationIdOf('LIQ-1'),
     loanId: loanIdOf('LOAN-1'),
     receiptId: receiptIdOf('RCP-1'),
-    reservePrice: Money.of(200_000n, aud),
+    reservePrice: Money.of(200_000n, usd),
   });
 }
 
@@ -31,7 +31,7 @@ function bidOf(id: string, minorUnits: bigint, bidder = 'BIDDER-1'): Bid {
   return {
     id,
     bidderAccountId: accountIdOf(bidder),
-    amount: Money.of(minorUnits, aud),
+    amount: Money.of(minorUnits, usd),
     fundsHoldId: fundsHoldIdOf(`HOLD-${id}`),
     placedAt: now,
   };
@@ -181,7 +181,7 @@ describe('allowedLiquidationTransitions', () => {
       id: liquidationIdOf('LIQ-1'),
       loanId: loanIdOf('LOAN-1'),
       receiptId: receiptIdOf('RCP-1'),
-      reservePrice: Money.of(200_000n, aud),
+      reservePrice: Money.of(200_000n, usd),
       status: status as LiquidationStatus,
       opensAt: null,
       closesAt: null,

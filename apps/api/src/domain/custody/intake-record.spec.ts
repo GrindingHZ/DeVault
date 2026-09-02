@@ -12,8 +12,8 @@ import { Appraisal } from './appraisal';
 import { IntakeRecord } from './intake-record';
 import { canonicalIntakeRecordHash } from './intake-record-hash';
 
-const aud = currencyOf('USD');
-const threshold = Money.of(1_000_000n, aud);
+const usd = currencyOf('USD');
+const threshold = Money.of(1_000_000n, usd);
 
 function draftIntake(): IntakeRecord {
   const begun = IntakeRecord.begin({
@@ -42,7 +42,7 @@ function appraisalOf(value: bigint, appraiser: string): Appraisal {
     id: appraisalIdOf(`AP-${appraiser}-${value}`),
     intakeId: intakeIdOf('I1'),
     appraiserId: staffIdOf(appraiser),
-    value: Money.of(value, aud),
+    value: Money.of(value, usd),
     method: 'spot price times weight',
     comparableReferences: 'LBMA fix',
     appraisedAt: Instant.fromEpochMilliseconds(1_700_000_000_000n),

@@ -19,7 +19,7 @@ import { IssueReceiptUseCase } from '../src/modules/custody/application/issue-re
 import { createTestApplication } from './create-test-application';
 import type { TestApplication } from './create-test-application';
 
-const aud = currencyOf('USD');
+const usd = currencyOf('USD');
 const vaultId = vaultIdOf('RACE-VAULT');
 const raceRounds = 20;
 
@@ -74,13 +74,13 @@ describe('issue receipt race', () => {
         id: appraisalIdOf(`RACE-AP-${round}-${suffix}`),
         intakeId,
         appraiserId: staffIdOf('RACE-S1'),
-        value: Money.of(600n, aud),
+        value: Money.of(600n, usd),
         method: 'spot',
         comparableReferences: '',
         appraisedAt: Instant.fromEpochMilliseconds(1_700_000_000_000n),
       });
       await appraisals.save(appraisal, context);
-      const sealed = withSeal.value.seal([appraisal], Money.of(1_000_000n, aud));
+      const sealed = withSeal.value.seal([appraisal], Money.of(1_000_000n, usd));
       if (!sealed.ok) {
         throw new Error('setup failed');
       }
@@ -98,7 +98,7 @@ describe('issue receipt race', () => {
             id: vaultId,
             name: 'Race vault',
             city: 'New York',
-            insuredLimit: Money.of(1000n, aud),
+            insuredLimit: Money.of(1000n, usd),
           }),
           context,
         ),
@@ -140,7 +140,7 @@ describe('issue receipt race', () => {
             id: vaultId,
             name: 'Race vault',
             city: 'New York',
-            insuredLimit: Money.of(1000n, aud),
+            insuredLimit: Money.of(1000n, usd),
           }),
           context,
         ),

@@ -3,7 +3,7 @@ import { Money, currencyOf } from '../shared/money';
 import { assertWithinLoanToValue } from './loan-to-value-policy';
 import type { ProtocolParameters } from './protocol-parameters';
 
-const aud = currencyOf('USD');
+const usd = currencyOf('USD');
 
 const parameters: ProtocolParameters = {
   maxLoanToValueBasisPointsByCategory: {
@@ -19,22 +19,22 @@ const parameters: ProtocolParameters = {
   liquidationFeeBasisPoints: 300,
   gracePeriodMs: 604_800_000n,
   statutoryHoldingPeriodMs: 2_592_000_000n,
-  dualAppraisalThreshold: Money.of(10_000_000n, aud),
+  dualAppraisalThreshold: Money.of(10_000_000n, usd),
   notesTransferable: false,
 };
 
 describe('assertWithinLoanToValue', () => {
-  const appraisedValue = Money.of(500_000n, aud);
+  const appraisedValue = Money.of(500_000n, usd);
 
   it('accepts principal at the category cap', () => {
     expect(
-      assertWithinLoanToValue(Money.of(300_000n, aud), appraisedValue, 'BULLION', parameters).ok,
+      assertWithinLoanToValue(Money.of(300_000n, usd), appraisedValue, 'BULLION', parameters).ok,
     ).toBe(true);
   });
 
   it('rejects principal one unit past the cap with the maximum in the error', () => {
     const result = assertWithinLoanToValue(
-      Money.of(300_001n, aud),
+      Money.of(300_001n, usd),
       appraisedValue,
       'BULLION',
       parameters,
@@ -57,10 +57,10 @@ describe('assertWithinLoanToValue', () => {
     ['ART', 150_000n],
   ] as const)('caps %s at %s minor units of a 500000 appraisal', (category, cap) => {
     expect(
-      assertWithinLoanToValue(Money.of(cap, aud), appraisedValue, category, parameters).ok,
+      assertWithinLoanToValue(Money.of(cap, usd), appraisedValue, category, parameters).ok,
     ).toBe(true);
     const past = assertWithinLoanToValue(
-      Money.of(cap + 1n, aud),
+      Money.of(cap + 1n, usd),
       appraisedValue,
       category,
       parameters,
@@ -78,7 +78,7 @@ describe('assertWithinLoanToValue', () => {
     delete (unpriced.maxLoanToValueBasisPointsByCategory as Record<string, number>).ART;
 
     expect(() =>
-      assertWithinLoanToValue(Money.of(1n, aud), appraisedValue, 'ART', unpriced),
+      assertWithinLoanToValue(Money.of(1n, usd), appraisedValue, 'ART', unpriced),
     ).toThrow('No loan to value cap is configured for ART');
   });
 });

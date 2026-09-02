@@ -9,7 +9,7 @@ import { createTestApplication } from './create-test-application';
 import type { TestApplication } from './create-test-application';
 import { expectLedgerBalances } from './ledger-assertions';
 
-const aud = currencyOf('USD');
+const usd = currencyOf('USD');
 const vaultId = 'VAULT-LRACE-1';
 const password = 'a-long-enough-password';
 const oneDay = 24n * 60n * 60n * 1000n;
@@ -187,7 +187,7 @@ describe('liquidation races', () => {
         placeBid.execute({
           liquidationId: liquidationIdOf(sale.liquidationId),
           bidderAccountId: accountIdOf(bidder.accountId),
-          amount: Money.of(250_000n, aud),
+          amount: Money.of(250_000n, usd),
         });
       const bidders = sale.bidders;
       const results = await Promise.all([bidOnce(bidders[0]!), bidOnce(bidders[1]!)]);
@@ -215,7 +215,7 @@ describe('liquidation races', () => {
       const placed = await placeBid.execute({
         liquidationId: liquidationIdOf(sale.liquidationId),
         bidderAccountId: accountIdOf(bidder.accountId),
-        amount: Money.of(300_000n, aud),
+        amount: Money.of(300_000n, usd),
       });
       expect(placed.ok, `round ${round}`).toBe(true);
 

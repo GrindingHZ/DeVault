@@ -12,7 +12,7 @@ import type { SettlementRef } from '../shared/settlement-ref';
 import { Loan, allowedLoanTransitions } from './loan';
 import type { LoanEvent, LoanStatus } from './loan';
 
-const aud = currencyOf('USD');
+const usd = currencyOf('USD');
 const startedAt = Instant.fromEpochMilliseconds(1_700_000_000_000n);
 const settlementRef: SettlementRef = {
   kind: 'ledger',
@@ -25,7 +25,7 @@ function originate(overrides: Partial<Parameters<typeof Loan.originate>[0]> = {}
     id: loanIdOf('LOAN-1'),
     receiptId: receiptIdOf('RCP-1'),
     borrowerAccountId: accountIdOf('BORROWER-1'),
-    principal: Money.of(250_000n, aud),
+    principal: Money.of(250_000n, usd),
     annualPercentageRateBasisPoints: 1_800,
     startedAt,
     durationMs: 2_592_000_000n,
@@ -72,7 +72,7 @@ describe('Loan.originate', () => {
   });
 
   it('rejects a non positive principal', () => {
-    expect(() => originate({ principal: Money.zero(aud) })).toThrow(
+    expect(() => originate({ principal: Money.zero(usd) })).toThrow(
       'A loan principal must be positive',
     );
   });
@@ -92,16 +92,16 @@ describe('Loan repayment', () => {
 
   it('owes the principal alone at origination', () => {
     const loan = originate();
-    expect(loan.calculateAmountDue(startedAt).equals(Money.of(250_000n, aud))).toBe(true);
+    expect(loan.calculateAmountDue(startedAt).equals(Money.of(250_000n, usd))).toBe(true);
   });
 
   it('owes principal plus accrued interest during the term', () => {
     const loan = originate();
     const tenDaysIn = startedAt.plusMilliseconds(10n * oneDay);
     const due = loan.calculateAmountDue(tenDaysIn);
-    expect(due.isGreaterThan(Money.of(250_000n, aud))).toBe(true);
+    expect(due.isGreaterThan(Money.of(250_000n, usd))).toBe(true);
     expect(
-      due.minus(loan.calculateAccruedInterest(tenDaysIn)).equals(Money.of(250_000n, aud)),
+      due.minus(loan.calculateAccruedInterest(tenDaysIn)).equals(Money.of(250_000n, usd)),
     ).toBe(true);
   });
 
@@ -131,7 +131,7 @@ describe('Loan repayment', () => {
     const tenDaysIn = startedAt.plusMilliseconds(10n * oneDay);
     const due = loan.calculateAmountDue(tenDaysIn);
 
-    const result = loan.recordRepayment(due.minus(Money.of(1n, aud)), tenDaysIn);
+    const result = loan.recordRepayment(due.minus(Money.of(1n, usd)), tenDaysIn);
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error.code).toBe('REPAYMENT_AMOUNT_INSUFFICIENT');
@@ -220,7 +220,7 @@ describe('Loan default', () => {
         id: loanIdOf('LOAN-1'),
         receiptId: receiptIdOf('RCP-1'),
         borrowerAccountId: accountIdOf('BORROWER-1'),
-        principal: Money.of(250_000n, aud),
+        principal: Money.of(250_000n, usd),
         annualPercentageRateBasisPoints: 1_800,
         startedAt,
         maturesAt: startedAt.plusMilliseconds(2_592_000_000n),
@@ -260,7 +260,7 @@ describe('allowedLoanTransitions', () => {
       id: loanIdOf('LOAN-1'),
       receiptId: receiptIdOf('RCP-1'),
       borrowerAccountId: accountIdOf('BORROWER-1'),
-      principal: Money.of(250_000n, aud),
+      principal: Money.of(250_000n, usd),
       annualPercentageRateBasisPoints: 1_800,
       startedAt,
       maturesAt: startedAt.plusMilliseconds(2_592_000_000n),

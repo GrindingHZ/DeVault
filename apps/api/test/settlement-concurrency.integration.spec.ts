@@ -9,7 +9,7 @@ import { createTestApplication } from './create-test-application';
 import type { TestApplication } from './create-test-application';
 import { expectLedgerBalances } from './ledger-assertions';
 
-const aud = currencyOf('USD');
+const usd = currencyOf('USD');
 const raceRounds = 20;
 
 describe('settlement concurrency', () => {
@@ -34,7 +34,7 @@ describe('settlement concurrency', () => {
         {
           fromAccountId: platformAccountIds.float,
           toAccountId: accountId,
-          amount: Money.of(minorUnits + 1n, aud),
+          amount: Money.of(minorUnits + 1n, usd),
           reference: `race-seed-${round}`,
         },
         context,
@@ -44,7 +44,7 @@ describe('settlement concurrency', () => {
     // race exercises the balance row lock, not account creation.
     const warmup = await unitOfWork.run((context) =>
       adapter.hold(
-        { accountId, amount: Money.of(1n, aud), reference: `race-warmup-${round}` },
+        { accountId, amount: Money.of(1n, usd), reference: `race-warmup-${round}` },
         context,
       ),
     );
@@ -54,7 +54,7 @@ describe('settlement concurrency', () => {
         {
           fromAccountId: accountId,
           toAccountId: platformAccountIds.float,
-          amount: Money.of(1n, aud),
+          amount: Money.of(1n, usd),
           reference: `race-trim-${round}`,
         },
         context,
@@ -70,13 +70,13 @@ describe('settlement concurrency', () => {
       const attempts = await Promise.allSettled([
         unitOfWork.run((context) =>
           adapter.hold(
-            { accountId, amount: Money.of(1000n, aud), reference: `race-a-${round}` },
+            { accountId, amount: Money.of(1000n, usd), reference: `race-a-${round}` },
             context,
           ),
         ),
         unitOfWork.run((context) =>
           adapter.hold(
-            { accountId, amount: Money.of(1000n, aud), reference: `race-b-${round}` },
+            { accountId, amount: Money.of(1000n, usd), reference: `race-b-${round}` },
             context,
           ),
         ),
@@ -84,7 +84,7 @@ describe('settlement concurrency', () => {
 
       const fulfilled = attempts.filter((attempt) => attempt.status === 'fulfilled');
       expect(fulfilled, `round ${round}`).toHaveLength(1);
-      expect((await adapter.availableBalance(accountId, aud)).minorUnits).toBe(0n);
+      expect((await adapter.availableBalance(accountId, usd)).minorUnits).toBe(0n);
       await expectLedgerBalances(harness.prisma).toSumToZero();
     }
   }, 240_000);

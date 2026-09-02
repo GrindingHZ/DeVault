@@ -3,7 +3,7 @@ import { receiptIdOf, vaultIdOf } from '../shared/identifiers';
 import { Money, currencyOf } from '../shared/money';
 import { detectInventoryDrift, detectLedgerDrift } from './reconciliation-run';
 
-const aud = currencyOf('USD');
+const usd = currencyOf('USD');
 const vaultId = vaultIdOf('VAULT-1');
 
 describe('detectInventoryDrift', () => {
@@ -59,13 +59,13 @@ describe('detectInventoryDrift', () => {
 
 describe('detectLedgerDrift', () => {
   it('reports nothing when every transaction nets to zero and so does the whole', () => {
-    expect(detectLedgerDrift([], Money.zero(aud))).toEqual([]);
+    expect(detectLedgerDrift([], Money.zero(usd))).toEqual([]);
   });
 
   it('reports a transaction whose entries do not net to zero', () => {
     const drift = detectLedgerDrift(
-      [{ ledgerTransactionId: 'TX-1', net: Money.of(1n, aud) }],
-      Money.zero(aud),
+      [{ ledgerTransactionId: 'TX-1', net: Money.of(1n, usd) }],
+      Money.zero(usd),
     );
     expect(drift).toHaveLength(1);
     expect(drift[0]?.kind).toBe('LEDGER_TRANSACTION_IMBALANCE');
@@ -75,7 +75,7 @@ describe('detectLedgerDrift', () => {
   });
 
   it('reports a ledger that does not sum to zero', () => {
-    const drift = detectLedgerDrift([], Money.of(-5n, aud));
+    const drift = detectLedgerDrift([], Money.of(-5n, usd));
     expect(drift).toHaveLength(1);
     expect(drift[0]?.kind).toBe('LEDGER_GLOBAL_IMBALANCE');
     expect(drift[0]?.observed).toBe('-5');
@@ -83,8 +83,8 @@ describe('detectLedgerDrift', () => {
 
   it('reports both when one bad transaction unbalances the whole', () => {
     const drift = detectLedgerDrift(
-      [{ ledgerTransactionId: 'TX-1', net: Money.of(1n, aud) }],
-      Money.of(1n, aud),
+      [{ ledgerTransactionId: 'TX-1', net: Money.of(1n, usd) }],
+      Money.of(1n, usd),
     );
     expect(drift.map((row) => row.kind)).toEqual([
       'LEDGER_TRANSACTION_IMBALANCE',

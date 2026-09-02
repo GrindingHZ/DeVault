@@ -6,7 +6,7 @@ import { Money, currencyOf } from '../shared/money';
 import type { Distribution } from '../shared/settlement-ref';
 import { distributeLiquidationProceeds } from './liquidation-waterfall';
 
-const aud = currencyOf('USD');
+const usd = currencyOf('USD');
 const recipients = {
   noteHolder: accountIdOf('LENDER-1'),
   borrower: accountIdOf('BORROWER-1'),
@@ -27,8 +27,8 @@ function amountFor(distributions: readonly Distribution[], accountId: string): b
 describe('distributeLiquidationProceeds', () => {
   it('pays the lender, takes a fee, and returns the surplus when the sale beats the debt', () => {
     const distributions = distributeLiquidationProceeds(
-      Money.of(300_000n, aud),
-      Money.of(250_000n, aud),
+      Money.of(300_000n, usd),
+      Money.of(250_000n, usd),
       recipients,
       liquidationFeeBasisPoints,
     );
@@ -42,8 +42,8 @@ describe('distributeLiquidationProceeds', () => {
 
   it('gives the lender everything and nobody else anything when the sale falls short', () => {
     const distributions = distributeLiquidationProceeds(
-      Money.of(200_000n, aud),
-      Money.of(250_000n, aud),
+      Money.of(200_000n, usd),
+      Money.of(250_000n, usd),
       recipients,
       liquidationFeeBasisPoints,
     );
@@ -57,8 +57,8 @@ describe('distributeLiquidationProceeds', () => {
 
   it('leaves nothing over when the sale matches the debt exactly', () => {
     const distributions = distributeLiquidationProceeds(
-      Money.of(250_000n, aud),
-      Money.of(250_000n, aud),
+      Money.of(250_000n, usd),
+      Money.of(250_000n, usd),
       recipients,
       liquidationFeeBasisPoints,
     );
@@ -71,8 +71,8 @@ describe('distributeLiquidationProceeds', () => {
 
   it('always carries the rounding line, even at zero', () => {
     const distributions = distributeLiquidationProceeds(
-      Money.of(300_000n, aud),
-      Money.of(250_000n, aud),
+      Money.of(300_000n, usd),
+      Money.of(250_000n, usd),
       recipients,
       liquidationFeeBasisPoints,
     );
@@ -88,8 +88,8 @@ describe('distributeLiquidationProceeds', () => {
     // surplus takes the whole unit and rounding stays empty. The property
     // test below is what proves no arrangement can leak one.
     const distributions = distributeLiquidationProceeds(
-      Money.of(250_001n, aud),
-      Money.of(250_000n, aud),
+      Money.of(250_001n, usd),
+      Money.of(250_000n, usd),
       recipients,
       liquidationFeeBasisPoints,
     );
@@ -107,8 +107,8 @@ describe('distributeLiquidationProceeds', () => {
         fc.integer({ min: 0, max: 10_000 }),
         (proceeds, owed, feeBasisPoints) => {
           const distributions = distributeLiquidationProceeds(
-            Money.of(proceeds, aud),
-            Money.of(owed, aud),
+            Money.of(proceeds, usd),
+            Money.of(owed, usd),
             recipients,
             feeBasisPoints,
           );

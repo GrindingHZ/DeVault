@@ -80,8 +80,17 @@ export class VaultController {
     const photographed = await this.photographs.whichHavePhotographs(
       receipts.map((receipt) => receipt.id),
     );
+    const holders = await this.inventoryQuery.holderLabels(
+      receipts.map((receipt) => receipt.holderAccountId),
+    );
     return {
-      items: receipts.map((receipt) => toReceiptResponse(receipt, photographed.has(receipt.id))),
+      items: receipts.map((receipt) =>
+        toReceiptResponse(
+          receipt,
+          photographed.has(receipt.id),
+          holders.get(receipt.holderAccountId) ?? null,
+        ),
+      ),
     };
   }
 

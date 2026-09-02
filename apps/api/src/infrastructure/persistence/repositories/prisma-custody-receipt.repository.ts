@@ -82,6 +82,7 @@ export class PrismaCustodyReceiptRepository implements CustodyReceiptRepository 
       appraiserId: receipt.appraiserId,
       itemCategory: receipt.itemCategory,
       itemDescription: receipt.itemDescription,
+      serialNumbers: [...receipt.serialNumbers],
       insurancePolicyReference: receipt.insurancePolicyReference,
       status: receipt.status,
       encumberedByLoanId: receipt.encumberedByLoanId,

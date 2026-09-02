@@ -159,17 +159,21 @@ test('a borrower repays a matured loan and the item comes back', async ({ page, 
   expect(advanced.status()).toBe(201);
 
   await signIn(page, borrowerEmail);
-  await page.getByRole('link', { name: 'My loans' }).click();
-  await expect(page.getByTestId('my-loans')).toContainText('Running');
+  await page.getByRole('link', { name: 'Portfolio' }).click();
+  await expect(page.getByTestId('portfolio-open')).toContainText('Running');
+  await expect(page.getByTestId('portfolio-open')).toContainText('at 18.00% p.a.');
 
+  /* The quote opens under the table rather than on its own screen, so the
+     borrower never loses sight of the rest of what they owe. */
+  await page.getByRole('button', { name: 'Repay', exact: true }).click();
   await expect(page.getByTestId('payoff-total')).toContainText('AUD 2,512.32');
   await expect(page.getByTestId('payoff-interest')).toContainText('AUD 12.32');
   await expect(page.getByTestId('payoff-countdown')).toContainText('seconds');
 
   await page.getByRole('button', { name: 'Repay and release the item' }).click();
-  await expect(page.getByTestId('my-loans')).toContainText('Repaid');
+  await expect(page.getByTestId('portfolio-open')).toContainText('Repaid');
 
-  await page.getByRole('link', { name: 'My receipts' }).click();
+  await page.getByRole('link', { name: 'My items' }).click();
   await expect(page.getByTestId('my-receipts')).toContainText('In the vault');
 
   await page.getByRole('link', { name: 'Wallet' }).click();

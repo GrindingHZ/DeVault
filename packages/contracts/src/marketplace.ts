@@ -72,6 +72,17 @@ export const listingSummarySchema = listingResponseSchema.extend({
      basis points. Computed here because it is the first thing a lender wants
      and the last thing they should have to work out. */
   loanToValueBasisPoints: z.number().int().nonnegative(),
+  /* The cheapest offer standing right now, which is what the borrower would
+     pay if they accepted. Null means nobody has offered yet. It is nullable
+     rather than absent so a rail can tell the difference between no offers
+     and no answer, and never report the first when it means the second. */
+  bestOfferRateBasisPoints: z.number().int().nullable(),
+  /* The most this category may be lent against, as a share of the appraisal.
+     Sent because the loan to value above means nothing without it: the same
+     percentage is conservative against bullion and at the limit against art.
+     It comes from the protocol parameters, so the client never holds a second
+     copy of a policy that can be edited. */
+  categoryMaxLoanToValueBasisPoints: z.number().int().positive(),
 });
 
 export type ListingSummary = z.infer<typeof listingSummarySchema>;
@@ -90,8 +101,29 @@ export const listingsPageResponseSchema = z.object({
 
 export type ListingsPageResponse = z.infer<typeof listingsPageResponseSchema>;
 
+/* A borrower's own listing, which is not the same shape as a public one. It
+   names the item rather than the receipt, and carries what the book currently
+   offers, because the question about your own listing is what accepting would
+   cost you today. */
+export const myListingResponseSchema = listingResponseSchema.extend({
+  itemDescription: z.string(),
+  itemCategory: itemCategorySchema,
+  /* Whether a photograph exists to fetch from `/receipts/{receiptId}/photo`.
+     The bytes are behind their own authorisation, so this only says whether
+     asking is worthwhile. */
+  hasPhotograph: z.boolean(),
+  bestOfferRateBasisPoints: z.number().int().nullable(),
+  offerCount: z.number().int().nonnegative(),
+});
+
+export type MyListingResponse = z.infer<typeof myListingResponseSchema>;
+
 export const myListingsResponseSchema = z.object({
-  items: z.array(listingResponseSchema),
+  items: z.array(myListingResponseSchema),
+  /* The server's clock when it answered. How long a listing has left is
+     worked out against this rather than the browser: a demo process runs
+     weeks ahead (docs/10-flows.md flow 15). */
+  asOf: z.iso.datetime(),
 });
 
 export type MyListingsResponse = z.infer<typeof myListingsResponseSchema>;
@@ -105,8 +137,19 @@ export const placeOfferRequestSchema = z.object({
 
 export type PlaceOfferRequest = z.infer<typeof placeOfferRequestSchema>;
 
+/* The item the offer stands against. An offer without it is an amount held
+   against an identifier, which is what the lender's own list used to be. */
+export const myOfferResponseSchema = offerResponseSchema.extend({
+  itemDescription: z.string(),
+  receiptId: z.string(),
+  hasPhotograph: z.boolean(),
+});
+
+export type MyOfferResponse = z.infer<typeof myOfferResponseSchema>;
+
 export const myOffersResponseSchema = z.object({
-  items: z.array(offerResponseSchema),
+  items: z.array(myOfferResponseSchema),
+  asOf: z.iso.datetime(),
 });
 
 export type MyOffersResponse = z.infer<typeof myOffersResponseSchema>;

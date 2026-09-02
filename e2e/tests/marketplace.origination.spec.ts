@@ -121,44 +121,59 @@ test('a borrower accepts an offer and both sides see the loan', async ({
   await fundAccount(request, loserEmail, '300000');
 
   await signIn(page, borrowerEmail);
-  await page.getByRole('link', { name: 'My receipts' }).click();
+  await page.getByRole('link', { name: 'My items' }).click();
   await page.getByRole('button', { name: 'List' }).click();
   await page.getByTestId('list-principal').fill('2500.00');
   await page.getByTestId('list-submit').click();
-  await expect(page.getByTestId('my-listings')).toContainText('Taking offers');
+  await expect(page.getByTestId('portfolio-open')).toContainText('Taking offers');
 
-  await page.getByRole('link', { name: 'My listings' }).click();
-  const listingLink = page.getByTestId('my-listings').getByRole('link').first();
-  const listingId = (await listingLink.innerText()).trim();
+  /* The row opens the listing rather than printing its identifier. The id is
+     how our systems refer to the thing, not what the thing is, so the test
+     takes the same route a reader does and reads it off the URL. */
+  await page.getByTestId('portfolio-open').getByTestId('position-item').first().click();
+  await page.waitForURL(/listing=/);
+  const listingId = new URL(page.url()).searchParams.get('listing') ?? '';
 
   const winnerPage = await offerAs(browser, winnerEmail, listingId, '18.00');
   const loserPage = await offerAs(browser, loserEmail, listingId, '24.00');
 
   await page.goto(`/listings/${listingId}`);
   // The book is ranked by total borrower cost, so the cheapest offer leads.
-  await expect(page.getByTestId('offer-book')).toContainText('18.00% p.a.');
+  // The rate column says "p.a." once in its header rather than on every row.
+  await expect(page.getByTestId('offer-book')).toContainText('18.00%');
   await expect(page.getByTestId('offer-submit')).toHaveCount(0);
   // A lender never sees the control, so the offer book cannot be used to
   // accept on someone else's behalf.
-  await expect(winnerPage.getByRole('button', { name: 'Accept' })).toHaveCount(0);
-  await page.getByTestId('offer-book').getByRole('button', { name: 'Accept' }).first().click();
+  await expect(winnerPage.getByRole('button', { name: /Accept/ })).toHaveCount(0);
+  // Choosing an offer shows what it costs before it can be accepted:
+  // originating a loan is a commitment and the total repayable is the figure
+  // the borrower is actually agreeing to.
+  await page.getByTestId('offer-book').getByRole('button').first().click();
+  await expect(page.getByTestId('offer-book')).toContainText('Total repayable');
+  await page.getByRole('button', { name: 'Accept this offer' }).click();
 
-  await expect(page.getByTestId('my-loans')).toContainText('Running');
-  await expect(page.getByTestId('my-loans')).toContainText('AUD 2,500.00');
-  await expect(page.getByTestId('my-loans')).toContainText('18.00% p.a.');
+  await page.getByRole('link', { name: 'Portfolio' }).click();
+  await expect(page.getByTestId('portfolio-open')).toContainText('Running');
+  await expect(page.getByTestId('portfolio-open')).toContainText('2,500.00');
+  await expect(page.getByTestId('portfolio-open')).toContainText('18.00% p.a.');
 
   // A full load rather than a client side hop, because this page has been
   // sitting on the listing while another context originated the loan.
-  await winnerPage.goto('/lend/loans');
-  await expect(winnerPage.getByTestId('funded-loans')).toContainText('Running');
-  await expect(winnerPage.getByTestId('funded-loans')).toContainText('AUD 2,500.00');
+  await winnerPage.goto('/portfolio?side=lending');
+  await expect(winnerPage.getByTestId('portfolio-open')).toContainText('Earning');
+  await expect(winnerPage.getByTestId('portfolio-open')).toContainText('18.00% p.a.');
+  /* The lender is asked what it returns, not what it costs. */
+  await expect(winnerPage.getByRole('columnheader', { name: 'Still to earn' })).toBeVisible();
 
   // The losing hold is committed until its lender pulls it back (rule M8).
   await loserPage.getByRole('link', { name: 'Wallet' }).click();
-  await expect(loserPage.getByTestId('reclaim-banner')).toBeVisible();
+  await expect(loserPage.getByTestId('attention-count')).toHaveText('1');
   await expect(loserPage.getByTestId('held-balance')).toHaveText('AUD 2,500.00');
-  await loserPage.getByRole('link', { name: 'Reclaim your funds' }).click();
-  await loserPage.getByRole('button', { name: 'Reclaim funds' }).first().click();
+  await loserPage.getByTestId('attention-bell').click();
+  await loserPage
+    .getByTestId('attention-bell-panel')
+    .getByRole('button', { name: 'Reclaim funds' })
+    .click();
   await loserPage.getByRole('link', { name: 'Wallet' }).click();
   await expect(loserPage.getByTestId('available-balance')).toHaveText('AUD 3,000.00');
 

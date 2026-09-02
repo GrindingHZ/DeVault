@@ -106,16 +106,26 @@ Sign in as `ada@demo.test` in the marketplace window.
 
 Sign in as `gita@demo.test` in a second marketplace window.
 
-3. Open the listing from Browse. Each row leads with the item and its photograph, and carries a
-   loan to value chip: the same money against a gold bar and against a painting are different
-   propositions, and the chip says which. Offer the full amount at 18.00 percent for thirty days.
-4. Offer again from a third account, or point at one of the seeded listings, which already has two
-   offers on it. The offer table ranks by rate, and the lowest rate is on top.
+3. Click the listing in the rail on the left. Nothing navigates: the item, its appraisal, what it
+   is lent against and the offer book all fill the right hand side, and the rail stays where it
+   was. Each
+   row leads with the item and its photograph and carries a loan to value chip, because the same
+   money against a gold bar and against a painting are different propositions. Offer the full
+   amount at 18.00 percent for thirty days.
+4. Offer again from a third account, or click one of the seeded listings, which already has two
+   offers on it. The book ranks cheapest first and the bar behind each row is the depth standing
+   behind that rate.
+
+   Worth pausing on: the strip along the top and the figure under the item name are painted for
+   whoever is reading. To this lender a falling rate is red, because they are being undercut.
 
 Back as `ada@demo.test`:
 
-5. Accept the top offer. The screen shows the loan: principal, rate, maturity, and the fee taken.
-   The item is now **ENCUMBERED** and the balance shows the principal less the origination fee.
+5. Click the same listing. The identical falling rate is now green, and the spine along the bottom
+   has changed from a lender's vocabulary to a borrower's. Choose the top offer to see the interest
+   and the total repayable, then accept it. The screen shows the loan: principal, rate, maturity,
+   and the fee taken. The item is now **ENCUMBERED** and the balance shows the principal less the
+   origination fee.
 
 Say: one acceptance, one transaction. The hold on the lender's money, the movement to the borrower,
 the fee, the loan, and both notes all commit together or not at all. That is why this maps to a
@@ -130,8 +140,9 @@ Sign in as `ops@demo.test`. Go to **Parameters**.
 2. Every window is now signed out, because a session lasts seven days and you just skipped a month.
    Sign in again in each. This is worth saying out loud rather than hiding: sessions are measured
    against the same clock as everything else, and the demo is not exempt from its own rules.
-3. Return to the marketplace. The loan the borrower just took is now past maturity and the screen
-   says so.
+3. Return to the marketplace and open **Portfolio**. The loan the borrower just took is past
+   maturity, so it has moved into the band at the top under **Needs you today**. That band is
+   empty on an ordinary day: it raises only what somebody would regret not doing.
 
 Say: nothing here is a mock. The clock is the only thing being lied to, and only in a demo.
 
@@ -139,10 +150,11 @@ Say: nothing here is a mock. The clock is the only thing being lied to, and only
 
 As `ada@demo.test`:
 
-1. Open the loan. The payoff quote shows principal, interest accrued to maturity, and the total.
+1. On **Portfolio**, press **Repay** on the loan. The payoff quote opens under the table rather
+   than on a screen of its own, and shows principal, interest accrued to maturity, and the total.
    Interest stopped at maturity, which is why the total does not keep climbing.
-2. Repay. The loan reads **REPAID** and the receipt is back to **IN VAULT**.
-3. Request redemption of the item.
+2. Repay. The loan reads **Repaid** and the item is waiting in the vault under the borrower's name.
+3. Request redemption of the item from **My items**.
 
 In the vault console as `staff@demo.test`:
 

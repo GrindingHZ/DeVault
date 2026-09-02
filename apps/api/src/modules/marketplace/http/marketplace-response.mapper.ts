@@ -1,12 +1,16 @@
 import type {
   ListingResponse,
   ListingSummary,
+  MyListingResponse,
+  MyOfferResponse,
   OfferResponse,
   RankedOfferResponse,
 } from '@depawn/contracts';
 import type { Listing } from '../../../domain/marketplace/listing';
 import type { Offer } from '../../../domain/marketplace/offer';
 import type { RankedOffer } from '../../../domain/marketplace/rank-offers';
+import type { MyListingRow } from '../application/my-listings.query';
+import type { MyOfferRow } from '../application/my-offers.query';
 import type { ListingSummaryReadModel } from '../../../domain/ports/marketplace-queries.port';
 import type { Money } from '../../../domain/shared/money';
 import { toMoneyDto } from '../../shared/http/money.mapper';
@@ -25,6 +29,23 @@ export function toListingResponse(listing: Listing): ListingResponse {
     requestedDurationMs: Number(listing.requestedDurationMs),
     expiresAt: isoOf(listing.expiresAt.epochMilliseconds),
     status: listing.status,
+  };
+}
+
+export function toMyOfferResponse(row: MyOfferRow, lenderAccountId: string): MyOfferResponse {
+  return {
+    id: row.id,
+    listingId: row.listingId,
+    lenderAccountId,
+    principal: { minorUnits: row.principalMinorUnits.toString(), currency: row.currency },
+    annualPercentageRateBasisPoints: row.annualPercentageRateBasisPoints,
+    durationMs: Number(row.durationMs),
+    expiresAt: row.expiresAt.toISOString(),
+    createdAt: row.createdAt.toISOString(),
+    status: row.status,
+    itemDescription: row.itemDescription,
+    receiptId: row.receiptId,
+    hasPhotograph: row.hasPhotograph,
   };
 }
 
@@ -49,7 +70,10 @@ export function toRankedOfferResponse(ranked: RankedOffer): RankedOfferResponse 
   };
 }
 
-export function toListingSummary(summary: ListingSummaryReadModel): ListingSummary {
+export function toListingSummary(
+  summary: ListingSummaryReadModel,
+  categoryMaxLoanToValueBasisPoints: number,
+): ListingSummary {
   return {
     id: summary.id,
     borrowerAccountId: summary.borrowerAccountId,
@@ -63,6 +87,8 @@ export function toListingSummary(summary: ListingSummaryReadModel): ListingSumma
     itemCategory: summary.itemCategory,
     itemDescription: summary.itemDescription,
     hasPhotograph: summary.hasPhotograph,
+    bestOfferRateBasisPoints: summary.bestOfferRateBasisPoints,
+    categoryMaxLoanToValueBasisPoints,
     loanToValueBasisPoints: loanToValueBasisPointsOf(
       summary.requestedPrincipal,
       summary.appraisedValue,
@@ -82,3 +108,32 @@ export function loanToValueBasisPointsOf(principal: Money, appraisedValue: Money
 }
 
 export { domainErrorStatusFor as marketplaceStatusFor } from '../../shared/http/domain-error-status';
+
+/* A borrower's own listing. Separate from toListingResponse because the two
+   answer different questions: the public one describes an opportunity, this
+   one describes something the reader already owns. */
+export function toMyListingResponse(
+  row: MyListingRow,
+  /* Always the caller, so the row does not carry it. Passed rather than
+     faked: an empty string here would be a value somebody later reads. */
+  borrowerAccountId: string,
+): MyListingResponse {
+  return {
+    id: row.id,
+    borrowerAccountId,
+    receiptId: row.receiptId,
+    requestedPrincipal: {
+      minorUnits: row.requestedPrincipalMinorUnits.toString(),
+      currency: row.currency,
+    },
+    maxAnnualPercentageRateBasisPoints: row.maxAnnualPercentageRateBasisPoints,
+    requestedDurationMs: Number(row.requestedDurationMs),
+    expiresAt: row.expiresAt.toISOString(),
+    status: row.status,
+    itemDescription: row.itemDescription,
+    itemCategory: row.itemCategory,
+    hasPhotograph: row.hasPhotograph,
+    bestOfferRateBasisPoints: row.bestOfferRateBasisPoints,
+    offerCount: row.offerCount,
+  };
+}

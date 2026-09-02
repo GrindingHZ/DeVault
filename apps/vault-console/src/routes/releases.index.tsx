@@ -1,6 +1,6 @@
 import { fetchRedemptionQueue, nameForRedemptionStatus } from '@depawn/contracts';
 import type { RedemptionRequestResponse } from '@depawn/contracts';
-import { Card, DataTable, Skeleton, StatusBadge } from '@depawn/ui';
+import { Card, DataTable, Page, PageHeader, Skeleton, StatusBadge } from '@depawn/ui';
 import { useQuery } from '@tanstack/react-query';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import type { ReactElement } from 'react';
@@ -18,7 +18,13 @@ function ReleasesPage(): ReactElement {
   return (
     <StaffGuard>
       <ConsoleShell>
-        <ReleaseQueueCard />
+        <Page>
+          <PageHeader
+            title="Releases"
+            description="People waiting to collect an item, in the order they asked."
+          />
+          <ReleaseQueueCard />
+        </Page>
       </ConsoleShell>
     </StaffGuard>
   );

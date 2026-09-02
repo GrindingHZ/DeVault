@@ -20,6 +20,10 @@ import type {
   SettlementResponse,
 } from '@depawn/contracts';
 import type { Account } from '../../../domain/accounts/account';
+import type { RankedOffer } from '../../../domain/marketplace/rank-offers';
+import { PROTOCOL_PARAMETERS } from '../../../domain/marketplace/protocol-parameters';
+import type { ProtocolParameters } from '../../../domain/marketplace/protocol-parameters';
+import type { ItemCategory } from '../../../domain/custody/item-category';
 import { MARKETPLACE_QUERIES } from '../../../domain/ports/marketplace-queries.port';
 import type { MarketplaceQueries } from '../../../domain/ports/marketplace-queries.port';
 import { CLOCK_PORT } from '../../../domain/ports/clock.port';
@@ -49,6 +53,19 @@ import {
   loanToValueBasisPointsOf,
 } from './marketplace-response.mapper';
 
+/* Null when nobody has offered. Never zero, which would read as a listing
+   funding itself for free.
+
+   The book is already only pending offers, and it is ordered by total cost
+   rather than by rate, so the cheapest rate is not simply the first row: a
+   larger principal at the same rate costs the borrower more. */
+function bestPendingRateOf(offers: readonly RankedOffer[]): number | null {
+  if (offers.length === 0) {
+    return null;
+  }
+  return Math.min(...offers.map((ranked) => ranked.offer.annualPercentageRateBasisPoints));
+}
+
 function instantOfIso(value: string): Instant {
   return Instant.fromEpochMilliseconds(BigInt(new Date(value).getTime()));
 }
@@ -64,6 +81,7 @@ export class ListingController {
     private readonly listingDetail: ListingDetailQuery,
     @Inject(MARKETPLACE_QUERIES) private readonly queries: MarketplaceQueries,
     @Inject(CLOCK_PORT) private readonly clock: ClockPort,
+    @Inject(PROTOCOL_PARAMETERS) private readonly parameters: ProtocolParameters,
   ) {}
 
   @Post()
@@ -134,7 +152,23 @@ export class ListingController {
       maximumLoanToValueBasisPoints: parseBasisPoints(maxLoanToValue),
       sort: parseSort(sort),
     });
-    return { items: page.items.map(toListingSummary), nextCursor: page.nextCursor };
+    return {
+      items: page.items.map((summary) =>
+        toListingSummary(summary, this.capFor(summary.itemCategory)),
+      ),
+      nextCursor: page.nextCursor,
+    };
+  }
+
+  /* The same lookup the policy does. A category the parameters have fallen
+     behind would otherwise put undefined on the wire, and a client dividing
+     by it would draw a bar of NaN. */
+  private capFor(category: ItemCategory): number {
+    const cap = this.parameters.maxLoanToValueBasisPointsByCategory[category];
+    if (typeof cap !== 'number') {
+      throw new Error(`No loan to value cap is configured for ${category}`);
+    }
+    return cap;
   }
 
   @Public()
@@ -154,7 +188,11 @@ export class ListingController {
         detail.listing.requestedPrincipal,
         detail.receipt.appraisedValue,
       ),
+      categoryMaxLoanToValueBasisPoints: this.capFor(detail.receipt.itemCategory),
       maxPrincipal: toMoneyDto(detail.maxPrincipal),
+      /* The same figure the browse rail carries, computed from the book this
+         response already holds rather than asked for a second time. */
+      bestOfferRateBasisPoints: bestPendingRateOf(detail.offerBook),
       offerBook: detail.offerBook.map(toRankedOfferResponse),
     };
   }
@@ -211,5 +249,5 @@ function parseBasisPoints(value: string | undefined): number | null {
 }
 
 function parseSort(value: string | undefined): BrowseSort {
-  return value === 'rate' || value === 'closing' ? value : 'newest';
+  return value === 'ltv' || value === 'closing' ? value : 'newest';
 }

@@ -47,6 +47,7 @@ describeCustodyPortContract('database', async () => {
         appraiserId: staffIdOf('CONTRACT-APPRAISER'),
         itemCategory: 'BULLION',
         itemDescription: 'One kilogram gold bar, cast',
+        serialNumbers: ['PM-2024-AU1-0084213'],
         insurancePolicyReference: 'POL-CONTRACT',
       };
     },

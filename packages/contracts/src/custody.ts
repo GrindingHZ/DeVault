@@ -86,11 +86,18 @@ export const receiptResponseSchema = z.object({
   id: z.string(),
   vaultId: z.string(),
   holderAccountId: z.string(),
+  /* Who holds it, in words. Staff at a counter need to know whose item this
+     is, and an account identifier does not tell them. Null on the screens
+     where the holder is the reader and naming them would be noise. */
+  holderLabel: z.string().nullable(),
   intakeRecordHash: z.string(),
   appraisedValue: moneySchema,
   appraisedAt: z.string(),
   itemCategory: itemCategorySchema,
   itemDescription: z.string(),
+  /* What tells this one apart from another of the same model. Empty for
+     an item nobody recorded a serial against, which is most art. */
+  serialNumbers: z.array(z.string()),
   /* Whether a photograph can be fetched from
      `/receipts/{id}/photo`. The bytes have their own authorisation; this only
      says whether asking is worthwhile. */

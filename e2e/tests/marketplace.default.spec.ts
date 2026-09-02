@@ -145,13 +145,13 @@ test('a lender takes the collateral once grace has run out', async ({ page, requ
   await originateLoan(request, borrowerEmail, lenderEmail, receiptId);
 
   await signIn(page, lenderEmail);
-  await page.getByRole('link', { name: 'Funded loans' }).click();
-  await expect(page.getByTestId('funded-loans')).toContainText('Running');
-  // Inside grace the server refuses, and the lender is told why rather than
-  // left with a button that does nothing.
-  await page.getByRole('button', { name: 'Mark defaulted' }).click();
-  await expect(page.getByRole('alert')).toContainText('still inside the grace period');
-  await expect(page.getByTestId('funded-loans')).toContainText('Running');
+  await page.getByRole('link', { name: 'Portfolio' }).click();
+  await page.getByTestId('side-lending').click();
+  await expect(page.getByTestId('portfolio-open')).toContainText('Earning');
+  /* Inside grace there is nothing to mark. The control does not appear at
+     all rather than appearing and being refused, which is the difference
+     between a screen that knows the rule and one that guesses. */
+  await expect(page.getByRole('button', { name: 'Mark defaulted' })).toHaveCount(0);
 
   // Thirty days of term, seven of grace, and a day to be past it.
   const advanced = await request.post(`${apiBase}/test/clock/advance`, {
@@ -160,13 +160,17 @@ test('a lender takes the collateral once grace has run out', async ({ page, requ
   expect(advanced.status()).toBe(201);
 
   await signIn(page, lenderEmail);
-  await page.getByRole('link', { name: 'Funded loans' }).click();
-  await page.getByRole('button', { name: 'Mark defaulted' }).click();
-  await expect(page.getByTestId('funded-loans')).toContainText('Defaulted');
+  await page.getByRole('link', { name: 'Portfolio' }).click();
+  await page.getByTestId('attention-bell').click();
+  await expect(page.getByTestId('attention-bell-panel')).toContainText('Past grace');
+  await page.keyboard.press('Escape');
+  await page.getByTestId('side-lending').click();
+  await page.getByRole('button', { name: 'Mark defaulted' }).first().click();
+  await expect(page.getByTestId('portfolio-open')).toContainText('Defaulted');
 
-  await page.getByRole('button', { name: 'Claim the item' }).click();
+  await page.getByRole('button', { name: 'Claim the collateral' }).first().click();
   // The item is now the lender's, held in the vault, ready to redeem.
-  await page.getByRole('link', { name: 'My receipts' }).click();
-  await expect(page.getByTestId('my-receipts')).toContainText(receiptId);
+  await page.getByRole('link', { name: 'My items' }).click();
+  await expect(page.getByTestId(`receipt-${receiptId}`)).toBeVisible();
   await expect(page.getByTestId('my-receipts')).toContainText('In the vault');
 });

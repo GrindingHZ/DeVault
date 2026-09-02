@@ -5,13 +5,23 @@ import {
   runReconciliation,
 } from '@depawn/contracts';
 import type { DriftRowResponse, ReconciliationRunResponse } from '@depawn/contracts';
-import { AppShell, Button, Card, DataTable, Field, Money, Skeleton, StatusBadge } from '@depawn/ui';
+import {
+  Button,
+  Card,
+  DataTable,
+  Field,
+  Money,
+  Page,
+  PageHeader,
+  Skeleton,
+  StatusBadge,
+} from '@depawn/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Navigate, createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import type { ReactElement } from 'react';
 import { useCurrentAccount } from '../current-account';
-import { AdminNavigation } from '../admin-navigation';
+import { AdminShell, useFeedback } from '../admin-shell';
 
 export const Route = createFileRoute('/reconciliation')({
   component: ReconciliationPage,
@@ -49,20 +59,17 @@ function ReconciliationPage(): ReactElement | null {
   }
 
   return (
-    <AppShell
-      productName="depawn admin"
-      navigation={
-        <>
-          <AdminNavigation current="/reconciliation" />
-        </>
-      }
-    >
-      <div className="flex max-w-5xl flex-col gap-6">
+    <AdminShell current="/reconciliation">
+      <Page>
+        <PageHeader
+          title="Reconciliation"
+          description="What the vault holds against what the database believes."
+        />
         <LoanBookCard />
         <ExposureCard />
         <ReconciliationCard />
-      </div>
-    </AppShell>
+      </Page>
+    </AdminShell>
   );
 }
 
@@ -171,6 +178,7 @@ function ExposureCard(): ReactElement {
 
 function ReconciliationCard(): ReactElement {
   const queryClient = useQueryClient();
+  const feedback = useFeedback();
   const [countInput, setCountInput] = useState('');
   const [runKey, setRunKey] = useState(() => crypto.randomUUID());
   const latestQuery = useQuery({
@@ -185,6 +193,7 @@ function ReconciliationCard(): ReactElement {
         { idempotencyKey: runKey },
       ),
     onSuccess: async () => {
+      feedback.reportSuccess('The vault was reconciled.');
       setRunKey(crypto.randomUUID());
       await queryClient.invalidateQueries({ queryKey: reconciliationKeys.latestRun });
     },

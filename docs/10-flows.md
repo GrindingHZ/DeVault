@@ -263,6 +263,13 @@ object is destructured and deleted.
    The receipt burns **here**, at request time, not at the counter. The burn is the entitlement proof;
    the counter visit is identity verification.
 
+   This is why the borrower inventory never renders the receipt status on its own. `RELEASED` means
+   the token is spent, and between step 1 and step 4 the item is still on a shelf, so a screen
+   reading the receipt alone announces "Collected" about something nobody has collected. The two
+   states are read together by `custodyReadingFor` in `packages/ui` and rendered once. On a finished
+   redemption the same merge is what stops the row saying "Collected" and "Handed over" side by
+   side: one event, stated twice.
+
 2. Borrower attends the vault. Request appears in the vault console `/releases` queue.
 
 3. `POST /redemption-requests/:id/verify`.
@@ -617,3 +624,71 @@ and the answer for a given hash can never change.
 The receipt becomes an object on chain carrying the hash. The bytes stay off chain in every phase,
 which is why the intake record has only ever stored a hash: what goes on chain is the commitment,
 not the picture.
+
+---
+
+## Flow 17: reading the market
+
+**Actors:** borrower, lender
+**Precondition:** signed in
+
+The marketplace is one workspace rather than a page per screen. Flows 2, 3 and 4 are unchanged:
+the same endpoints, the same transaction boundaries, the same failure modes. What changed is where
+a person stands while performing them.
+
+### The rule
+
+There is exactly one selected listing and it lives in the URL as a router search param. Every pane
+reads it. No pane owns state another pane has to be told about.
+
+```
+/listings?listing=01JQF...&density=rows&offer=01JQG...
+```
+
+Three consequences worth naming, because they are the reason for the rule rather than side effects
+of it: the back button works, a reload restores the same view, and a link can be sent to somebody
+showing exactly what the sender was looking at. The fourth is for the code: each pane can be
+rendered and tested with nothing but a listing id.
+
+### The panes
+
+| Pane | Reads | Writes to the selection |
+|---|---|---|
+| Index strip | `GET /market/index`, polled | Sets the category filter |
+| Browse | `GET /listings` with the filters | Sets the listing |
+| Detail and book | `GET /listings/:id` | Sets the offer, never the listing |
+| Spine | The selected listing's status | Sets the stage filter |
+| Tape | `GET /market/tape`, polled | Sets the listing |
+
+Selecting an offer highlights its point on the rate history rather than navigating. Choosing an
+offer is not choosing a listing, so it is a separate parameter and it is dropped whenever the
+listing changes.
+
+### What each side sees
+
+The same listing, read from two sides. A rate falling by eighty basis points is the borrower paying
+less and the lender being undercut: one arithmetic, two meanings. Direction comes from the
+arithmetic and tone comes from who is reading, so the arrow points the same way for both and the
+colour does not. The spine does the same with words: Receipt, Listed, Funded, Maturing, Redeemed
+for the borrower; Open, Your offer, Funded, Default risk, Settled for the lender.
+
+Which side somebody is on is derived from their relationship to the listing, never chosen. A toggle
+would ask a reader to restate something the server already knows, and one left in the wrong
+position would show them the opposite of the truth about their own money while looking entirely
+normal.
+
+### Failures
+
+| Condition | Result |
+|---|---|
+| No listing selected | The detail pane prompts. Not a spinner: nothing is loading |
+| Selected listing missing or not visible | The pane says so and offers to clear the selection |
+| Index or tape query fails | The strip and the tape render nothing. No action becomes unreachable |
+| An unreadable search param | Dropped, and the workspace still loads |
+
+### Phase 3
+
+The read models behind the strip and the tape come from the indexer projection instead of from
+Postgres. The panes do not change, because they already read a flat DTO from a query service rather
+than a hydrated aggregate.
+

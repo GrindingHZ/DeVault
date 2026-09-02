@@ -3,16 +3,31 @@ import {
   fetchBalance,
   fetchLedgerEntries,
   messageForError,
+  nameForBalancePurpose,
+  nameForEntryDirection,
+  nameForLedgerKind,
   withdraw,
 } from '@depawn/contracts';
 import type { LedgerEntryResponse } from '@depawn/contracts';
-import { Button, Card, DataTable, Explain, Field, Money, Skeleton, toMinorUnits } from '@depawn/ui';
+import {
+  Button,
+  Card,
+  DataTable,
+  DateTime,
+  Explain,
+  Field,
+  Money,
+  Page,
+  PageHeader,
+  Skeleton,
+  toMinorUnits,
+} from '@depawn/ui';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Navigate, createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import type { ReactElement } from 'react';
 import { currentAccountKeys, useCurrentAccount } from '../current-account';
-import { MarketShell } from '../market-shell';
+import { MarketShell, useFeedback } from '../market-shell';
 import { walletKeys } from '../wallet-keys';
 
 export const Route = createFileRoute('/wallet')({
@@ -42,11 +57,15 @@ function WalletPage(): ReactElement | null {
 
   return (
     <MarketShell>
-      <div className="flex max-w-3xl flex-col gap-6">
+      <Page>
+        <PageHeader
+          title="Wallet"
+          description="What you can spend, what is committed to offers, and every movement so far."
+        />
         <BalanceCards />
         <WithdrawCard />
         <HistoryCard />
-      </div>
+      </Page>
     </MarketShell>
   );
 }
@@ -68,7 +87,7 @@ function BalanceCards(): ReactElement {
             <dt className="font-body text-sm text-ink-secondary">Available</dt>
             <dd
               data-testid="available-balance"
-              className="font-mono text-lg font-semibold tabular-nums"
+              className="font-figure text-lg font-semibold tabular-nums"
             >
               <Money value={balanceQuery.data.available} />
             </dd>
@@ -81,7 +100,7 @@ function BalanceCards(): ReactElement {
               Held for offers
               <Explain termId="heldFunds" audience="lender" />
             </dt>
-            <dd data-testid="held-balance" className="font-mono text-lg tabular-nums">
+            <dd data-testid="held-balance" className="font-figure text-lg tabular-nums">
               <Money value={balanceQuery.data.held} />
             </dd>
             <dd className="mt-0.5 font-body text-xs text-ink-secondary">
@@ -96,6 +115,7 @@ function BalanceCards(): ReactElement {
 
 function WithdrawCard(): ReactElement {
   const queryClient = useQueryClient();
+  const feedback = useFeedback();
   const [amountInput, setAmountInput] = useState('');
   const [inputError, setInputError] = useState<string | null>(null);
   // Generated on mount, not on submit, so a double click sends the same key
@@ -106,6 +126,7 @@ function WithdrawCard(): ReactElement {
     mutationFn: (minorUnits: string) =>
       withdraw({ amount: { minorUnits, currency: 'AUD' } }, { idempotencyKey }),
     onSuccess: async () => {
+      feedback.reportSuccess('The withdrawal went through.');
       setAmountInput('');
       setIdempotencyKey(crypto.randomUUID());
       await queryClient.invalidateQueries({ queryKey: walletKeys.all });
@@ -183,13 +204,27 @@ function HistoryCard(): ReactElement {
             {
               key: 'occurredAt',
               header: 'When',
-              render: (entry: LedgerEntryResponse) => entry.occurredAt.slice(0, 10),
+              render: (entry: LedgerEntryResponse) => <DateTime iso={entry.occurredAt} />,
             },
-            { key: 'kind', header: 'Kind', render: (entry: LedgerEntryResponse) => entry.kind },
+            /* HOLD_FUNDS and DEBIT are the right names for a ledger and the
+               wrong ones for somebody looking at their own money. */
+            {
+              key: 'kind',
+              header: 'What happened',
+              render: (entry: LedgerEntryResponse) => nameForLedgerKind(entry.kind),
+            },
+            /* A hold moves money between the reader's own two balances, so
+               it is two entries with the same amount. Naming the balance is
+               what stops that reading as the money moving twice. */
+            {
+              key: 'purpose',
+              header: 'Balance',
+              render: (entry: LedgerEntryResponse) => nameForBalancePurpose(entry.purpose),
+            },
             {
               key: 'direction',
               header: 'Direction',
-              render: (entry: LedgerEntryResponse) => entry.direction,
+              render: (entry: LedgerEntryResponse) => nameForEntryDirection(entry.direction),
             },
             {
               key: 'amount',
@@ -198,9 +233,14 @@ function HistoryCard(): ReactElement {
             },
             {
               key: 'reference',
-              header: 'Settlement reference',
+              header: 'Reference',
+              /* The proof the movement happened, which becomes a chain
+                 digest in Phase 3. Shortened for the same reason as a
+                 receipt reference, and whole in the title. */
               render: (entry: LedgerEntryResponse) => (
-                <span className="font-mono text-xs">{entry.reference}</span>
+                <span title={entry.reference} className="font-mono text-xs text-ink-secondary">
+                  {entry.reference.slice(-8).toUpperCase()}
+                </span>
               ),
             },
           ]}

@@ -1,5 +1,5 @@
 import { fetchVaultExposure } from '@depawn/contracts';
-import { Card, Money, Skeleton } from '@depawn/ui';
+import { Card, Money, Page, PageHeader, Skeleton } from '@depawn/ui';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import type { ReactElement } from 'react';
@@ -16,9 +16,15 @@ function ExposurePage(): ReactElement {
   return (
     <StaffGuard>
       <ConsoleShell>
-        <div className="max-w-md">
-          <ExposureCard />
-        </div>
+        <Page>
+          <PageHeader
+            title="Exposure"
+            description="What this vault is holding against what it is insured for."
+          />
+          <div className="max-w-md">
+            <ExposureCard />
+          </div>
+        </Page>
       </ConsoleShell>
     </StaffGuard>
   );

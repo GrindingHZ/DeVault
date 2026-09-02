@@ -28,9 +28,10 @@ fixed terminal in a lit room; a dark theme optimises for the wrong environment.
 | `--color-status-success` | `#15803d` | Completed and repaid states |
 | `--color-status-warning` | `#b45309` | Time pressure and at-risk states |
 | `--color-status-danger` | `#b91c1c` | Defaults, failures, destructive actions |
-| `--font-heading` | IBM Plex Sans | Headings |
-| `--font-body` | IBM Plex Sans | Body and UI copy |
-| `--font-mono` | IBM Plex Mono | Amounts, rates, ids, settlement references |
+| `--font-heading` | Source Sans 3 | Headings |
+| `--font-body` | Source Sans 3 | Body and UI copy |
+| `--font-figure` | Source Sans 3 | Amounts, rates, shares, counts, dates |
+| `--font-mono` | Source Code Pro | Identifiers only: references, hashes, seal numbers |
 | `--space-1` to `--space-8` | 0.25 to 2 rem | The only spacing scale |
 | `--radius-sm/md/lg` | 0.25/0.5/0.75 rem | Badges / inputs and buttons / cards |
 | `--density-row-height` | 2.5rem (3rem terminal) | Row and control heights |
@@ -47,14 +48,87 @@ fixed terminal in a lit room; a dark theme optimises for the wrong environment.
 
 Every badge carries its state name as text; colour is never the only signal.
 
+## The brand mark, P8h
+
+`VaultMark` and `BrandLockup` in `packages/ui/src/brand.tsx`. Drawn as geometry rather than shipped
+as a raster, so it scales, themes and diffs.
+
+Three ideas in one glyph: a hexagon broken into six segments is the distributed ledger the loan book
+moves onto in Phase 3; the shield inside it is custody, because somebody is physically holding your
+property; the counter knocked out of the shield is the D of the name.
+
+**It carries no colour of its own.** Every fill and stroke is `currentColor`, and `BrandLockup` sets
+`text-accent`, so the mark takes the green of whatever scope it lands in: `#2ea043` on the
+marketplace floor, `#15803d` on the two light consoles. Depth comes from opacity on the ring rather
+than from a second colour, which keeps one source of truth for the brand green and keeps
+`scripts/check-design-tokens.sh` satisfied. Do not add a hex value to this file to make a variant;
+change the accent token or wrap the mark in a different text colour.
+
+**Geometry is parametric and coupled.** The hexagon is pointy top with circumradius 13.5 on a 32
+grid, so its side is also 13.5 and the dash pattern divides the perimeter into exactly six segments
+with a gap centred on every vertex. Change the radius and the dashes have to be recomputed.
+
+**It is sized for 20 pixels and up.** Below that the six segments and their gaps stop being segments
+and become a smudge. The favicon is therefore its own file at `apps/*/public/favicon.svg` holding
+the shield alone, drawn fatter so the counter survives, and it is the one place a literal brand hex
+is allowed because an `.svg` asset has no token to reach for.
+
+**The wordmark is live text**, not paths, so it stays selectable, searchable and translatable and
+inherits the type scale rather than fighting it.
+
+## Typefaces, amended P8g
+
+Two families, four roles. The amendment permitting the change, the rejected candidates and the
+conditions it was made under are in `docs/13-design-system.md`.
+
+| Role | Token | Face | What it is for |
+|---|---|---|---|
+| Heading | `--font-heading` | Source Sans 3 | Page, section and dialog titles |
+| Body | `--font-body` | Source Sans 3 | UI copy, labels, prose, status words |
+| Figure | `--font-figure` | Source Sans 3 | Money, rates, loan to value, counts, dates, times |
+| Identifier | `--font-mono` | Source Code Pro | Receipt references, intake hashes, settlement references, seal numbers |
+
+**The rule that decides between figure and identifier.** Ask whether the reader compares the value
+to the one above it, or reads it one character at a time to quote it. A balance is compared, so it
+is a figure. A receipt reference is quoted, so it is an identifier. A monospace helps the second and
+hurts the first.
+
+**A label is neither.** A status word, a column header and a category name are body text. Setting
+them in a monospace was a habit, not a decision, and it is what made whole screens read as a
+terminal.
+
+**Alignment is not the caller's problem.** The `font-figure` utility carries
+`font-feature-settings: "tnum"`, so a column of figures lines up without anyone remembering to ask.
+Source Sans 3 also sets figures on one width by default, so the feature is a backstop.
+
 ## Typography scale
 
 | Level | Size | Use |
 |---|---|---|
-| `text-lg` semibold heading | 1.125rem | Dialog and page section titles |
-| `text-base` semibold heading | 1rem | Card titles, shell product name |
+| `text-lg` semibold heading | 1.125rem | Page titles, dialog titles |
+| `text-base` semibold heading | 1rem | Card and section titles, shell product name |
 | `text-sm` body | 0.875rem | Default UI copy, tables, forms |
-| `text-xs` medium uppercase | 0.75rem | Status badges only |
+| `text-xs` | 0.75rem | Status badges, dense numerals, column labels |
+
+## Weight, amended P8f
+
+The family is frozen. Weight and size never were, and the product was using
+one weight for everything, which is why a price and the word next to it read
+as equally important.
+
+| Role | Weight | Notes |
+|---|---|---|
+| The figure a decision turns on | 600 | A rate in a book, a balance, a loan count |
+| The name of a thing | 600 | An item description in a rail, a page title |
+| Its supporting facts | 400 | Category, loan to value, when it closes |
+| A label above a figure | 400, `text-xs` | Never bolder than the figure it names |
+
+Two rules that follow from it:
+
+- **One 600 per row.** If the item name and the rate are both bold, neither
+  leads. The rail bolds the name; the book bolds the rate.
+- **Numerals are always `tabular-nums`.** A column of figures that does not
+  align is a column nobody can compare down.
 
 ## Terminal density rules
 
@@ -81,6 +155,73 @@ Measured with the WCAG relative luminance formula. AA requires 4.5:1 for body te
 | status-success text on surface-base | 4.79:1 |
 | status-warning text on surface-base | 4.80:1 |
 | status-danger text on surface-base | 6.18:1 |
+
+## The floor palette, P0.6
+
+The marketplace runs on `[data-surface='floor']`. The vault console and the admin keep everything
+above; only the marketplace shell sets the attribute. The amendment permitting this fork, and the
+conditions it was made under, are in `docs/13-design-system.md`.
+
+| Token | Value | Intended use |
+|---|---|---|
+| `--color-surface-base` | `#0b0f14` | Workspace ground |
+| `--color-surface-raised` | `#131a22` | Panes, rows, inputs |
+| `--color-surface-sunken` | `#080b0f` | Pane headers, the tape, wells |
+| `--color-text-primary` | `#e6edf3` | Figures, item names, headings |
+| `--color-text-secondary` | `#8b9aab` | Labels, units, secondary copy |
+| `--color-border` | `#1e2a36` | Hairlines between rows. Decorative only |
+| `--color-border-strong` | `#5a6d82` | Anything bounding a control |
+| `--color-accent-default` | `#2ea043` | Primary actions only |
+| `--color-market-favourable` | `#2ea043` | A figure that moved the reader's way |
+| `--color-market-adverse` | `#f85149` | A figure that moved against the reader |
+| `--color-market-flat` | `#8b9aab` | Unchanged |
+| `--density-row-floor` | 2.25rem | Book, tape and browse rows |
+
+Pure black is avoided deliberately. It smears on OLED and it leaves no room for a sunken surface
+underneath the page ground.
+
+### Contrast ratios, floor
+
+Computed from the tokens by `packages/ui/src/contrast.spec.ts`, which fails the build if any pair
+below drops under its threshold. Body text needs 4.5:1 and a control boundary needs 3:1 under
+WCAG 1.4.11. The hairline is the one value deliberately below both: it separates rows and carries
+no meaning, and a reader who cannot see it has lost nothing.
+
+| Pair | On base | On raised | On sunken |
+|---|---|---|---|
+| text-primary | 16.27:1 | 14.83:1 | 16.69:1 |
+| text-secondary | 6.69:1 | 6.10:1 | 6.86:1 |
+| accent-default | 5.70:1 | 5.19:1 | 5.85:1 |
+| accent-hover | 7.57:1 | 6.90:1 | 7.76:1 |
+| status-active | 5.13:1 | 4.68:1 | 5.26:1 |
+| status-warning | 7.61:1 | 6.94:1 | 7.81:1 |
+| status-danger | 5.73:1 | 5.23:1 | 5.88:1 |
+| status-neutral | 6.69:1 | 6.10:1 | 6.86:1 |
+| market-favourable | 5.70:1 | 5.19:1 | 5.85:1 |
+| market-adverse | 5.73:1 | 5.23:1 | 5.88:1 |
+| market-flat | 6.69:1 | 6.10:1 | 6.86:1 |
+| border-strong | 3.61:1 | 3.29:1 | 3.70:1 |
+| border (hairline, decorative) | 1.32:1 | 1.20:1 | 1.35:1 |
+
+`--color-market-favourable` and `--color-accent-default` hold the same value here, as do
+`--color-market-adverse` and `--color-status-danger`. They stay separate tokens because a repaid
+loan and a rate moving your way are different ideas, and one should be able to change without
+dragging the other with it.
+
+## Where the monospace goes, amended P8f, superseded by P8g
+
+Kept as a record of the reasoning rather than as a live rule.
+
+P8f found the monospace set on section headings, stage labels, filter groups, category names and
+phrases like "closes in 71d 23h", and pulled it back to "figures that line up in a column". That
+half was right and still holds for labels.
+
+The other half was wrong. It kept figures in the monospace on the grounds that a column has to
+align, and P8g replaced that with a better test: a figure is compared to the one above it, an
+identifier is read one character at a time to be quoted. Alignment is a job for tabular numerals,
+not for a typewriter face, and `--font-figure` carries `tnum` so no caller has to remember.
+
+The live rule is the table under **Typefaces, amended P8g** above.
 
 ## The five UX rules this product cares about most
 

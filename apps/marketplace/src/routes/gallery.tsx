@@ -15,11 +15,20 @@ import {
   Stepper,
   ToastRegion,
 } from '@depawn/ui';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useState } from 'react';
 import type { ReactElement } from 'react';
 
+/* A development surface that was shipping to customers. Deleting it would
+   break the P0.5 exit criterion in docs/13-design-system.md, which asks that
+   every primitive appear here, so it stays and stops being reachable in a
+   built application instead. */
 export const Route = createFileRoute('/gallery')({
+  beforeLoad: () => {
+    if (!import.meta.env.DEV) {
+      throw redirect({ to: '/listings' });
+    }
+  },
   component: GalleryPage,
 });
 
@@ -40,7 +49,7 @@ function GalleryPage(): ReactElement {
   const [isDialogOpen, setDialogOpen] = useState(false);
 
   return (
-    <AppShell productName="depawn gallery" navigation={<span>Primitive gallery</span>}>
+    <AppShell productName="DeVault gallery" navigation={<span>Primitive gallery</span>}>
       <div className="flex max-w-3xl flex-col gap-6">
         <Card title="Buttons">
           <div className="flex gap-2">

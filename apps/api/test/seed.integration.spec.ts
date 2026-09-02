@@ -41,7 +41,7 @@ describe('the demo seed', () => {
   });
 
   it('fills the vault with inventory an operator can see', async () => {
-    expect(await prisma.custodyReceipt.count()).toBe(8);
+    expect(await prisma.custodyReceipt.count()).toBe(12);
     const vault = await prisma.vault.findUnique({ where: { id: 'VAULT-DEMO-1' } });
     expect(vault?.city).toBe('Sydney');
   });
@@ -109,7 +109,7 @@ describe('the demo seed', () => {
 
   it('can be run again without stacking a second story on the first', async () => {
     runInApi('pnpm', ['run', 'db:seed'], container.getConnectionUri());
-    expect(await prisma.custodyReceipt.count()).toBe(8);
+    expect(await prisma.custodyReceipt.count()).toBe(12);
     expect(await prisma.loan.count({ where: { status: 'REPAID' } })).toBe(1);
   }, 300_000);
 });

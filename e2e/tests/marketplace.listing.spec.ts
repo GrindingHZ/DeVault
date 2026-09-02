@@ -95,15 +95,17 @@ test('a receipt becomes a listing and takes a funded offer', async ({ page, brow
   await page.getByTestId('login-submit').click();
   await expect(page.getByTestId('authenticated-home')).toBeVisible();
 
-  await page.getByRole('link', { name: 'My receipts' }).click();
+  await page.getByRole('link', { name: 'My items' }).click();
   await page.getByRole('button', { name: 'List' }).click();
   await page.getByTestId('list-principal').fill('2500.00');
   await page.getByTestId('list-submit').click();
-  await expect(page.getByTestId('my-listings')).toContainText('Taking offers');
-  await page.getByRole('link', { name: 'My listings' }).click();
-  const listingId = (
-    await page.getByTestId('my-listings').getByRole('link').first().innerText()
-  ).trim();
+  await expect(page.getByTestId('portfolio-open')).toContainText('Taking offers');
+  /* The row opens the listing rather than printing its identifier. The id is
+     how our systems refer to the thing, not what the thing is, so the test
+     takes the same route a reader does and reads it off the URL. */
+  await page.getByTestId('portfolio-open').getByTestId('position-item').first().click();
+  await page.waitForURL(/listing=/);
+  const listingId = new URL(page.url()).searchParams.get('listing') ?? '';
 
   const lenderContext = await browser.newContext();
   const lenderPage = await lenderContext.newPage();
@@ -125,7 +127,7 @@ test('a receipt becomes a listing and takes a funded offer', async ({ page, brow
   await expect(lenderPage.getByTestId('max-principal')).toHaveText('AUD 3,000.00');
   await lenderPage.getByTestId('offer-rate').fill('18.00');
   await lenderPage.getByTestId('offer-submit').click();
-  await expect(lenderPage.getByTestId('offer-book')).toContainText('18.00% p.a.');
+  await expect(lenderPage.getByTestId('offer-book')).toContainText('18.00%');
 
   await lenderPage.getByRole('link', { name: 'Wallet' }).click();
   await expect(lenderPage.getByTestId('held-balance')).toHaveText('AUD 2,500.00');
@@ -145,15 +147,16 @@ test('the offer form blocks a principal above the ceiling', async ({ page, reque
   await page.getByTestId('email-input').fill(borrowerEmail);
   await page.getByTestId('password-input').fill(password);
   await page.getByTestId('login-submit').click();
-  await page.getByRole('link', { name: 'My receipts' }).click();
+  await page.getByRole('link', { name: 'My items' }).click();
   await page.getByRole('button', { name: 'List' }).click();
   await page.getByTestId('list-principal').fill('2500.00');
   await page.getByTestId('list-submit').click();
-  await expect(page.getByTestId('my-listings')).toContainText('Taking offers');
-  const ceilingListingId = (
-    await page.getByTestId('my-listings').getByRole('link').first().innerText()
-  ).trim();
-  await page.getByRole('button', { name: 'Log out' }).click();
+  await expect(page.getByTestId('portfolio-open')).toContainText('Taking offers');
+  await page.getByTestId('portfolio-open').getByTestId('position-item').first().click();
+  await page.waitForURL(/listing=/);
+  const ceilingListingId = new URL(page.url()).searchParams.get('listing') ?? '';
+  await page.getByTestId('account-menu').click();
+  await page.getByTestId('log-out').click();
   await page.waitForURL('**/login');
   // A full reload gives the login form a clean mount; the logout redirect
   // and the home redirect can otherwise race the fills.

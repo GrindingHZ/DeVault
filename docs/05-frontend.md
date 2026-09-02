@@ -83,19 +83,20 @@ Two primitives, used everywhere, never bypassed.
 
 ```
 /                              landing, live listings
-/listings                      browse with filters
-/listings/:listingId           detail, offer book, place offer
-/borrow
-  /borrow/receipts             my receipts, list one
-  /borrow/listings             my listings and their offers
-  /borrow/loans                my loans, payoff, repay
-  /borrow/redemptions          redemption requests and their status
-/lend
-  /lend/offers                 my outstanding offers, reclaim superseded holds
-  /lend/loans                  my funded loans, mark default, claim receipt
+/listings                      the workspace: browse, detail, offer book, spine, tape
+/listings/:listingId           redirects into /listings?listing=:listingId
+/portfolio                     every position on both sides, filtered by ?side=
+/borrow/receipts               my receipts, list one
+/borrow/redemptions            redemption requests and their status
+/borrow/listings               redirects into /portfolio?side=borrowing
+/borrow/loans                  redirects into /portfolio?side=borrowing
+/lend/offers                   redirects into /portfolio?side=lending
+/lend/loans                    redirects into /portfolio?side=lending
 /wallet                        balance, ledger history, deposit, withdraw
 /settings
 ```
+
+The navigation rail carries four destinations: Browse, Portfolio, My items, Wallet.
 
 Screens that need care:
 
@@ -110,6 +111,141 @@ than silently retrying; the amount changed and the user must see it.
 
 **Reclaim funds.** A persistent banner when the account has superseded or expired holds. This is
 money the user cannot spend and does not know about. It should be impossible to miss.
+
+## The portfolio
+
+`/portfolio` replaced four screens: my listings, my loans, my offers and funded loans. The four were
+the same question asked in four vocabularies, and they made one loan appear twice under two
+different names depending on which door the reader came through. A person who both borrows and
+lends had to navigate to assemble a picture they should have been handed.
+
+They are one table now. The unit is a **position**: something the reader holds, on one side of the
+market, at one stage, with at most one thing to do about it. Four mappers in
+`apps/marketplace/src/portfolio/position.ts` turn a listing, an offer, a borrowed loan and a lent
+loan into that one shape. Every mapper takes `now` as a parameter rather than reading a clock, so a
+test does not travel in time and the demo clock cannot leak in.
+
+The screen has two axes, and neither is a filter over one list.
+
+**Side** picks borrowing or lending. **View** picks open or history. Four combinations, and each
+draws its own columns, because the questions differ: a borrower is shown what a loan is costing
+(interest so far, interest to come, owed today), a lender what it is returning (earned, still to
+earn, at maturity), and a closed row is shown what it was worth and how it ended. Running the open
+columns over closed rows put a dash under the interest, the settlement and the term on every line,
+which is what made the earlier arrangement of two tables per side look arbitrary.
+
+That earlier split was by entity: loans in one table, listings and offers in the other. It was the
+same mistake the portfolio exists to end, only smaller, and it asked a reader to work out which of
+their own things belonged where. A listing and the loan it becomes are one story, and they now sit
+in one table.
+
+It is two screens, not one with a filter. Borrowing and lending answer different questions with
+different columns: a borrower is shown what a loan is costing (interest so far, interest to come,
+owed today) and a lender is shown what it is returning (earned so far, still to earn, value at
+maturity). The one merged table had to drop every column that did not apply to both, which left it
+saying almost nothing. `side` and `view` both live in the URL and default to borrowing and open.
+
+Every row carries a photograph and a term. A person recognises their own things by sight long
+before they read a description, which is why the browse rail leads with one and the portfolio now
+does too. The term is how long is left, whatever the row is: a loan runs to maturity and gets a bar,
+a listing and an offer run to an expiry with no recorded start and get the words alone, and a closed
+row gets a dash like every other column with nothing true to say.
+
+The loan term bar Its arithmetic runs against `asOf` on the loan list response,
+which is the server's clock: the demo runs weeks ahead of any browser (flow 15), so a bar drawn
+against `Date.now()` would report a matured loan as three percent through.
+
+The status column carries a legend. Every word it can show is defined once in
+`apps/marketplace/src/portfolio/stages.ts`, keyed by side, and both the mappers and the legend read
+from there. A test asserts the two directions: every stage a mapper produces is explained, and no
+stage is explained that no mapper produces. The split by side is not ceremony, it is the point:
+`Sold` is a disaster to the borrower and a payout to the lender, so the two sides get different
+tones and different sentences for the same word.
+
+Three rules hold the screen together:
+
+- **The stage is words, never a status enum.** `IN_VAULT` and `SUPERSEDED` are correct names for a
+  state machine and the wrong thing to say to a person.
+- **What needs a person lives in the header, not on the screen.** A bell carries the count and the
+  list behind it; the portfolio shows positions, not urgency. It was a band across the top of the
+  portfolio, which put the one thing a reader would regret not doing on the one screen they had to
+  remember to open, and it duplicated a reclaim banner that shouted on every screen about held money
+  and knew about nothing else. Both are gone.
+- **The bell is empty most days.** A position needs attention only when its holder would
+  regret not acting today: a hold that lost and is sitting there, a loan at or past maturity, a
+  defaulted loan whose collateral can still be claimed, an item repaid for and waiting in a vault.
+  The rule is stated once, in `portfolio/attention.ts`, so it cannot drift into meaning "anything
+  interesting". When the band is empty it renders nothing at all rather than an empty box.
+- **The tab filters the table and never the strip.** A reader on the Lending tab still wants to know
+  what they owe. `side` lives in the URL like every other part of the view.
+
+The strip sums only outstanding loans. A repaid loan is history, and counting it would inflate both
+sides forever. Interest comes from the server as `accruedInterest` on the loan: the demo clock runs
+weeks ahead of the browser, so a figure computed here would be silently wrong.
+
+## The marketplace header
+
+Four things, in the order they are read: the brand, what needs you, what you can spend, who you are.
+
+The balance is a pill rather than a row of labelled figures. Both balances spelled out was two
+thirds of the wallet screen wedged beside the product name; the menu behind the pill still has the
+held figure, and the pill shows a dot when it is not zero, because that is when it explains why the
+spendable number looks wrong.
+
+Log out is behind the avatar. As a bare button in the header it gave the most destructive control on
+the screen the same weight as everything beside it, and never said whose session it would end.
+
+Every panel in the product opens through one `Popover`: click rather than hover, escape closes and
+returns the focus, and the panel is portaled out of whatever container would otherwise clip it. It
+carries the `data-surface` of the element it was triggered from, because leaving for the document
+body also leaves the palette scope, and the marketplace floor's panels opened white on a dark screen
+until they did.
+
+## The marketplace workspace
+
+`/listings` is one screen rather than several. The panes are separate components and the selection
+that binds them is a router search param, never React state:
+
+```
+/listings?listing=&category=&maxLoanToValue=&sort=&density=&stage=&offer=
+```
+
+The rail answers one question in three parts: **Browse items** is other people's, **My offers** is
+what the reader has money against, **My listings** is their own. "All items" mixed all three, which
+padded the lender's tab with rows nobody could act on and gave a borrower nowhere to look.
+
+Each row carries the amount asked for, the closing date and a banded meter for the share of the
+category's allowance the loan has taken. The meter runs green to red across the whole allowance, so
+a reader can see how well covered a listing is before reading a figure; the percentage sits beside
+it, because colour is never the only carrier. The rate stays plain: a low rate is what a borrower
+wants and what a lender is beaten down to, and one row renders for both, so colouring it would tell
+half the readers the opposite of the truth.
+
+The closing date is a date, not a countdown. "71 days left" is a number a reader has to turn back
+into a date before deciding anything, and it was being computed against the browser's clock rather
+than the server's. It takes a warning tone inside its last week.
+
+How the rail is laid out is a pair of icon toggles on the bar beside the filter, not a menu item
+three clicks inside it: it changes what the reader is looking at rather than what is in the list.
+The gallery is two across at every width, and the rail cannot be dragged below the width two
+readable tiles need.
+
+Every pane reads the router. None of them is handed the selection by a parent and none of them
+tells another pane anything. That is what makes each one renderable on its own in a test, and it is
+also what gives the screen a working back button, a reload that restores the view, and a link
+somebody can send.
+
+The old per listing route still exists and redirects, so every link written before the workspace,
+every bookmark, and the demo runbook all still resolve.
+
+Two rules the panes share:
+
+- **Tone is bound to the reader, not to the arithmetic.** A falling rate is favourable to a borrower
+  and adverse to a lender. `MarketDelta` takes a role and the direction arrow is computed
+  separately from the colour. See flow 17 in `docs/10-flows.md`.
+- **Which role the reader is in is derived, never chosen.** `positionOf` reads their relationship to
+  the listing. There is no toggle, because a toggle is a piece of state a person can leave in the
+  position that tells them the opposite of the truth.
 
 ## Vault console routes
 
@@ -133,20 +269,55 @@ and every screen usable without a mouse.
 ## Admin app routes
 
 ```
-/                              loan book overview
-/loans                         all loans, filter by status, overdue, at risk
-/liquidations
+/                              the dashboard: trading, loan book, exposure,
+                               reconciliation, dead letters, traffic
+/liquidations                  defaulted loans and the sales against them
+/operations                    pause and unpause, and the audit trail
+/parameters                    protocol parameters, with an effective date and history
 /reconciliation                latest run, drift items, run now
-/parameters                    protocol parameters, with an effective-date change
-/audit                         audit log search
-/accounts
-/system                        pause, unpause, health
+/deposits                      credit an account from the platform float
 ```
 
 The reconciliation screen is the most important one in the entire product. It shows, for each vault,
 three numbers that must agree: physical inventory count, database receipt count, and (in Phase 3)
 on-chain receipt count. Any disagreement is a red row with a drill-down. Build it in Phase 1 with two
 columns and add the third in Phase 3.
+
+## Screens are pages, not cards
+
+Every screen is a `Page` with a `PageHeader`. Before P8e each one was a `Card` used as a page
+wrapper, which is why they all rendered as a bordered box in the top left of an empty window and
+why none of them had a heading.
+
+`Page` defaults to a fluid width. `reading` is for a screen that is genuinely one form or one
+column of prose. `PageSection` is a band underneath, and carries the `h2` if it has a title; the
+`h1` belongs to the header and there is one per screen.
+
+## Nothing on screen is in the shape the database stores it
+
+Three rules, all of them broken somewhere before P8e:
+
+- An enum reaches a person through `packages/contracts/src/status-copy.ts`. Nothing renders a
+  status, a ledger kind, a direction or an audit action straight from the wire.
+- A timestamp reaches a person through `DateTime`. Nothing renders an ISO string.
+- An identifier may be a secondary reference and may never be the only thing naming a person or an
+  item. Where a screen needs one to be quotable, it shows a short tail and keeps the whole value in
+  the title.
+
+The audit trail is the case that made this a rule: its entire purpose is answering who did what,
+and it answered with an account id and a snake case identifier.
+
+## Every application catches its own failures
+
+`AppBoundary` is mounted once per shell. A render fault shows a stated failure and a way back
+rather than a white page, and an expired session redirects once rather than failing every query on
+the screen separately. A `403` is not a `401`: being refused an action is not being signed out.
+
+## Every mutation reports both outcomes
+
+`useMutationFeedback` in the shell, `useFeedback` in the screen. Inline `role="alert"` text keeps
+its job for an error that belongs beside a field; the toast carries the outcome of an action whose
+result is not otherwise visible.
 
 ## Component conventions
 

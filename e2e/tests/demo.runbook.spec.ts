@@ -111,14 +111,16 @@ test('the demo runbook walks end to end exactly as docs/DEMO.md describes', asyn
   // Step 2. The borrower lists it and two lenders compete.
   const borrowerPage = await openApp(browser, marketplaceBase, '/login');
   await signIn(borrowerPage, borrowerEmail, password);
-  await borrowerPage.getByRole('link', { name: 'My receipts' }).click();
+  await borrowerPage.getByRole('link', { name: 'My items' }).click();
   await borrowerPage.getByRole('button', { name: 'List' }).click();
   await borrowerPage.getByTestId('list-principal').fill('1500.00');
   await borrowerPage.getByTestId('list-submit').click();
-  await expect(borrowerPage.getByTestId('my-listings')).toContainText('Taking offers');
-  const listingId = (
-    await borrowerPage.getByTestId('my-listings').getByRole('link').first().innerText()
-  ).trim();
+  await expect(borrowerPage.getByTestId('portfolio-open')).toContainText('Taking offers');
+  /* The row opens the listing rather than printing its identifier. The test
+     takes the same route a reader does and reads the id off the URL. */
+  await borrowerPage.getByTestId('portfolio-open').getByTestId('position-item').first().click();
+  await borrowerPage.waitForURL(/listing=/);
+  const listingId = new URL(borrowerPage.url()).searchParams.get('listing') ?? '';
 
   for (const [email, rate] of [
     [rivalEmail, '24.00'],
@@ -129,17 +131,20 @@ test('the demo runbook walks end to end exactly as docs/DEMO.md describes', asyn
     await lenderPage.goto(`${marketplaceBase}/listings/${listingId}`);
     await lenderPage.getByTestId('offer-rate').fill(rate);
     await lenderPage.getByTestId('offer-submit').click();
-    await expect(lenderPage.getByTestId('offer-book')).toContainText(`${rate}% p.a.`);
+    await expect(lenderPage.getByTestId('offer-book')).toContainText(`${rate}%`);
     await lenderPage.context().close();
   }
 
   await borrowerPage.goto(`${marketplaceBase}/listings/${listingId}`);
   // The book ranks by rate, so the cheapest money is the one on top.
   const topRow = borrowerPage.getByTestId('offer-book').getByRole('row').nth(1);
-  await expect(topRow).toContainText('18.00% p.a.');
-  await topRow.getByRole('button', { name: 'Accept' }).click();
-  await borrowerPage.getByRole('link', { name: 'My loans' }).click();
-  await expect(borrowerPage.getByTestId('my-loans')).toContainText('Running');
+  await expect(topRow).toContainText('18.00%');
+  // Two steps on purpose: choosing an offer shows the total repayable, and
+  // only then can it be accepted.
+  await topRow.getByRole('button').first().click();
+  await borrowerPage.getByRole('button', { name: 'Accept this offer' }).click();
+  await borrowerPage.getByRole('link', { name: 'Portfolio' }).click();
+  await expect(borrowerPage.getByTestId('portfolio-open')).toContainText('Running');
 
   // Step 3. Operations pushes the clock past maturity from the admin screen.
   const adminPage = await openApp(browser, adminBase, '/login');
@@ -168,16 +173,24 @@ test('the demo runbook walks end to end exactly as docs/DEMO.md describes', asyn
   await signIn(borrowerPage, borrowerEmail, password);
 
   // Step 4. The borrower repays and the item walks back out of the vault.
-  await borrowerPage.getByRole('link', { name: 'My loans' }).click();
+  await borrowerPage.getByRole('link', { name: 'Portfolio' }).click();
+  /* Past maturity and inside grace, so the loan is one of the few things the
+     band raises. */
+  await borrowerPage.getByTestId('attention-bell').click();
+  await expect(borrowerPage.getByTestId('attention-bell-panel')).toContainText('In grace');
+  await borrowerPage.keyboard.press('Escape');
+  await borrowerPage.getByRole('button', { name: 'Repay', exact: true }).first().click();
   // Interest stopped at maturity, which the clock is now well past.
   await expect(borrowerPage.getByTestId('payoff-total')).toContainText('AUD');
   await expect(borrowerPage.getByTestId('payoff-interest')).toContainText('AUD');
   await borrowerPage.getByRole('button', { name: 'Repay and release the item' }).click();
-  await expect(borrowerPage.getByTestId('my-loans')).toContainText('Repaid');
+  await expect(borrowerPage.getByTestId('portfolio-open')).toContainText('Repaid');
 
-  await borrowerPage.getByRole('link', { name: 'My receipts' }).click();
+  await borrowerPage.getByRole('link', { name: 'My items' }).click();
   await borrowerPage.getByTestId(`redeem-${receiptId}`).click();
-  await expect(borrowerPage.getByTestId(`redemption-${receiptId}`)).toContainText('Requested');
+  await expect(borrowerPage.getByTestId(`redemption-${receiptId}`)).toContainText(
+    'Collection requested',
+  );
 
   await vaultPage.goto(`${vaultConsoleBase}/releases`);
   await expect(vaultPage.getByTestId('release-queue')).toContainText(receiptId);

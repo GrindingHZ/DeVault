@@ -22,9 +22,30 @@
   --color-status-warning: #b45309;
   --color-status-danger: #b91c1c;
 
-  --font-heading: 'IBM Plex Sans', system-ui, sans-serif;
-  --font-body: 'IBM Plex Sans', system-ui, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  /* Amended in P8g; see docs/13-design-system.md for the argument and the
+     conditions. Source Sans 3 is a humanist workhorse with open apertures and
+     round bowls, which is what makes a screen of figures read as calm rather
+     than as a terminal readout. */
+  --font-heading: 'Source Sans 3', system-ui, sans-serif;
+  --font-body: 'Source Sans 3', system-ui, sans-serif;
+
+  /* A figure is money, a rate, a share, a count, a date. It has to align down
+     a column, which is a job for tabular numerals rather than for a
+     monospace: Source Sans 3 sets figures on one width by default and honours
+     `tnum` on top, so a column lines up without the typewriter texture.
+
+     It holds the same value as the body face today and is still its own
+     token, because "the face the interface is set in" and "the face a
+     borrower reads their balance in" are different decisions and one should
+     be able to move without dragging the other. */
+  --font-figure: 'Source Sans 3', system-ui, sans-serif;
+
+  /* An identifier is read one character at a time: a receipt reference, an
+     intake hash, a settlement reference, a seal number. That is the job a
+     monospace is actually for, and it is the only job left to this token.
+     Source Code Pro is drawn against the same skeleton as Source Sans 3, so
+     a reference sitting beside a figure looks related rather than borrowed. */
+  --font-mono: 'Source Code Pro', ui-monospace, monospace;
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -49,6 +70,14 @@
   --motion-enter: 180ms;
   --motion-panel: 240ms;
 
+  /* One full pass of the ticker. Nothing else in the product moves for
+     longer than a quarter of a second, so this is deliberately a separate
+     name rather than a fourth entry on that scale: it is not a transition,
+     it is a thing that keeps going.
+
+     Slow on purpose. A tape a reader has to chase is a tape nobody reads. */
+  --motion-ticker: 90s;
+
   /* Entering decelerates, leaving accelerates. Linear reads as mechanical
      on anything a person is watching. */
   --motion-ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
@@ -58,6 +87,51 @@
      page, overlay is a thing sitting above everything. */
   --elevation-raised: 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px -12px rgb(15 23 42 / 0.12);
   --elevation-overlay: 0 2px 6px rgb(15 23 42 / 0.08), 0 20px 40px -16px rgb(15 23 42 / 0.28);
+
+  /* Added in P0.6 under the amendment in docs/13-design-system.md.
+
+     One border token was doing two jobs at two different contrast
+     requirements: the hairline between two table rows, which should recede,
+     and the outline of a control a person has to find, which WCAG 1.4.11
+     puts at 3:1. Splitting them is additive; --color-border keeps its value
+     and every existing screen renders unchanged. */
+  --color-border-strong: #748498;
+
+  /* Direction is arithmetic, tone is not. A rate falling is the borrower
+     paying less and the lender being undercut, so these are bound to who is
+     reading rather than to the sign. They share their values with the status
+     tokens today and are still named apart, because a loan being repaid and
+     a rate moving your way are different ideas that would otherwise be
+     unable to change independently. */
+  --color-market-favourable: #15803d;
+  --color-market-adverse: #b91c1c;
+  --color-market-flat: #64748b;
+
+  /* The marketplace workspace packs a book, a rail and a tape onto one
+     screen, which the 2.5rem product row cannot do without scrolling
+     something that should be readable at a glance. */
+  --density-row-floor: 2.25rem;
+
+  /* Added in P8h under the amendment in docs/13-design-system.md. Additive:
+     no value above this line changed.
+
+     P8c tokenised how long a thing takes and never what it does, so the only
+     channel anything in the product moved on was colour. Colour is the one
+     channel a reader may not be able to see, and a control that does not
+     answer a press reads as a picture of a control rather than a control.
+
+     Amplitude is a token rather than a class because the same component has
+     to be emphatic on a floor somebody visits and nearly still on a terminal
+     somebody works at for a shift. The component says `active:scale-press`
+     once; the surface decides how far that is. */
+  --motion-press-scale: 0.97;
+  --motion-lift: -1px;
+
+  /* Overshoot is off here. A control that springs past its own size is right
+     on the marketplace floor and wrong on a reconciliation screen, so the
+     default is the same deceleration everything else enters on and the floor
+     scope below opts in. */
+  --motion-ease-spring: var(--motion-ease-enter);
 }
 
 /* Somebody who has asked their system not to animate things has asked for a
@@ -69,6 +143,14 @@
     --motion-enter: 0ms;
     --motion-panel: 0ms;
   }
+
+  /* The ticker is not collapsed to zero the way the durations above are.
+     A zero length animation that repeats forever is not stillness, it is the
+     same movement at infinite speed. Somebody who asked for less motion gets
+     none, so the animation is switched off rather than shortened. */
+  [data-ticker] {
+    animation: none;
+  }
 }
 
 /* The vault console runs on a fixed terminal: larger touch targets, tighter
@@ -78,4 +160,80 @@
   --density-row-height: 3rem;
   --space-4: 0.75rem;
   --color-text-secondary: #334155;
+
+  /* Barely there on purpose. This is a fixed screen in a lit room that one
+     person drives through hundreds of intakes, where a control that hops
+     under the cursor is an irritation rather than a confirmation. The press
+     still registers, at the smallest amplitude that still reads. */
+  --motion-press-scale: 0.99;
+  --motion-lift: 0px;
+}
+
+/* The marketplace workspace. P0.6 amended the freeze to permit the palette to
+   fork into exactly one further named scope, which must carry its own
+   recorded contrast table; packages/ui/src/contrast.spec.ts computes that
+   table from these values so the document cannot drift from the stylesheet.
+
+   The scope is 'floor' and not 'terminal' because the vault console already
+   owns 'terminal', where the rule remains density overrides only.
+
+   Nothing above this block changed. The console and the admin render exactly
+   as they did. */
+[data-surface='floor'] {
+  --color-surface-base: #0b0f14;
+  --color-surface-raised: #131a22;
+  --color-surface-sunken: #080b0f;
+
+  --color-text-primary: #e6edf3;
+  --color-text-secondary: #8b9aab;
+  --color-text-inverse: #04140a;
+
+  /* Faint on purpose: at this weight a hairline separates two rows without
+     drawing a grid over a screen that is mostly figures. */
+  --color-border: #1e2a36;
+  --color-border-strong: #5a6d82;
+
+  --color-accent-default: #2ea043;
+  --color-accent-hover: #3fb950;
+
+  --color-status-neutral: #8b9aab;
+  --color-status-active: #2f81f7;
+  --color-status-success: #2ea043;
+  --color-status-warning: #d29922;
+  --color-status-danger: #f85149;
+
+  --color-market-favourable: #2ea043;
+  --color-market-adverse: #f85149;
+  --color-market-flat: #8b9aab;
+
+  --density-row-height: var(--density-row-floor);
+
+  /* The floor is the surface a lender chooses to be on, and the only one
+     permitted to overshoot. The release settles past the resting size and
+     comes back, which is the difference between a control that acknowledges
+     a press and one that feels handled. */
+  --motion-press-scale: 0.96;
+  --motion-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* A shadow tuned for light surfaces disappears on a dark one. Depth here
+     comes from a lifted surface plus a darker cast than the page ground. */
+  --elevation-raised: 0 1px 0 rgb(255 255 255 / 0.03), 0 8px 24px -12px rgb(0 0 0 / 0.7);
+  --elevation-overlay: 0 1px 0 rgb(255 255 255 / 0.04), 0 20px 40px -16px rgb(0 0 0 / 0.85);
+}
+
+/* Amplitude has to be collapsed after the scope blocks rather than alongside
+   the durations at the top of the file. A scope selector and `:root` carry
+   the same specificity, so the floor override written above would otherwise
+   win on document order and reinstate exactly the motion this query exists
+   to remove.
+
+   Duration is not repeated here. Collapsing it once was enough, because
+   nothing below that block sets a duration. */
+@media (prefers-reduced-motion: reduce) {
+  :root,
+  [data-surface='terminal'],
+  [data-surface='floor'] {
+    --motion-press-scale: 1;
+    --motion-lift: 0px;
+  }
 }

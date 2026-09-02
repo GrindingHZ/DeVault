@@ -21,6 +21,11 @@ export interface ListingSummaryReadModel {
   readonly itemCategory: ItemCategory;
   readonly itemDescription: string;
   readonly hasPhotograph: boolean;
+  /* The cheapest pending offer, which is what the borrower would pay if they
+     accepted now. Null means nobody has offered, which the rail has to be
+     able to say without guessing: a row that reports no offers because
+     nothing was fetched is telling the reader something untrue. */
+  readonly bestOfferRateBasisPoints: number | null;
 }
 
 export interface ListingsPage {
@@ -31,7 +36,12 @@ export interface ListingsPage {
 /* Newest is the default and pages on the id alone. The other two order by a
    value that repeats across listings, so their cursor has to carry that value
    as well as the id or a page boundary would skip or repeat rows. */
-export type BrowseSort = 'newest' | 'rate' | 'closing';
+/* Sorting by the borrower's rate ceiling was offered as "lowest rate" and
+   was neither: the ceiling is the most a borrower will pay, not what the
+   market is charging, so the order had nothing to do with the rates on the
+   screen. What a lender actually compares is how much of the appraisal is
+   being borrowed against, which is the figure beside every row. */
+export type BrowseSort = 'newest' | 'ltv' | 'closing';
 
 export interface BrowseFilter {
   readonly cursor: string | null;

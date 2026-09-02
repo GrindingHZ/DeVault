@@ -51,16 +51,19 @@ export function toIntakeResponse(
 export function toReceiptResponse(
   receipt: CustodyReceipt,
   hasPhotograph: boolean,
+  holderLabel: string | null = null,
 ): ReceiptResponse {
   return {
     id: receipt.id,
     vaultId: receipt.vaultId,
     holderAccountId: receipt.holderAccountId,
+    holderLabel,
     intakeRecordHash: receipt.intakeRecordHash,
     appraisedValue: toMoneyDto(receipt.appraisedValue),
     appraisedAt: new Date(Number(receipt.appraisedAt.epochMilliseconds)).toISOString(),
     itemCategory: receipt.itemCategory,
     itemDescription: receipt.itemDescription,
+    serialNumbers: [...receipt.serialNumbers],
     hasPhotograph,
     insurancePolicyReference: receipt.insurancePolicyReference,
     status: receipt.status,

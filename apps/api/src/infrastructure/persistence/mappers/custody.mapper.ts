@@ -110,6 +110,7 @@ export function toCustodyReceipt(row: CustodyReceiptRow): CustodyReceipt {
     appraiserId: staffIdOf(row.appraiserId),
     itemCategory: row.itemCategory,
     itemDescription: row.itemDescription,
+    serialNumbers: row.serialNumbers,
     insurancePolicyReference: row.insurancePolicyReference,
     status: row.status,
     encumberedByLoanId: row.encumberedByLoanId === null ? null : loanIdOf(row.encumberedByLoanId),

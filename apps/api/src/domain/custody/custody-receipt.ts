@@ -43,6 +43,11 @@ interface CustodyReceiptFields {
      receipt that cannot say what it is a receipt for is incomplete, and in
      Phase 3 it is an object on chain with nothing to join to. */
   readonly itemDescription: string;
+  /* What tells this item apart from another of the same model: a case
+     and movement number, a certificate number, an assay serial. Copied
+     from the intake at issuance for the same reason the description is,
+     and sealed into the intake record hash before it gets here. */
+  readonly serialNumbers: readonly string[];
   readonly insurancePolicyReference: string;
   readonly status: ReceiptStatus;
   readonly encumberedByLoanId: LoanId | null;
@@ -83,6 +88,10 @@ export class CustodyReceipt {
   get itemDescription(): string {
     return this.fields.itemDescription;
   }
+  get serialNumbers(): readonly string[] {
+    return this.fields.serialNumbers;
+  }
+
   get insurancePolicyReference(): string {
     return this.fields.insurancePolicyReference;
   }

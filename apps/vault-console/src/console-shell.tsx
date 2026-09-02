@@ -1,13 +1,33 @@
 import { logout } from '@depawn/contracts';
-import { AppShell, Button } from '@depawn/ui';
+import { AppBoundary, AppShell, Button, ToastRegion, useMutationFeedback } from '@depawn/ui';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
+import { createContext, useContext } from 'react';
 import type { ReactElement, ReactNode } from 'react';
 import { currentAccountKeys } from './current-account';
+
+interface Feedback {
+  readonly reportSuccess: (text: string) => void;
+  readonly reportFailure: (text: string) => void;
+}
+
+const FeedbackContext = createContext<Feedback | null>(null);
+
+/* Staff confirm an irreversible step and then need telling it happened.
+   Sealing and issuing said nothing at all before this. */
+export function useFeedback(): Feedback {
+  return (
+    useContext(FeedbackContext) ?? {
+      reportSuccess: () => undefined,
+      reportFailure: () => undefined,
+    }
+  );
+}
 
 export function ConsoleShell({ children }: { readonly children: ReactNode }): ReactElement {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const feedback = useMutationFeedback();
   const logoutMutation = useMutation({
     mutationFn: logout,
     onSuccess: async () => {
@@ -18,7 +38,7 @@ export function ConsoleShell({ children }: { readonly children: ReactNode }): Re
 
   return (
     <AppShell
-      productName="depawn vault console"
+      productName="DeVault console"
       surface="terminal"
       navigation={
         <>
@@ -42,7 +62,12 @@ export function ConsoleShell({ children }: { readonly children: ReactNode }): Re
         </Button>
       }
     >
-      {children}
+      <FeedbackContext.Provider
+        value={{ reportSuccess: feedback.reportSuccess, reportFailure: feedback.reportFailure }}
+      >
+        <AppBoundary>{children}</AppBoundary>
+      </FeedbackContext.Provider>
+      <ToastRegion messages={feedback.messages} onDismiss={feedback.dismiss} />
     </AppShell>
   );
 }

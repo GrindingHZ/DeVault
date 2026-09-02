@@ -3,6 +3,7 @@ import { Button, Card, Dialog, Field } from '@depawn/ui';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import type { ReactElement } from 'react';
+import { useFeedback } from '../console-shell';
 import { intakeKeys } from '../intake-keys';
 import type { IntakeStepProps } from './identify-step';
 
@@ -23,6 +24,7 @@ function messageFor(error: unknown): string {
 
 export function SealStep({ intake, onAdvance }: IntakeStepProps): ReactElement {
   const queryClient = useQueryClient();
+  const feedback = useFeedback();
   const [sealNumber, setSealNumber] = useState(intake.sealNumber ?? '');
   const [isConfirmOpen, setConfirmOpen] = useState(false);
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
@@ -35,6 +37,7 @@ export function SealStep({ intake, onAdvance }: IntakeStepProps): ReactElement {
       return sealIntake(intake.id, { idempotencyKey });
     },
     onSuccess: async () => {
+      feedback.reportSuccess('The intake is sealed. Its record can no longer be changed.');
       setIdempotencyKey(crypto.randomUUID());
       setConfirmOpen(false);
       await queryClient.invalidateQueries({ queryKey: intakeKeys.detail(intake.id) });

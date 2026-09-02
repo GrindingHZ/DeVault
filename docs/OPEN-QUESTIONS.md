@@ -259,10 +259,42 @@ be visibly distinct on screen, not merged into one gallery.
 
 ## Q-027: whether the operations consoles should read like the marketplace
 **Blocks:** nothing today
-**Currently implemented:** the vault console and the admin lead with identifiers and monospace, and
-carry no explain layer; only their state names were put into words
+**Currently implemented:** revisited in P0.6 and answered narrowly. The vault console and the admin
+still lead with identifiers and monospace and still carry no explain layer. What they did adopt is
+the shared component layer and the stronger control boundary, because those are not a voice.
 **Needs:** whoever owns docs/05
-**Notes:** Staff quote receipt ids to each other and read them off labels, so a table that leads
-with the id is the right tool for that job rather than a shortcoming. Applying a lender's treatment
-to an operations console would be copying a pattern instead of using it. This is written down so
-the asymmetry reads as a decision rather than as unfinished work.
+**Notes:** The original entry recorded the split as a decision rather than as unfinished work, and
+that half still holds: staff quote receipt ids to each other and read them off labels, so a table
+that leads with the id is the right tool rather than a shortcoming. What the original entry did not
+separate is voice from machinery. Applying a lender's explain layer to an operations console would
+be copying a pattern; giving every application the same button, the same field and a control
+boundary that meets WCAG 1.4.11 is fixing a defect that happened to be visible in three places at
+once. The marketplace going dark did not spread to them, which is the part the P0.6 amendment in
+docs/13-design-system.md holds to one scope.
+
+## Q-028: whether the borrow and lend split should survive as navigation
+**Blocks:** nothing today
+**Currently implemented:** no. The split is a filter on `/portfolio`, not a pair of sections. The
+navigation rail carries four destinations rather than seven, and the four role split routes redirect.
+**Needs:** whoever owns docs/05
+**Notes:** The split came from the domain, where borrowing and lending really are two roles with two
+sets of rules. It does not come from the person: in this product the same account does both, often
+against the same item. Four screens meant one loan was rendered twice under two different names, and
+a reader had to visit both to know where they stood. Keeping the distinction as a filter keeps the
+part that is true (a position is read from one side, and which side changes what every column means)
+and drops the part that was only an artefact of how the endpoints are grouped. If a future account
+type can only ever lend, the filter becomes a default rather than a new screen.
+
+## Q-029: what a repaid loan actually cost
+**Blocks:** the closed rows of the portfolio, which show a dash where an interest figure belongs
+**Currently implemented:** nothing. `accruedInterest` is recomputed against the server clock on
+every read, clamped at maturity but not at settlement, so a loan repaid on day three reports what
+thirty days would have cost. The portfolio shows no interest figure once a loan leaves ACTIVE
+rather than showing that one.
+**Needs:** whoever owns docs/03
+**Notes:** The loan records `defaultedAt` but not the moment of repayment, so the true figure cannot
+be derived from the row. The fix is a `repaidAt` column plus clamping accrual to it, which is a
+migration and a domain change rather than a display one. Worth doing: a lender's realised return
+across settled loans is the one number this product cannot currently answer, and it is the number
+anybody comparing us to a savings account would ask for first. Until then a dash is the honest
+answer, because the alternative is a plausible number that is wrong.

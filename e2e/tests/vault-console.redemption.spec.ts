@@ -82,12 +82,14 @@ test('a borrower asks for an item back and the counter hands it over', async ({
   const borrowerPage = await borrowerContext.newPage();
   await borrowerPage.goto(`${marketplaceBase}/login`);
   await signIn(borrowerPage, borrowerEmail, password);
-  await borrowerPage.getByRole('link', { name: 'My receipts' }).click();
+  await borrowerPage.getByRole('link', { name: 'My items' }).click();
   await borrowerPage.getByTestId(`redeem-${receiptId}`).click();
-  await expect(borrowerPage.getByTestId(`redemption-${receiptId}`)).toContainText('Requested');
+  await expect(borrowerPage.getByTestId(`redemption-${receiptId}`)).toContainText(
+    'Collection requested',
+  );
   // The burn is the entitlement proof, so the receipt is spent the moment
   // the request is made, before anyone visits the counter.
-  await expect(borrowerPage.getByTestId('my-receipts')).toContainText('Collected');
+  await expect(borrowerPage.getByTestId('my-receipts')).toContainText('Collection requested');
 
   await page.goto('/login');
   await signIn(page, 'staff@demo.test', 'demo-password-123');

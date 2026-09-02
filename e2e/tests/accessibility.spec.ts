@@ -53,9 +53,15 @@ const apps = [
     routes: [
       { path: '/listings', proof: 'browse-table' },
       { path: '/borrow/receipts', proof: 'my-receipts' },
-      { path: '/borrow/listings', proof: 'my-listings' },
-      { path: '/borrow/loans', proof: 'my-loans' },
-      { path: '/lend/offers', proof: 'my-offers' },
+      /* The four role split screens redirect here. Scanning the old paths
+         would put the same page through axe four times and never reach the
+         states that change what is rendered.
+
+         Two axes, and every combination draws different columns, so each is
+         scanned in its own right. */
+      { path: '/portfolio?side=borrowing&view=open', proof: 'portfolio-open' },
+      { path: '/portfolio?side=lending&view=open', proof: 'portfolio-open' },
+      { path: '/portfolio?side=borrowing&view=history', proof: 'portfolio-history' },
       { path: '/wallet', proof: 'available-balance' },
     ] as readonly Route[],
   },
@@ -84,6 +90,15 @@ const apps = [
   },
 ] as const;
 
+/* The responsive work is asserted by nobody unless the pass runs at more
+   than one width. These three are a laptop, a small laptop and a tablet in
+   portrait, which is where the tables stop fitting. */
+const widths = [
+  { name: '1440', viewport: { width: 1440, height: 900 } },
+  { name: '1024', viewport: { width: 1024, height: 768 } },
+  { name: '768', viewport: { width: 768, height: 1024 } },
+] as const;
+
 for (const entry of apps) {
   test(`the ${entry.app} login screen is free of serious accessibility faults`, async ({
     page,
@@ -106,4 +121,60 @@ for (const entry of apps) {
       await expectNoSeriousViolations(page, `${entry.app} ${route.path}`);
     }
   });
+
+  test(`the ${entry.app} holds together at every width`, async ({ page }) => {
+    await page.goto(`${entry.base}/login`);
+    await signIn(page, entry.email);
+
+    for (const width of widths) {
+      await page.setViewportSize(width.viewport);
+      for (const route of entry.routes) {
+        await page.goto(`${entry.base}${route.path}`);
+        await expect(page.getByTestId(route.proof)).toBeVisible();
+
+        /* The defect this guards: a table wider than its container used to
+           push the page sideways, so the whole document scrolled. A pane may
+           scroll horizontally; the document may not. */
+        const overflows = await page.evaluate(
+          () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+        );
+        expect(overflows, `${entry.app} ${route.path} at ${width.name} scrolls sideways`).toBe(
+          false,
+        );
+      }
+    }
+  });
 }
+
+/* An identifier may be a secondary reference. It may never be the only thing
+   naming a person, which is what the audit trail and the inventory did. */
+test('the screens that name people do not answer with an identifier', async ({ page }) => {
+  await page.goto(`${adminBase}/login`);
+  await signIn(page, 'ops@demo.test');
+  await page.goto(`${adminBase}/operations`);
+  await expect(page.getByTestId('audit-table')).toBeVisible();
+  await expect(page.getByTestId('audit-table')).toContainText('@');
+});
+
+/* The workspace with nothing selected is only half of it. The offer book,
+   the rate chart and the spine only exist once a listing is chosen, and they
+   are the densest markup in the product, so they are scanned separately
+   rather than left to a route list that can never reach them. */
+test('the selected listing panes are free of serious accessibility faults', async ({ page }) => {
+  await page.goto(`${marketplaceBase}/login`);
+  await signIn(page, 'member@demo.test');
+  await page.goto(`${marketplaceBase}/listings`);
+  await expect(page.getByTestId('browse-table')).toBeVisible();
+
+  await page.getByTestId('browse-table').getByRole('button').first().click();
+  // The selection lands in the URL, which is what every pane reads.
+  await expect(page).toHaveURL(/listing=/);
+  await expect(page.getByTestId('offer-book')).toBeVisible();
+  await expectNoSeriousViolations(page, 'marketplace /listings with a selection');
+
+  // The gallery is different markup over the same data, so it gets its own
+  // scan rather than being assumed equivalent to the rows.
+  await page.getByTestId('browse-density').selectOption('gallery');
+  await expect(page.getByTestId('browse-table')).toBeVisible();
+  await expectNoSeriousViolations(page, 'marketplace /listings as a gallery');
+});

@@ -30,6 +30,7 @@ interface BrowseRow {
   readonly item_category: ItemCategory;
   readonly item_description: string;
   readonly has_photograph: boolean;
+  readonly best_offer_rate_basis_points: number | null;
 }
 
 @Injectable()
@@ -59,7 +60,15 @@ export class PrismaMarketplaceQueries implements MarketplaceQueries {
                SELECT 1 FROM intake_record i
                WHERE i.sealed_hash = r.intake_record_hash
                  AND jsonb_path_exists(i.evidence, '$[*].contentType')
-             ) AS has_photograph
+             ) AS has_photograph,
+             -- What a borrower would pay if they took the best offer standing
+             -- right now. Computed here so a rail of twenty rows stays one
+             -- query rather than becoming twenty.
+             (
+               SELECT MIN(o.annual_percentage_rate_basis_points)
+               FROM offer o
+               WHERE o.listing_id = l.id AND o.status = 'PENDING'
+             ) AS best_offer_rate_basis_points
       FROM listing l
       JOIN custody_receipt r ON r.id = l.receipt_id
       WHERE l.status = 'ACTIVE'
@@ -74,14 +83,14 @@ export class PrismaMarketplaceQueries implements MarketplaceQueries {
         AND (
           ${cursor.id}::text IS NULL
           OR (${filter.sort} = 'newest' AND l.id < ${cursor.id})
-          OR (${filter.sort} = 'rate'
-              AND (l.max_annual_percentage_rate_basis_points, l.id) > (${cursor.value}::int, ${cursor.id}))
+          OR (${filter.sort} = 'ltv'
+              AND ((l.requested_principal_minor_units * 10000 / NULLIF(r.appraised_value_minor_units, 0)), l.id) > (${cursor.value}::int, ${cursor.id}))
           OR (${filter.sort} = 'closing'
               AND (l.expires_at, l.id) > (${cursor.at}::timestamp, ${cursor.id}))
         )
       ORDER BY
         CASE WHEN ${filter.sort} = 'newest' THEN l.id END DESC,
-        CASE WHEN ${filter.sort} = 'rate' THEN l.max_annual_percentage_rate_basis_points END ASC,
+        CASE WHEN ${filter.sort} = 'ltv' THEN (l.requested_principal_minor_units * 10000 / NULLIF(r.appraised_value_minor_units, 0)) END ASC,
         CASE WHEN ${filter.sort} = 'closing' THEN l.expires_at END ASC,
         l.id ASC
       LIMIT ${filter.limit + 1}
@@ -132,6 +141,7 @@ function toSummary(row: BrowseRow): ListingSummaryReadModel {
     itemCategory: row.item_category,
     itemDescription: row.item_description,
     hasPhotograph: row.has_photograph,
+    bestOfferRateBasisPoints: row.best_offer_rate_basis_points,
   };
 }
 
@@ -162,9 +172,16 @@ function decodeCursor(cursor: string | null): DecodedCursor {
   };
 }
 
+function loanToValueOf(row: BrowseRow): number {
+  if (row.appraised_value_minor_units <= 0n) {
+    return 0;
+  }
+  return Number((row.requested_principal_minor_units * 10_000n) / row.appraised_value_minor_units);
+}
+
 function encodeCursor(sort: BrowseSort, row: BrowseRow): string {
-  if (sort === 'rate') {
-    return `${row.id}|${row.max_annual_percentage_rate_basis_points}`;
+  if (sort === 'ltv') {
+    return `${row.id}|${loanToValueOf(row)}`;
   }
   if (sort === 'closing') {
     return `${row.id}|${row.expires_at.toISOString()}`;

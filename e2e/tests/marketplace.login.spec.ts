@@ -45,6 +45,7 @@ test('logging out returns to the login screen', async ({ page, request }) => {
   await page.getByTestId('login-submit').click();
   await expect(page.getByTestId('authenticated-home')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Log out' }).click();
+  await page.getByTestId('account-menu').click();
+  await page.getByTestId('log-out').click();
   await expect(page.getByTestId('login-submit')).toBeVisible();
 });

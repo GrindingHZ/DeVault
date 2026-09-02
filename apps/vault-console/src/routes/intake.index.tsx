@@ -1,5 +1,5 @@
 import { ApiError, beginIntake, messageForError } from '@depawn/contracts';
-import { Button, Card, Field } from '@depawn/ui';
+import { Button, Card, Field, Page, PageHeader } from '@depawn/ui';
 import { useMutation } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
@@ -23,9 +23,15 @@ function IntakeStartPage(): ReactElement {
   return (
     <StaffGuard>
       <ConsoleShell>
-        <div className="max-w-md">
-          <StartIntakeCard />
-        </div>
+        <Page>
+          <PageHeader
+            title="Intake"
+            description="Take an item in, appraise it, seal it, and issue its receipt."
+          />
+          <div className="max-w-md">
+            <StartIntakeCard />
+          </div>
+        </Page>
       </ConsoleShell>
     </StaffGuard>
   );

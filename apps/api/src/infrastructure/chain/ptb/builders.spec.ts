@@ -64,7 +64,7 @@ describe('escrow builders', () => {
       coinType,
       walletId: wallet,
       holdKey: 'HOLD-1',
-      amount: 60_000_000n,
+      baseUnits: 60_000_000n,
       reference: 'LISTING-1',
     });
     expect(callsOf(transaction)).toEqual([
@@ -79,8 +79,8 @@ describe('escrow builders', () => {
       holdObjectId: hold,
       reason: 'ORIGINATE_LOAN',
       payments: [
-        { amount: 98_000_000n, to: { walletId: wallet } },
-        { amount: 2_000_000n, to: { newOwner: member } },
+        { baseUnits: 98_000_000n, to: { walletId: wallet } },
+        { baseUnits: 2_000_000n, to: { newOwner: member } },
       ],
     });
     expect(callsOf(transaction).map((call) => call.function)).toEqual([
@@ -95,7 +95,7 @@ describe('escrow builders', () => {
     const transaction = new Transaction();
     appendMintAndDeposit(transaction, deployment, {
       coinType,
-      amount: 5_000_000n,
+      baseUnits: 5_000_000n,
       to: { newOwner: member },
       reference: 'seed',
     });
@@ -111,7 +111,7 @@ describe('escrow builders', () => {
       appendMintAndDeposit(
         transaction,
         { ...deployment, network: 'testnet', treasuryCapId: null },
-        { coinType, amount: 1n, to: { walletId: wallet }, reference: 'seed' },
+        { coinType, baseUnits: 1n, to: { walletId: wallet }, reference: 'seed' },
       ),
     ).toThrow(/testnet/);
   });
@@ -122,7 +122,7 @@ describe('escrow builders', () => {
       coinType,
       fromWalletId: wallet,
       to: { walletId: otherWallet },
-      amount: 1n,
+      baseUnits: 1n,
       reference: 'LOAN-1',
       reason: 'REPAY_LOAN',
     });
@@ -130,7 +130,7 @@ describe('escrow builders', () => {
       coinType,
       fromWalletId: wallet,
       to: { newOwner: member },
-      amount: 1n,
+      baseUnits: 1n,
       reference: 'SALE-1',
       reason: 'SELL_NOTE',
     });
@@ -138,7 +138,7 @@ describe('escrow builders', () => {
     appendWithdraw(transaction, deployment, {
       coinType,
       walletId: wallet,
-      amount: 1n,
+      baseUnits: 1n,
       reference: 'W',
     });
     expect(callsOf(transaction).map((call) => call.function)).toEqual([
@@ -158,7 +158,7 @@ describe('custody, config and attestation builders', () => {
       vault: 'VAULT-1',
       holder: member,
       intakeHash: 'sha256:intake',
-      appraisedValue: 5_000_000_000n,
+      appraisedValueBaseUnits: 5_000_000_000n,
       appraisedAtMs: 1_700_000_000_000n,
       itemCategory: 'WATCH',
       insuranceReference: 'POL-1',

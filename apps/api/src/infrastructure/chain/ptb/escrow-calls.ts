@@ -37,7 +37,7 @@ export function appendMintAndDeposit(
   transaction: Transaction,
   deployment: ChainDeployment,
   input: EscrowInput & {
-    readonly amount: bigint;
+    readonly baseUnits: bigint;
     readonly to: WalletTarget;
     readonly reference: string;
   },
@@ -48,7 +48,10 @@ export function appendMintAndDeposit(
   const coin = transaction.moveCall({
     target: '0x2::coin::mint',
     typeArguments: [input.coinType],
-    arguments: [transaction.object(deployment.treasuryCapId), transaction.pure.u64(input.amount)],
+    arguments: [
+      transaction.object(deployment.treasuryCapId),
+      transaction.pure.u64(input.baseUnits),
+    ],
   });
   appendDepositOfCoin(transaction, deployment, { ...input, coin });
 }
@@ -88,7 +91,7 @@ export function appendWithdraw(
   deployment: ChainDeployment,
   input: EscrowInput & {
     readonly walletId: string;
-    readonly amount: bigint;
+    readonly baseUnits: bigint;
     readonly reference: string;
   },
 ): void {
@@ -98,7 +101,7 @@ export function appendWithdraw(
     arguments: [
       transaction.object(deployment.operatorCapId),
       transaction.object(input.walletId),
-      transaction.pure.u64(input.amount),
+      transaction.pure.u64(input.baseUnits),
       transaction.pure.vector('u8', bytesOf(input.reference)),
     ],
   });
@@ -110,7 +113,7 @@ export function appendHold(
   input: EscrowInput & {
     readonly walletId: string;
     readonly holdKey: string;
-    readonly amount: bigint;
+    readonly baseUnits: bigint;
     readonly reference: string;
   },
 ): void {
@@ -122,7 +125,7 @@ export function appendHold(
       transaction.object(deployment.configId),
       transaction.object(input.walletId),
       transaction.pure.vector('u8', bytesOf(input.holdKey)),
-      transaction.pure.u64(input.amount),
+      transaction.pure.u64(input.baseUnits),
       transaction.pure.vector('u8', bytesOf(input.reference)),
     ],
   });
@@ -145,7 +148,7 @@ export function appendRefundHold(
 }
 
 export interface ReleasePayment {
-  readonly amount: bigint;
+  readonly baseUnits: bigint;
   readonly to: WalletTarget;
 }
 
@@ -178,7 +181,7 @@ export function appendRelease(
         arguments: [
           payout,
           transaction.object(payment.to.walletId),
-          transaction.pure.u64(payment.amount),
+          transaction.pure.u64(payment.baseUnits),
         ],
       });
     } else {
@@ -189,7 +192,7 @@ export function appendRelease(
           transaction.object(deployment.operatorCapId),
           payout,
           transaction.pure.address(payment.to.newOwner),
-          transaction.pure.u64(payment.amount),
+          transaction.pure.u64(payment.baseUnits),
         ],
       });
     }
@@ -207,12 +210,12 @@ export function appendTransfer(
   input: EscrowInput & {
     readonly fromWalletId: string;
     readonly to: WalletTarget;
-    readonly amount: bigint;
+    readonly baseUnits: bigint;
     readonly reference: string;
     readonly reason: LedgerTransactionKind;
   },
 ): void {
-  const amount = transaction.pure.u64(input.amount);
+  const amount = transaction.pure.u64(input.baseUnits);
   const reference = transaction.pure.vector('u8', bytesOf(input.reference));
   const reason = transaction.pure.u8(reasonCodes[input.reason]);
   if ('walletId' in input.to) {

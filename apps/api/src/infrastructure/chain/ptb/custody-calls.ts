@@ -15,7 +15,7 @@ export function appendIssueReceipt(
     readonly vault: string;
     readonly holder: string;
     readonly intakeHash: string;
-    readonly appraisedValue: bigint;
+    readonly appraisedValueBaseUnits: bigint;
     readonly appraisedAtMs: bigint;
     readonly itemCategory: ItemCategory;
     readonly insuranceReference: string;
@@ -29,7 +29,7 @@ export function appendIssueReceipt(
       transaction.pure.vector('u8', bytesOf(input.vault)),
       transaction.pure.address(input.holder),
       transaction.pure.vector('u8', bytesOf(input.intakeHash)),
-      transaction.pure.u64(input.appraisedValue),
+      transaction.pure.u64(input.appraisedValueBaseUnits),
       transaction.pure.u64(input.appraisedAtMs),
       transaction.pure.u8(itemCategoryCodes[input.itemCategory]),
       transaction.pure.vector('u8', bytesOf(input.insuranceReference)),

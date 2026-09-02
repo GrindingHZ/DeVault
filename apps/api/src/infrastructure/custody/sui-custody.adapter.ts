@@ -48,7 +48,7 @@ export class SuiCustodyAdapter implements CustodyPort {
       vault: receipt.vaultId,
       holder: await this.addresses.resolve(receipt.holderAccountId, context),
       intakeHash: receipt.intakeRecordHash,
-      appraisedValue: chainAmountOf(receipt.appraisedValue, deployment),
+      appraisedValueBaseUnits: chainAmountOf(receipt.appraisedValue, deployment),
       appraisedAtMs: receipt.appraisedAt.epochMilliseconds,
       itemCategory: receipt.itemCategory,
       insuranceReference: receipt.insurancePolicyReference,

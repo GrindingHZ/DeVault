@@ -78,7 +78,7 @@ export class SuiSettlementAdapter implements SettlementPort {
       coinType: coinTypeFor(command.amount.currency, deployment),
       walletId: wallet.objectId,
       holdKey: mirror.id,
-      amount: chainAmountOf(command.amount, deployment),
+      baseUnits: chainAmountOf(command.amount, deployment),
       reference: command.reference,
     });
     await transactionOf(context).chainFundsHold.create({
@@ -162,7 +162,7 @@ export class SuiSettlementAdapter implements SettlementPort {
     const mirrorRef = await this.ledger.transfer(command, context);
     const currency = command.amount.currency;
     const coinType = coinTypeFor(currency, deployment);
-    const amount = chainAmountOf(command.amount, deployment);
+    const baseUnits = chainAmountOf(command.amount, deployment);
     const settlementRef = chain.issueSettlementRef();
 
     if (command.fromAccountId === platformAccountIds.float) {
@@ -172,7 +172,7 @@ export class SuiSettlementAdapter implements SettlementPort {
       if (deployment.treasuryCapId !== null) {
         appendMintAndDeposit(chain.chainTransaction, deployment, {
           coinType,
-          amount,
+          baseUnits,
           to,
           reference: command.reference,
         });
@@ -182,7 +182,7 @@ export class SuiSettlementAdapter implements SettlementPort {
           coinType,
           fromWalletId: stock.objectId,
           to,
-          amount,
+          baseUnits,
           reference: command.reference,
           reason: command.reason,
         });
@@ -193,7 +193,7 @@ export class SuiSettlementAdapter implements SettlementPort {
       appendWithdraw(chain.chainTransaction, deployment, {
         coinType,
         walletId: from.objectId,
-        amount,
+        baseUnits,
         reference: command.reference,
       });
     } else {
@@ -203,7 +203,7 @@ export class SuiSettlementAdapter implements SettlementPort {
         coinType,
         fromWalletId: from.objectId,
         to,
-        amount,
+        baseUnits,
         reference: command.reference,
         reason: command.reason,
       });
@@ -294,7 +294,10 @@ export class SuiSettlementAdapter implements SettlementPort {
     }
     const payments: ReleasePayment[] = [];
     for (const [owner, amount] of merged) {
-      payments.push({ amount, to: await this.targetFor(owner, currency, chain, context) });
+      payments.push({
+        baseUnits: amount,
+        to: await this.targetFor(owner, currency, chain, context),
+      });
     }
     return payments;
   }

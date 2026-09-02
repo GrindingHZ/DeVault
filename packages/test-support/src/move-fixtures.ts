@@ -7,7 +7,7 @@ import type { InterestFixture } from './fixtures';
 export function renderInterestFixturesModule(fixtures: readonly InterestFixture[]): string {
   const tests = fixtures.map(
     (fixture) => `#[test]
-fun ${testNameOf(fixture.name)}() {
+fun ${toMoveTestName(fixture.name)}() {
     assert!(
         interest::accrued(
             ${fixture.principalMinorUnits},
@@ -30,7 +30,7 @@ ${tests.join('\n\n')}
 `;
 }
 
-function testNameOf(name: string): string {
+function toMoveTestName(name: string): string {
   return name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '_')

@@ -16,3 +16,15 @@ fixture file the TypeScript reads.
 - [x] feat(move): attest domain events beside the settlement that caused them
 - [x] feat(move): accrue interest with the borrower's rounding
 - [x] test(move): interest agrees with the shared fixtures
+
+## Added after review
+
+- [x] fix(move): open a wallet once when a transfer creates it
+- [x] test(move): refuse zero amounts and empty keys
+- [x] test(move): leave the interest value cases to the fixtures
+- [x] chore(ci): check prose in move sources
+- [x] refactor(api): explain the fixture imports and name the mapper
+
+The review also asked for commit c7bff39 to be split so the escrow module lands under a feat
+header. docs/11-execution-pipeline.md forbids amending or rebasing a commit already made and
+the repository settings deny both commands, so the record stays as it is with this note.

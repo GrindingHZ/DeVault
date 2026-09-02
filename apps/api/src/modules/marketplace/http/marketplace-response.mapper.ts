@@ -2,6 +2,7 @@ import type {
   ListingResponse,
   ListingSummary,
   MyListingResponse,
+  MyOfferResponse,
   OfferResponse,
   RankedOfferResponse,
 } from '@depawn/contracts';
@@ -9,6 +10,7 @@ import type { Listing } from '../../../domain/marketplace/listing';
 import type { Offer } from '../../../domain/marketplace/offer';
 import type { RankedOffer } from '../../../domain/marketplace/rank-offers';
 import type { MyListingRow } from '../application/my-listings.query';
+import type { MyOfferRow } from '../application/my-offers.query';
 import type { ListingSummaryReadModel } from '../../../domain/ports/marketplace-queries.port';
 import type { Money } from '../../../domain/shared/money';
 import { toMoneyDto } from '../../shared/http/money.mapper';
@@ -27,6 +29,21 @@ export function toListingResponse(listing: Listing): ListingResponse {
     requestedDurationMs: Number(listing.requestedDurationMs),
     expiresAt: isoOf(listing.expiresAt.epochMilliseconds),
     status: listing.status,
+  };
+}
+
+export function toMyOfferResponse(row: MyOfferRow, lenderAccountId: string): MyOfferResponse {
+  return {
+    id: row.id,
+    listingId: row.listingId,
+    lenderAccountId,
+    principal: { minorUnits: row.principalMinorUnits.toString(), currency: row.currency },
+    annualPercentageRateBasisPoints: row.annualPercentageRateBasisPoints,
+    durationMs: Number(row.durationMs),
+    expiresAt: row.expiresAt.toISOString(),
+    createdAt: row.createdAt.toISOString(),
+    status: row.status,
+    itemDescription: row.itemDescription,
   };
 }
 

@@ -9,6 +9,7 @@ import { CancelListingUseCase } from './application/cancel-listing.use-case';
 import { CreateListingUseCase } from './application/create-listing.use-case';
 import { ListingDetailQuery } from './application/listing-detail.query';
 import { MyListingsQuery } from './application/my-listings.query';
+import { MyOffersQuery } from './application/my-offers.query';
 import { PlaceOfferUseCase } from './application/place-offer.use-case';
 import { PublishListingUseCase } from './application/publish-listing.use-case';
 import { ReclaimHoldUseCase } from './application/reclaim-hold.use-case';
@@ -28,6 +29,7 @@ import { MemberMarketplaceController } from './http/member-marketplace.controlle
     ReclaimHoldUseCase,
     ListingDetailQuery,
     MyListingsQuery,
+    MyOffersQuery,
     { provide: LISTING_REPOSITORY, useClass: PrismaListingRepository },
     { provide: MARKETPLACE_QUERIES, useClass: PrismaMarketplaceQueries },
     { provide: MARKET_QUERIES, useClass: PrismaMarketQueries },

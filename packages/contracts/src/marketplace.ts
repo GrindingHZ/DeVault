@@ -129,8 +129,16 @@ export const placeOfferRequestSchema = z.object({
 
 export type PlaceOfferRequest = z.infer<typeof placeOfferRequestSchema>;
 
+/* The item the offer stands against. An offer without it is an amount held
+   against an identifier, which is what the lender's own list used to be. */
+export const myOfferResponseSchema = offerResponseSchema.extend({
+  itemDescription: z.string(),
+});
+
+export type MyOfferResponse = z.infer<typeof myOfferResponseSchema>;
+
 export const myOffersResponseSchema = z.object({
-  items: z.array(offerResponseSchema),
+  items: z.array(myOfferResponseSchema),
 });
 
 export type MyOffersResponse = z.infer<typeof myOffersResponseSchema>;

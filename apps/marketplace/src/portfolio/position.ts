@@ -1,6 +1,6 @@
 import { formatMoney, formatRate } from '@depawn/ui';
 import type { StatusTone } from '@depawn/ui';
-import type { LoanResponse, MyListingResponse, OfferResponse } from '@depawn/contracts';
+import type { LoanResponse, MyListingResponse, MyOfferResponse } from '@depawn/contracts';
 
 /* Four screens rendered four database entities in four vocabularies, and a
    single loan appeared twice under two different names depending on who was
@@ -112,11 +112,11 @@ export function positionOfListing(listing: MyListingResponse): Position {
   };
 }
 
-export function positionOfOffer(offer: OfferResponse, itemDescription: string): Position {
+export function positionOfOffer(offer: MyOfferResponse): Position {
   const base = {
     id: `offer-${offer.id}`,
     side: 'lending' as const,
-    itemDescription,
+    itemDescription: offer.itemDescription,
     listingId: offer.listingId,
     loanId: null,
     offerId: offer.id,

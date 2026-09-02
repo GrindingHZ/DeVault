@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { LoanResponse, MyListingResponse, OfferResponse } from '@depawn/contracts';
+import type { LoanResponse, MyListingResponse, MyOfferResponse } from '@depawn/contracts';
 import {
   maturityWarningMs,
   positionOfBorrowedLoan,
@@ -33,7 +33,7 @@ function listing(overrides: Partial<MyListingResponse> = {}): MyListingResponse 
   };
 }
 
-function offer(overrides: Partial<OfferResponse> = {}): OfferResponse {
+function offer(overrides: Partial<MyOfferResponse> = {}): MyOfferResponse {
   return {
     id: 'O1',
     listingId: 'L1',
@@ -44,6 +44,7 @@ function offer(overrides: Partial<OfferResponse> = {}): OfferResponse {
     expiresAt: '2026-09-23T12:00:00.000Z',
     createdAt: '2026-08-20T12:00:00.000Z',
     status: 'PENDING',
+    itemDescription: 'Omega Speedmaster',
     ...overrides,
   };
 }
@@ -115,7 +116,7 @@ describe('a listing as a position', () => {
 
 describe('an offer as a position', () => {
   it('lets a standing offer be withdrawn', () => {
-    const position = positionOfOffer(offer(), 'Omega Speedmaster');
+    const position = positionOfOffer(offer());
     expect(position.stage).toBe('Standing');
     expect(position.action?.kind).toBe('withdraw');
     expect(position.needsAttention).toBe(false);
@@ -124,20 +125,20 @@ describe('an offer as a position', () => {
   /* The position this whole screen exists for. Refunds are pull, not push
      (flow 9), so an outbid hold sits earning nothing until somebody asks. */
   it.each(['SUPERSEDED', 'EXPIRED'] as const)('asks for a %s hold back', (status) => {
-    const position = positionOfOffer(offer({ status }), 'Omega Speedmaster');
+    const position = positionOfOffer(offer({ status }));
     expect(position.action?.kind).toBe('reclaim');
     expect(position.needsAttention).toBe(true);
     expect(position.figure).toEqual({ label: 'Held', value: 'AUD 4,000.00' });
   });
 
   it('leaves an accepted offer alone', () => {
-    const position = positionOfOffer(offer({ status: 'ACCEPTED' }), 'Omega Speedmaster');
+    const position = positionOfOffer(offer({ status: 'ACCEPTED' }));
     expect(position.action).toBeNull();
     expect(position.needsAttention).toBe(false);
   });
 
   it('names the item, not the listing it belongs to', () => {
-    expect(positionOfOffer(offer(), 'Omega Speedmaster').itemDescription).toBe('Omega Speedmaster');
+    expect(positionOfOffer(offer()).itemDescription).toBe('Omega Speedmaster');
   });
 });
 
@@ -206,9 +207,9 @@ describe('the model as a whole', () => {
     positionOfListing(listing({ status: 'DRAFT' })),
     positionOfListing(listing({ status: 'MATCHED' })),
     positionOfListing(listing({ status: 'CANCELLED' })),
-    positionOfOffer(offer(), 'x'),
-    positionOfOffer(offer({ status: 'SUPERSEDED' }), 'x'),
-    positionOfOffer(offer({ status: 'ACCEPTED' }), 'x'),
+    positionOfOffer(offer()),
+    positionOfOffer(offer({ status: 'SUPERSEDED' })),
+    positionOfOffer(offer({ status: 'ACCEPTED' })),
     positionOfBorrowedLoan(loan(), now),
     positionOfBorrowedLoan(loan({ status: 'REPAID' }), now),
     positionOfBorrowedLoan(loan({ status: 'DEFAULTED' }), now),
@@ -247,6 +248,6 @@ describe('the model as a whole', () => {
 
   it('keeps a listing apart from an offer that shares its identifier', () => {
     const collidingOffer = offer({ id: 'L1' });
-    expect(positionOfListing(listing()).id).not.toBe(positionOfOffer(collidingOffer, 'x').id);
+    expect(positionOfListing(listing()).id).not.toBe(positionOfOffer(collidingOffer).id);
   });
 });

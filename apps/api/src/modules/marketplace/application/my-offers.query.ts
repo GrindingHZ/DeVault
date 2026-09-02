@@ -1,0 +1,45 @@
+import { Injectable } from '@nestjs/common';
+import type { OfferStatus } from '../../../domain/marketplace/offer';
+import type { AccountId } from '../../../domain/shared/identifiers';
+import { PrismaService } from '../../../infrastructure/persistence/prisma.service';
+
+/* A lender's own offers used to be a column of amounts against nothing: the
+   listing id is how our systems refer to the thing, not what the thing is.
+   The item travels with the row so a reader can tell one hold from another. */
+export interface MyOfferRow {
+  readonly id: string;
+  readonly listingId: string;
+  readonly itemDescription: string;
+  readonly principalMinorUnits: bigint;
+  readonly currency: string;
+  readonly annualPercentageRateBasisPoints: number;
+  readonly durationMs: bigint;
+  readonly expiresAt: Date;
+  readonly createdAt: Date;
+  readonly status: OfferStatus;
+}
+
+@Injectable()
+export class MyOffersQuery {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async listFor(lender: AccountId): Promise<readonly MyOfferRow[]> {
+    return this.prisma.$queryRaw<MyOfferRow[]>`
+      SELECT o.id,
+             o.listing_id AS "listingId",
+             r.item_description AS "itemDescription",
+             o.principal_minor_units AS "principalMinorUnits",
+             o.currency,
+             o.annual_percentage_rate_basis_points AS "annualPercentageRateBasisPoints",
+             o.duration_ms AS "durationMs",
+             o.expires_at AS "expiresAt",
+             o.offered_at AS "createdAt",
+             o.status
+      FROM offer o
+      JOIN listing l ON l.id = o.listing_id
+      JOIN custody_receipt r ON r.id = l.receipt_id
+      WHERE o.lender_account_id = ${lender}
+      ORDER BY o.offered_at DESC
+    `;
+  }
+}

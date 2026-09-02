@@ -10,7 +10,7 @@ fixture file the TypeScript reads.
 - [x] feat(move): config with three capabilities, pause, and parameters
 - [x] test(move): pause and parameters answer to the admin capability
 - [x] feat(move): vault receipts issued and moved by the custodian
-- [ ] test(move): every receipt transition and its rejections
+- [x] test(move): every receipt transition and its rejections
 - [ ] feat(move): custodial wallets, holds, and the payout that must be emptied
 - [ ] test(move): holds release exactly what they held and refund once
 - [ ] feat(move): attest domain events beside the settlement that caused them

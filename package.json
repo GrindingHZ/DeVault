@@ -21,7 +21,8 @@
     "move:test": "sui move test --path packages/move",
     "move:fixtures": "pnpm --filter @depawn/api exec tsx scripts/generate-move-fixtures.ts",
     "chain:publish": "pnpm --filter @depawn/api exec tsx scripts/chain-publish.ts",
-    "chain:localnet": "bash scripts/localnet.sh"
+    "chain:localnet": "bash scripts/localnet.sh",
+    "chain:walk": "pnpm --filter @depawn/api exec tsx scripts/chain-walk.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -125,6 +125,23 @@ market, at one stage, with at most one thing to do about it. Four mappers in
 loan into that one shape. Every mapper takes `now` as a parameter rather than reading a clock, so a
 test does not travel in time and the demo clock cannot leak in.
 
+It is two screens, not one with a filter. Borrowing and lending answer different questions with
+different columns: a borrower is shown what a loan is costing (interest so far, interest to come,
+owed today) and a lender is shown what it is returning (earned so far, still to earn, value at
+maturity). The one merged table had to drop every column that did not apply to both, which left it
+saying almost nothing. `side` picks between them and defaults to borrowing.
+
+Both loan tables carry a term bar. Its arithmetic runs against `asOf` on the loan list response,
+which is the server's clock: the demo runs weeks ahead of any browser (flow 15), so a bar drawn
+against `Date.now()` would report a matured loan as three percent through.
+
+The status column carries a legend. Every word it can show is defined once in
+`apps/marketplace/src/portfolio/stages.ts`, keyed by side, and both the mappers and the legend read
+from there. A test asserts the two directions: every stage a mapper produces is explained, and no
+stage is explained that no mapper produces. The split by side is not ceremony, it is the point:
+`Sold` is a disaster to the borrower and a payout to the lender, so the two sides get different
+tones and different sentences for the same word.
+
 Three rules hold the screen together:
 
 - **The stage is words, never a status enum.** `IN_VAULT` and `SUPERSEDED` are correct names for a

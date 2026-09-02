@@ -284,3 +284,17 @@ a reader had to visit both to know where they stood. Keeping the distinction as 
 part that is true (a position is read from one side, and which side changes what every column means)
 and drops the part that was only an artefact of how the endpoints are grouped. If a future account
 type can only ever lend, the filter becomes a default rather than a new screen.
+
+## Q-029: what a repaid loan actually cost
+**Blocks:** the closed rows of the portfolio, which show a dash where an interest figure belongs
+**Currently implemented:** nothing. `accruedInterest` is recomputed against the server clock on
+every read, clamped at maturity but not at settlement, so a loan repaid on day three reports what
+thirty days would have cost. The portfolio shows no interest figure once a loan leaves ACTIVE
+rather than showing that one.
+**Needs:** whoever owns docs/03
+**Notes:** The loan records `defaultedAt` but not the moment of repayment, so the true figure cannot
+be derived from the row. The fix is a `repaidAt` column plus clamping accrual to it, which is a
+migration and a domain change rather than a display one. Worth doing: a lender's realised return
+across settled loans is the one number this product cannot currently answer, and it is the number
+anybody comparing us to a savings account would ask for first. Until then a dash is the honest
+answer, because the alternative is a plausible number that is wrong.

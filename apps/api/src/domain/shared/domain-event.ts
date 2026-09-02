@@ -3,6 +3,7 @@ import type {
   LiquidationId,
   ListingId,
   LoanId,
+  NoteSaleId,
   OfferId,
   ReceiptId,
   StaffId,
@@ -65,4 +66,21 @@ export type DomainEvent =
       readonly liquidationId: LiquidationId;
       readonly proceeds: Money;
       readonly distributions: readonly Distribution[];
-    };
+    }
+  | {
+      readonly type: 'NoteListedForSale';
+      readonly noteSaleId: NoteSaleId;
+      readonly loanId: LoanId;
+      readonly askPrice: Money;
+    }
+  | { readonly type: 'NoteSaleWithdrawn'; readonly noteSaleId: NoteSaleId }
+  | {
+      readonly type: 'NoteSold';
+      readonly noteSaleId: NoteSaleId;
+      readonly loanId: LoanId;
+      readonly fromAccountId: AccountId;
+      readonly toAccountId: AccountId;
+      readonly price: Money;
+      readonly settlementRef: SettlementRef;
+    }
+  | { readonly type: 'NoteSaleVoided'; readonly noteSaleId: NoteSaleId; readonly loanId: LoanId };

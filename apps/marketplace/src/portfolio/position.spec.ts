@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import type { LoanResponse, MyListingResponse, MyOfferResponse } from '@depawn/contracts';
+import type {
+  LoanResponse,
+  MyBidResponse,
+  MyListingResponse,
+  MyOfferResponse,
+} from '@depawn/contracts';
 import {
   isOpen,
   maturityWarningMs,
+  positionOfBid,
   positionOfBorrowedLoan,
   positionOfLentLoan,
   positionOfListing,
@@ -198,6 +204,79 @@ describe('an offer as a position', () => {
 
   it('names the item, not the listing it belongs to', () => {
     expect(offerPosition(offer()).itemDescription).toBe('Omega Speedmaster');
+  });
+});
+
+function bid(overrides: Partial<MyBidResponse> = {}): MyBidResponse {
+  return {
+    id: 'B1',
+    liquidationId: 'LQ1',
+    itemDescription: 'Rolex Datejust',
+    receiptId: 'R9',
+    hasPhotograph: true,
+    amount: money('300000'),
+    placedAt: '2026-08-20T12:00:00.000Z',
+    liquidationStatus: 'BIDDING',
+    closesAt: '2026-09-23T12:00:00.000Z',
+    isStanding: true,
+    isHoldHeld: true,
+    ...overrides,
+  };
+}
+
+/* The money the portfolio could not see. A bid holds funds exactly as an
+   offer does and a beaten one keeps holding them, so every case here is the
+   offer case again in the other market. */
+describe('a bid as a position', () => {
+  it('leaves the high bid alone while the sale is still taking them', () => {
+    const position = positionOfBid(bid(), now);
+    expect(position.stage).toBe('Bidding');
+    expect(position.action).toBeNull();
+    expect(position.needsAttention).toBe(false);
+  });
+
+  it('asks for a beaten hold back', () => {
+    const position = positionOfBid(bid({ isStanding: false }), now);
+    expect(position.stage).toBe('Outbid');
+    expect(position.action?.kind).toBe('reclaim');
+    expect(position.needsAttention).toBe(true);
+    expect(position.figure).toEqual({ label: 'Held', value: 'USD 3,000.00' });
+  });
+
+  /* Reclaiming refunds the hold and writes nothing back to the bid, the same
+     as an offer, so the bid alone can never say whether there is anything
+     left to ask for. */
+  it('stops asking once the hold is home', () => {
+    const position = positionOfBid(bid({ isStanding: false, isHoldHeld: false }), now);
+    expect(position.action).toBeNull();
+    expect(position.needsAttention).toBe(false);
+    expect(position.caption).toBe('Your money is back in your balance');
+  });
+
+  it('carries the sale a reclaim has to be addressed under', () => {
+    expect(positionOfBid(bid({ isStanding: false }), now).bid).toEqual({
+      id: 'B1',
+      liquidationId: 'LQ1',
+    });
+  });
+
+  /* The winner's hold is spent paying the loan out rather than refunded, so
+     there is nothing to reclaim and the item arrives as a receipt. */
+  it('closes a won sale with nothing left to do', () => {
+    const position = positionOfBid(bid({ liquidationStatus: 'SETTLED', isHoldHeld: false }), now);
+    expect(position.stage).toBe('Won');
+    expect(position.action).toBeNull();
+    expect(position.needsAttention).toBe(false);
+  });
+
+  /* Nothing closes a sale on a timer either. A bid standing on a sale whose
+     time is up is not in the run any more, and reading it as live would
+     invite the reader to wait for something that has stopped. */
+  it('treats a sale past its closing time as over, not live', () => {
+    const closed = new Date(now - oneDay).toISOString();
+    const position = positionOfBid(bid({ closesAt: closed }), now);
+    expect(position.stage).toBe('Outbid');
+    expect(position.action?.kind).toBe('reclaim');
   });
 });
 

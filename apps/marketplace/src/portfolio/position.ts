@@ -2,6 +2,7 @@ import { formatAmount, formatMoney, formatRate, interestOver } from '@depawn/ui'
 import type { StatusTone } from '@depawn/ui';
 import type {
   LoanResponse,
+  MyBidResponse,
   MyListingResponse,
   MyOfferResponse,
   NoteSaleSummary,
@@ -154,6 +155,9 @@ export interface Position {
   readonly lenderNoteId: string | null;
   /* The open sale on this position, when one is standing. */
   readonly noteSale: { readonly id: string; readonly askPrice: string } | null;
+  /* The bid this row is, and the sale it was placed on. Reclaiming needs
+     both, because a bid is addressed under its liquidation. */
+  readonly bid: { readonly id: string; readonly liquidationId: string } | null;
   readonly action: PositionAction | null;
   readonly needsAttention: boolean;
 }
@@ -342,6 +346,7 @@ export function positionOfListing(listing: MyListingResponse, asOf: number): Pos
     offerId: null,
     lenderNoteId: null,
     noteSale: null,
+    bid: null,
     metrics: null,
     photographSrc: photographOf(listing.receiptId, listing.hasPhotograph),
     amount: formatAmount(listing.requestedPrincipal),
@@ -420,6 +425,7 @@ export function positionOfOffer(offer: MyOfferResponse, asOf: number): Position 
     offerId: offer.id,
     lenderNoteId: null,
     noteSale: null,
+    bid: null,
     metrics: null,
     photographSrc: photographOf(offer.receiptId, offer.hasPhotograph),
     amount: formatAmount(offer.principal),
@@ -497,6 +503,89 @@ export function positionOfOffer(offer: MyOfferResponse, asOf: number): Position 
   };
 }
 
+/* A bid on a collateral sale.
+
+   The only kind of committed money the portfolio never modelled. Bidding
+   holds funds exactly as offering does, and a beaten bid keeps holding them
+   until its owner pulls them back (rule M8). The reclaim endpoint has always
+   existed; nothing ever told a bidder there was anything to reclaim, so the
+   money sat in a hold that no screen could name. */
+export function positionOfBid(bid: MyBidResponse, asOf: number): Position {
+  const base = {
+    id: `bid-${bid.id}`,
+    side: 'lending' as const,
+    itemDescription: bid.itemDescription,
+    listingId: null,
+    loanId: null,
+    offerId: null,
+    lenderNoteId: null,
+    noteSale: null,
+    bid: { id: bid.id, liquidationId: bid.liquidationId },
+    metrics: null,
+    photographSrc: photographOf(bid.receiptId, bid.hasPhotograph),
+    amount: formatAmount(bid.amount),
+    pending: null,
+  };
+
+  /* Read against the clock rather than the status, the same as an offer: a
+     sale past its closing time is still BIDDING until somebody closes it,
+     and a row calling that live would be inviting the reader to wait for
+     something that has stopped. */
+  const hasClosed = bid.closesAt !== null && Date.parse(bid.closesAt) < asOf;
+
+  if (bid.liquidationStatus === 'BIDDING' && bid.isStanding && !hasClosed) {
+    return {
+      ...base,
+      ...staged('Bidding', 'lending'),
+      term: bid.closesAt === null ? null : closesIn(bid.closesAt, asOf),
+      caption: 'Yours is the high bid, and your money is held against it',
+      figure: { label: 'Your bid', value: formatMoney(bid.amount) },
+      action: null,
+      needsAttention: false,
+    };
+  }
+
+  /* Won, and the hold was spent paying the loan out rather than refunded.
+     Nothing left to do here: the item arrives under a receipt, which is a
+     row in My items. */
+  if (bid.liquidationStatus === 'SETTLED' && bid.isStanding) {
+    return {
+      ...base,
+      ...staged('Won', 'lending'),
+      term: null,
+      caption: 'You won the sale and your bid paid the loan out',
+      figure: null,
+      action: null,
+      needsAttention: false,
+    };
+  }
+
+  /* Beaten, or standing on a sale that closed without settling. Whether
+     there is anything left to ask for comes from the hold, never from the
+     bid: reclaiming refunds the money and writes nothing back, so a row
+     reading the bid alone would go on asking for money already home. */
+  if (!bid.isHoldHeld) {
+    return {
+      ...base,
+      ...staged('Outbid', 'lending'),
+      term: null,
+      caption: 'Your money is back in your balance',
+      figure: null,
+      action: null,
+      needsAttention: false,
+    };
+  }
+  return {
+    ...base,
+    ...staged('Outbid', 'lending'),
+    term: null,
+    caption: 'Your money is still held, and earning nothing',
+    figure: { label: 'Held', value: formatMoney(bid.amount) },
+    action: { label: 'Reclaim funds', kind: 'reclaim' },
+    needsAttention: true,
+  };
+}
+
 /* Whether the item behind a repaid loan has been asked for, and how far that
    has got. Null when no request exists yet.
 
@@ -524,6 +613,7 @@ export function positionOfBorrowedLoan(
     offerId: null,
     lenderNoteId: null,
     noteSale: null,
+    bid: null,
     metrics: metricsOf(loan, asOf, 'borrowing'),
     amount: formatAmount(loan.principal),
     pending: null,
@@ -653,6 +743,7 @@ export function positionOfLentLoan(
     lenderNoteId: loan.lenderNoteId,
     noteSale:
       openSale === null ? null : { id: openSale.id, askPrice: formatMoney(openSale.askPrice) },
+    bid: null,
     metrics: metricsOf(loan, asOf, 'lending'),
     amount: formatAmount(loan.principal),
     pending: null,

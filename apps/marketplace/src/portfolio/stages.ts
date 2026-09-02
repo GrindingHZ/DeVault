@@ -97,8 +97,22 @@ const lendingStages = {
   Outbid: {
     tone: 'warning',
     isTerminal: false,
+    /* Both markets, because both lose the same way: an offer undercut on
+       rate and a bid topped on price leave their owner in the identical
+       position, holding money that is doing nothing. */
     meaning:
-      'Somebody offered a lower rate. Your money is still held and earning nothing until you reclaim it.',
+      'Somebody beat your price. Your money is still held and earning nothing until you reclaim it.',
+  },
+  Bidding: {
+    tone: 'active',
+    isTerminal: false,
+    meaning:
+      'Yours is the high bid on a collateral sale, and your money is held against it until the sale closes.',
+  },
+  Won: {
+    tone: 'success',
+    isTerminal: true,
+    meaning: 'You won the sale. Your bid paid the loan out and the item is being released to you.',
   },
   Expired: {
     tone: 'warning',

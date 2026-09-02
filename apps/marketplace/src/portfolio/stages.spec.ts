@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type {
   LoanResponse,
+  MyBidResponse,
   MyListingResponse,
   MyOfferResponse,
   NoteSaleSummary,
 } from '@depawn/contracts';
 import { meaningOf, stagesFor, toneOf } from './stages';
 import {
+  positionOfBid,
   positionOfBorrowedLoan,
   positionOfLentLoan,
   positionOfListing,
@@ -88,6 +90,23 @@ function loan(overrides: Partial<LoanResponse> = {}): LoanResponse {
   };
 }
 
+function bid(overrides: Partial<MyBidResponse> = {}): MyBidResponse {
+  return {
+    id: 'B1',
+    liquidationId: 'LQ1',
+    itemDescription: 'Omega Speedmaster',
+    receiptId: 'R1',
+    hasPhotograph: true,
+    amount: money('300000'),
+    placedAt: '2026-08-20T12:00:00.000Z',
+    liquidationStatus: 'BIDDING',
+    closesAt: '2026-09-23T12:00:00.000Z',
+    isStanding: true,
+    isHoldHeld: true,
+    ...overrides,
+  };
+}
+
 const wellPast = Date.parse('2026-11-30T12:00:00.000Z');
 
 const openSale: NoteSaleSummary = {
@@ -137,6 +156,10 @@ const everyPosition: readonly Position[] = [
   positionOfLentLoan(loan({ status: 'DEFAULTED' }), now, true),
   positionOfLentLoan(loan({ status: 'REPAID' }), now),
   positionOfLentLoan(loan({ status: 'LIQUIDATED' }), now),
+  positionOfBid(bid(), now),
+  positionOfBid(bid({ isStanding: false }), now),
+  positionOfBid(bid({ liquidationStatus: 'SETTLED', isHoldHeld: false }), now),
+  positionOfBid(bid({ liquidationStatus: 'SETTLED', isStanding: false, isHoldHeld: false }), now),
 ].filter((one): one is Position => one !== null);
 
 describe('the status legend', () => {

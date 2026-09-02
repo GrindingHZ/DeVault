@@ -2,6 +2,7 @@ import {
   claimReceipt,
   markLoanDefaulted,
   publishListing,
+  reclaimBid,
   reclaimOffer,
   withdrawNoteSale,
   withdrawOffer,
@@ -57,6 +58,9 @@ function runAction(position: Position, idempotencyKey: string): Promise<unknown>
   if (position.action?.kind === 'reclaim' && position.offerId !== null) {
     return reclaimOffer(position.offerId, options);
   }
+  if (position.action?.kind === 'reclaim' && position.bid !== null) {
+    return reclaimBid(position.bid.liquidationId, position.bid.id, options);
+  }
   if (position.action?.kind === 'default' && position.loanId !== null) {
     return markLoanDefaulted(position.loanId, options);
   }
@@ -90,6 +94,7 @@ export function usePositionActions(handlers: PositionActionHandlers): {
       setIdempotencyKey(crypto.randomUUID());
       await queryClient.invalidateQueries({ queryKey: marketKeys.myListings });
       await queryClient.invalidateQueries({ queryKey: marketKeys.myOffers });
+      await queryClient.invalidateQueries({ queryKey: marketKeys.myBids });
       await queryClient.invalidateQueries({ queryKey: marketKeys.myLoans('borrower') });
       await queryClient.invalidateQueries({ queryKey: marketKeys.myLoans('lender') });
       await queryClient.invalidateQueries({ queryKey: walletKeys.all });

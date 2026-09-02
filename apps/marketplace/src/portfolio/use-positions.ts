@@ -1,4 +1,5 @@
 import {
+  fetchMyBids,
   fetchMyListings,
   fetchMyLoans,
   fetchMyNoteSales,
@@ -11,6 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import { marketKeys } from '../market-keys';
 import { attentionOf } from './attention';
 import {
+  positionOfBid,
   positionOfBorrowedLoan,
   positionOfLentLoan,
   positionOfListing,
@@ -57,6 +59,10 @@ function byItem(left: Position, right: Position): number {
 export function usePositions(): Positions {
   const listingsQuery = useQuery({ queryKey: marketKeys.myListings, queryFn: fetchMyListings });
   const offersQuery = useQuery({ queryKey: marketKeys.myOffers, queryFn: fetchMyOffers });
+  /* Bids on collateral sales, which hold money the same way offers do. Left
+     out until now, so a beaten bidder had no screen anywhere that could tell
+     them their money was still committed (docs/14-state-machines.md). */
+  const bidsQuery = useQuery({ queryKey: marketKeys.myBids, queryFn: fetchMyBids });
   const borrowedQuery = useQuery({
     queryKey: marketKeys.myLoans('borrower'),
     queryFn: () => fetchMyLoans('borrower'),
@@ -172,9 +178,13 @@ export function usePositions(): Positions {
     .map((offer) => positionOfOffer(offer, offerAsOf))
     .filter((one): one is Position => one !== null)
     .sort(byItem);
+  const bidAsOf = Date.parse(bidsQuery.data?.asOf ?? '') || Date.now();
+  const bidPositions = (bidsQuery.data?.items ?? [])
+    .map((bid) => positionOfBid(bid, bidAsOf))
+    .sort(byItem);
 
   const borrowing = [...borrowedLoanPositions, ...listingPositions].sort(byItem);
-  const lending = [...lentLoanPositions, ...offerPositions].sort(byItem);
+  const lending = [...lentLoanPositions, ...offerPositions, ...bidPositions].sort(byItem);
   const everyPosition = [...borrowing, ...lending];
 
   return {
@@ -187,6 +197,7 @@ export function usePositions(): Positions {
     isPending:
       listingsQuery.isPending ||
       offersQuery.isPending ||
+      bidsQuery.isPending ||
       borrowedQuery.isPending ||
       lentQuery.isPending ||
       redemptionsQuery.isPending ||
@@ -194,6 +205,7 @@ export function usePositions(): Positions {
     unavailable: [
       listingsQuery.isError ? 'your listings' : null,
       offersQuery.isError ? 'your offers' : null,
+      bidsQuery.isError ? 'your bids' : null,
       borrowedQuery.isError ? 'what you owe' : null,
       lentQuery.isError ? 'what you are owed' : null,
     ].filter((one): one is string => one !== null),

@@ -1,4 +1,4 @@
-import { listNoteForSale, messageForError } from '@depawn/contracts';
+import { listPositionAction, messageForError } from '@depawn/contracts';
 import type { LoanResponse } from '@depawn/contracts';
 import { Button, Dialog, Field, formatMoney, toMinorUnits } from '@depawn/ui';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -6,6 +6,7 @@ import { useState } from 'react';
 import type { ReactElement } from 'react';
 import { marketKeys } from '../market-keys';
 import { useFeedback } from '../market-shell';
+import { useSponsoredWrite } from '../wallet/use-sponsored-write';
 
 export interface SellPositionDialogProps {
   readonly loan: LoanResponse | null;
@@ -22,23 +23,28 @@ export function SellPositionDialog({
 }: SellPositionDialogProps): ReactElement | null {
   const queryClient = useQueryClient();
   const feedback = useFeedback();
+  const sign = useSponsoredWrite();
   const [ask, setAsk] = useState('');
   const [inputError, setInputError] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
-  // Generated on mount and rotated per success (docs/05-frontend.md).
-  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
 
   const currency = loan?.principal.currency ?? 'USD';
 
   const list = useMutation({
-    mutationFn: (input: { readonly lenderNoteId: string; readonly minorUnits: string }) =>
-      listNoteForSale(
-        input.lenderNoteId,
-        { askPrice: { minorUnits: input.minorUnits, currency } },
-        { idempotencyKey },
-      ),
+    /* Listing sells the note of a specific loan; the api finds the note from the
+       loan, and the ask is restated in the coin's base units. */
+    mutationFn: (input: { readonly lenderNoteId: string; readonly minorUnits: string }) => {
+      if (loan === null) {
+        return Promise.reject(new Error('No position to list.'));
+      }
+      return sign(() =>
+        listPositionAction({
+          pledgeId: loan.id,
+          askBaseUnits: (BigInt(input.minorUnits) * 10_000n).toString(),
+        }),
+      );
+    },
     onSuccess: async () => {
-      setIdempotencyKey(crypto.randomUUID());
       setFailure(null);
       setAsk('');
       await queryClient.invalidateQueries({ queryKey: marketKeys.myNoteSales });

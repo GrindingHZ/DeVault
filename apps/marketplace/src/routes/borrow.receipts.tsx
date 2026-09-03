@@ -1,12 +1,15 @@
-import { fetchReceiptMetadata } from '@depawn/contracts';
+import { fetchReceiptMetadata, openPledgeAction } from '@depawn/contracts';
 import type { WalletResponse } from '@depawn/contracts';
-import { EmptyState, Page, PageHeader, Skeleton } from '@depawn/ui';
-import { useQuery } from '@tanstack/react-query';
+import { Button, EmptyState, Field, Page, PageHeader, Skeleton } from '@depawn/ui';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Navigate, createFileRoute } from '@tanstack/react-router';
+import { useState } from 'react';
 import type { ReactElement } from 'react';
 import { useCurrentAccount } from '../current-account';
+import { marketKeys } from '../market-keys';
 import { MarketShell } from '../market-shell';
 import { formatUsdc } from '../wallet/usdc';
+import { useSponsoredWrite } from '../wallet/use-sponsored-write';
 import { useWallet } from '../wallet/use-wallet';
 
 export const Route = createFileRoute('/borrow/receipts')({
@@ -162,6 +165,63 @@ function ReceiptCard({
       >
         {item.objectId.slice(0, 10)}...{item.objectId.slice(-6)}
       </a>
+      <ListForLoan receiptKey={item.receiptKey} />
     </div>
+  );
+}
+
+/* Open a loan against the item: the borrower names the rate they are willing to
+   pay, and lenders compete on how much they will lend at it. */
+function ListForLoan({ receiptKey }: { readonly receiptKey: string }): ReactElement | null {
+  const sign = useSponsoredWrite();
+  const queryClient = useQueryClient();
+  const [rate, setRate] = useState('18');
+  const [error, setError] = useState<string | null>(null);
+
+  const list = useMutation({
+    mutationFn: () => {
+      const percent = Number(rate);
+      if (!Number.isFinite(percent) || percent <= 0) {
+        return Promise.reject(new Error('Enter a rate like 18.'));
+      }
+      return sign(() =>
+        openPledgeAction({ receiptKey, requestedAprBps: Math.round(percent * 100) }),
+      );
+    },
+    onSuccess: async () => {
+      setError(null);
+      await queryClient.invalidateQueries({ queryKey: marketKeys.myListings });
+      await queryClient.invalidateQueries({ queryKey: marketKeys.browse });
+    },
+    onError: (cause: unknown) =>
+      setError(cause instanceof Error ? cause.message : 'The listing could not be opened.'),
+  });
+
+  if (receiptKey === '') {
+    return null;
+  }
+
+  return (
+    <form
+      className="flex items-end gap-2 border-t border-edge pt-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        list.mutate();
+      }}
+    >
+      <Field
+        label="Rate you will pay (% p.a.)"
+        value={rate}
+        onChange={(event) => setRate(event.target.value)}
+      />
+      <Button type="submit" disabled={list.isPending}>
+        List for a loan
+      </Button>
+      {error === null ? null : (
+        <p role="alert" className="font-body text-xs text-status-danger">
+          {error}
+        </p>
+      )}
+    </form>
   );
 }

@@ -1,5 +1,6 @@
-import { ApiError, messageForError, placeOffer } from '@depawn/contracts';
+import { ApiError, makeOfferAction, messageForError } from '@depawn/contracts';
 import type { ListingDetailResponse } from '@depawn/contracts';
+import { useSponsoredWrite } from '../wallet/use-sponsored-write';
 import {
   Button,
   Money,
@@ -67,6 +68,7 @@ export function PlaceOfferForm({
 }): ReactElement {
   const queryClient = useQueryClient();
   const feedback = useFeedback();
+  const sign = useSponsoredWrite();
   /* Two pieces of state for one number, on purpose. The box holds what was
      typed, including the half finished states a person passes through, and
      is what the form submits. The slider holds the last figure that parsed,
@@ -75,8 +77,6 @@ export function PlaceOfferForm({
   const [rateInput, setRateInput] = useState('18.00');
   const [sliderBasisPoints, setSliderBasisPoints] = useState(1800);
   const [inputError, setInputError] = useState<string | null>(null);
-  // Generated on mount and rotated per success (docs/05-frontend.md).
-  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
 
   const basisPoints = rateToBasisPoints(rateInput);
   const ceiling = detail.maxAnnualPercentageRateBasisPoints;
@@ -113,26 +113,20 @@ export function PlaceOfferForm({
      field. A lender choosing their own amount would be competing on a second
      axis the borrower never opened. */
   const offerMutation = useMutation({
-    mutationFn: (input: { rateBasisPoints: number }) =>
-      placeOffer(
-        detail.id,
-        {
-          /* The borrower's own figure, echoed back. The request schema
-             narrows the currency, and the detail response does not, so it is
-             restated rather than cast. */
-          principal: {
-            minorUnits: detail.requestedPrincipal.minorUnits,
-            currency: 'USD',
-          },
-          annualPercentageRateBasisPoints: input.rateBasisPoints,
-          durationMs: detail.requestedDurationMs,
-          expiresAt: detail.expiresAt,
-        },
-        { idempotencyKey },
+    /* Self-custody offers stand at the borrower's rate and compete on the
+       amount, so the lender funds the requested principal and the rate control
+       is a preview. The amount is the requested principal restated in the
+       settlement coin's base units. */
+    mutationFn: (_input: { rateBasisPoints: number }) =>
+      sign(() =>
+        makeOfferAction({
+          pledgeId: detail.id,
+          amountBaseUnits: (BigInt(detail.requestedPrincipal.minorUnits) * 10_000n).toString(),
+          expiresAtMs: Date.parse(detail.expiresAt),
+        }),
       ),
     onSuccess: async () => {
       feedback.reportSuccess('Your offer is standing, and the money is held.');
-      setIdempotencyKey(crypto.randomUUID());
       await queryClient.invalidateQueries({ queryKey: marketKeys.detail(detail.id) });
       await queryClient.invalidateQueries({ queryKey: marketKeys.myOffers });
       await queryClient.invalidateQueries({ queryKey: walletKeys.all });

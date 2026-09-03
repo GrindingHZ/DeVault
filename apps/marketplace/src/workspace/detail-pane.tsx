@@ -1,11 +1,12 @@
 import {
   ApiError,
-  acceptOffer,
+  acceptOfferAction,
   fetchListing,
   liquidityNoteForCategory,
   messageForError,
   nameForCategory,
 } from '@depawn/contracts';
+import { useSponsoredWrite } from '../wallet/use-sponsored-write';
 import type { ListingDetailResponse, MoneyDto } from '@depawn/contracts';
 import {
   Button,
@@ -284,14 +285,17 @@ function OfferBookPanel({
 }): ReactElement {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const sign = useSponsoredWrite();
   const [acceptError, setAcceptError] = useState<string | null>(null);
-  // Generated on mount and rotated per success (docs/05-frontend.md).
-  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
 
   const acceptMutation = useMutation({
-    mutationFn: (offerId: string) => acceptOffer(detail.id, offerId, { idempotencyKey }),
+    /* The offer's id is the hold that backs it, which is what the accept
+       consumes; the term is the one the listing carried. */
+    mutationFn: (offerId: string) =>
+      sign(() =>
+        acceptOfferAction({ pledgeId: detail.id, holdObjectId: offerId, termMs: detail.requestedDurationMs }),
+      ),
     onSuccess: async () => {
-      setIdempotencyKey(crypto.randomUUID());
       setAcceptError(null);
       await queryClient.invalidateQueries({ queryKey: marketKeys.detail(detail.id) });
       await queryClient.invalidateQueries({ queryKey: marketKeys.myListings });

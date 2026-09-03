@@ -1,18 +1,13 @@
-import {
-  claimReceipt,
-  markLoanDefaulted,
-  publishListing,
-  reclaimBid,
-  reclaimOffer,
-  withdrawNoteSale,
-  withdrawOffer,
-} from '@depawn/contracts';
+import { claimAction, delistPositionAction } from '@depawn/contracts';
+import type { ChainExecutionResponse, SponsoredTransactionResponse } from '@depawn/contracts';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
 import { marketKeys } from '../market-keys';
 import { useFeedback } from '../market-shell';
+import { useSponsoredWrite } from '../wallet/use-sponsored-write';
 import { walletKeys } from '../wallet-keys';
 import type { Position } from './position';
+
+type Sign = (build: () => Promise<SponsoredTransactionResponse>) => Promise<ChainExecutionResponse>;
 
 export interface PositionActionHandlers {
   /* Repaying needs a quote, collecting an item is a visit to a vault, and
@@ -43,34 +38,22 @@ function successFor(position: Position): string {
   return 'The collateral is yours to collect.';
 }
 
-function runAction(position: Position, idempotencyKey: string): Promise<unknown> {
-  const options = { idempotencyKey };
-  if (position.action?.kind === 'publish' && position.listingId !== null) {
-    return publishListing(position.listingId, options);
-  }
+function runAction(position: Position, sign: Sign): Promise<unknown> {
+  /* Claiming after default is one signed move (the contract refuses it inside
+     grace), so both the mark and the claim drive it. */
   if (
-    position.action?.kind === 'withdraw' &&
-    position.offerId !== null &&
-    position.listingId !== null
+    (position.action?.kind === 'default' || position.action?.kind === 'claim') &&
+    position.loanId !== null
   ) {
-    return withdrawOffer(position.listingId, position.offerId, options);
-  }
-  if (position.action?.kind === 'reclaim' && position.offerId !== null) {
-    return reclaimOffer(position.offerId, options);
-  }
-  if (position.action?.kind === 'reclaim' && position.bid !== null) {
-    return reclaimBid(position.bid.liquidationId, position.bid.id, options);
-  }
-  if (position.action?.kind === 'default' && position.loanId !== null) {
-    return markLoanDefaulted(position.loanId, options);
-  }
-  if (position.action?.kind === 'claim' && position.loanId !== null) {
-    return claimReceipt(position.loanId, options);
+    return sign(() => claimAction({ pledgeId: position.loanId as string }));
   }
   if (position.action?.kind === 'withdrawSale' && position.noteSale !== null) {
-    return withdrawNoteSale(position.noteSale.id, options);
+    const listingObjectId = position.noteSale.id;
+    return sign(() => delistPositionAction({ listingObjectId }));
   }
-  return Promise.reject(new Error('That position has nothing to act on.'));
+  /* Withdrawing a standing offer and reclaiming an outbid hold are pull refunds
+     with no build endpoint yet, so they are not wired. */
+  return Promise.reject(new Error('That action is not available on chain yet.'));
 }
 
 /* Doing the thing a position is waiting for.
@@ -84,14 +67,12 @@ export function usePositionActions(handlers: PositionActionHandlers): {
 } {
   const queryClient = useQueryClient();
   const feedback = useFeedback();
-  // Generated on mount and rotated per success (docs/05-frontend.md).
-  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
+  const sign = useSponsoredWrite();
 
   const act = useMutation({
-    mutationFn: (position: Position) => runAction(position, idempotencyKey),
+    mutationFn: (position: Position) => runAction(position, sign),
     onSuccess: async (_result, position) => {
       feedback.reportSuccess(successFor(position));
-      setIdempotencyKey(crypto.randomUUID());
       await queryClient.invalidateQueries({ queryKey: marketKeys.myListings });
       await queryClient.invalidateQueries({ queryKey: marketKeys.myOffers });
       await queryClient.invalidateQueries({ queryKey: marketKeys.myBids });

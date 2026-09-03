@@ -1,10 +1,11 @@
-import { ApiError, fetchPayoffQuote, messageForError, repayLoan } from '@depawn/contracts';
+import { ApiError, fetchPayoffQuote, messageForError, repayAction } from '@depawn/contracts';
 import type { LoanResponse, MoneyDto } from '@depawn/contracts';
 import { Button, Card, Money, Skeleton } from '@depawn/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import type { ReactElement } from 'react';
 import { marketKeys } from './market-keys';
+import { useSponsoredWrite } from './wallet/use-sponsored-write';
 import { walletKeys } from './wallet-keys';
 
 function secondsUntil(validUntil: string, nowMilliseconds: number): number {
@@ -47,8 +48,8 @@ function repayMessageFor(error: unknown): string {
 
 export function PayoffCard({ loan }: { readonly loan: LoanResponse }): ReactElement {
   const queryClient = useQueryClient();
+  const sign = useSponsoredWrite();
   const [nowMilliseconds, setNowMilliseconds] = useState(() => Date.now());
-  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
 
   const quoteQuery = useQuery({
     queryKey: marketKeys.payoffQuote(loan.id),
@@ -77,25 +78,17 @@ export function PayoffCard({ loan }: { readonly loan: LoanResponse }): ReactElem
       if (quote === undefined) {
         return Promise.reject(new Error('A quote is required before repaying.'));
       }
-      // The repayment schema is single currency by design, so the amount is
-      // restated against that literal rather than passed through loosely.
-      return repayLoan(
-        loan.id,
-        {
-          amount: { minorUnits: quote.total.minorUnits, currency: 'USD' },
-          quotedAt: quote.quotedAt,
-        },
-        { idempotencyKey },
-      );
+      /* The chain recomputes the payoff at repayment and takes it from the coin,
+         returning the change, so the member signs a repay of the loan rather
+         than a fixed figure. */
+      return sign(() => repayAction({ pledgeId: loan.id }));
     },
     onSuccess: async () => {
-      setIdempotencyKey(crypto.randomUUID());
       await queryClient.invalidateQueries({ queryKey: marketKeys.myLoans('borrower') });
       await queryClient.invalidateQueries({ queryKey: marketKeys.myReceipts });
       await queryClient.invalidateQueries({ queryKey: walletKeys.all });
     },
     onError: async () => {
-      setIdempotencyKey(crypto.randomUUID());
       await quoteQuery.refetch();
     },
   });

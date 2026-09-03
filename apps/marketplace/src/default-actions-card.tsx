@@ -1,10 +1,11 @@
-import { ApiError, claimReceipt, markLoanDefaulted, messageForError } from '@depawn/contracts';
+import { ApiError, claimAction, messageForError } from '@depawn/contracts';
 import type { LoanResponse } from '@depawn/contracts';
 import { Button, Card } from '@depawn/ui';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import type { ReactElement } from 'react';
 import { marketKeys } from './market-keys';
+import { useSponsoredWrite } from './wallet/use-sponsored-write';
 
 function actionMessageFor(error: unknown): string {
   if (error instanceof ApiError) {
@@ -30,19 +31,20 @@ function actionMessageFor(error: unknown): string {
    lets the rejection carry the boundary. */
 export function DefaultActionsCard({ loan }: { readonly loan: LoanResponse }): ReactElement {
   const queryClient = useQueryClient();
+  const sign = useSponsoredWrite();
   const [actionError, setActionError] = useState<string | null>(null);
-  const [defaultKey, setDefaultKey] = useState(() => crypto.randomUUID());
-  const [claimKey, setClaimKey] = useState(() => crypto.randomUUID());
 
   const refreshLoans = async (): Promise<void> => {
     await queryClient.invalidateQueries({ queryKey: marketKeys.myLoans('lender') });
     await queryClient.invalidateQueries({ queryKey: marketKeys.myReceipts });
   };
 
+  /* Self-custody has no separate mark-defaulted step: once grace has run out,
+     claiming the collateral is the one move, and the contract refuses it before
+     then. Both buttons drive it. */
   const defaultMutation = useMutation({
-    mutationFn: () => markLoanDefaulted(loan.id, { idempotencyKey: defaultKey }),
+    mutationFn: () => sign(() => claimAction({ pledgeId: loan.id })),
     onSuccess: async () => {
-      setDefaultKey(crypto.randomUUID());
       setActionError(null);
       await refreshLoans();
     },
@@ -50,9 +52,8 @@ export function DefaultActionsCard({ loan }: { readonly loan: LoanResponse }): R
   });
 
   const claimMutation = useMutation({
-    mutationFn: () => claimReceipt(loan.id, { idempotencyKey: claimKey }),
+    mutationFn: () => sign(() => claimAction({ pledgeId: loan.id })),
     onSuccess: async () => {
-      setClaimKey(crypto.randomUUID());
       setActionError(null);
       await refreshLoans();
     },

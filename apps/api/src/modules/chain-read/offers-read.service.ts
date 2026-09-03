@@ -12,7 +12,7 @@ import {
   offerFromEventJson,
   pledgeTermsFromJson,
 } from './wallet-figures';
-import type { HoldStatus, OfferEvent, PledgeTerms } from './wallet-figures';
+import type { HoldStatus, OfferEvent, PledgeStatus, PledgeTerms } from './wallet-figures';
 import { DeploymentNotFound } from './wallet-read.service';
 import { objectEntry, receiptKeyOf, toMoneyDto } from './chain-read-shapes';
 
@@ -21,14 +21,26 @@ export interface MyOffersResult {
   readonly asOfMs: number;
 }
 
-function offerStatusOf(hold: HoldStatus, wasAccepted: boolean): MyOfferResponse['status'] {
+/* The offer state machine (docs/14): a standing hold is PENDING; a hold the
+   member now lends against (they hold the note) was ACCEPTED; otherwise the
+   money lost, and which word it gets is the listing's fate versus its own. An
+   offer beaten while its pledge was funded is SUPERSEDED; one whose pledge is
+   still open ran out on its own date, which is EXPIRED. A deliberate withdraw
+   is indistinguishable on chain from an expiry followed by a reclaim, both being
+   a refund of the same hold, so it folds into EXPIRED. */
+function offerStatusOf(
+  hold: HoldStatus,
+  pledgeStatus: PledgeStatus | null,
+  wasAccepted: boolean,
+): MyOfferResponse['status'] {
   if (hold === 'committed') {
     return 'PENDING';
   }
   if (wasAccepted) {
     return 'ACCEPTED';
   }
-  return 'SUPERSEDED';
+  const pledgeWasFunded = pledgeStatus !== null && pledgeStatus !== 'open';
+  return pledgeWasFunded ? 'SUPERSEDED' : 'EXPIRED';
 }
 
 /* The member's offers, read from the chain into the shape the portfolio and the
@@ -122,7 +134,7 @@ export class OffersReadService {
         durationMs: 0,
         expiresAt: new Date(expiresAtMs ?? nowMs).toISOString(),
         createdAt: new Date(nowMs).toISOString(),
-        status: offerStatusOf(status, fundedPledgeIds.has(offer.pledgeId)),
+        status: offerStatusOf(status, pledge?.terms?.status ?? null, fundedPledgeIds.has(offer.pledgeId)),
         itemDescription: meta?.name ?? 'Vaulted item',
         receiptId: receiptKey === '' ? offer.pledgeId : receiptKey,
         hasPhotograph: meta !== null,

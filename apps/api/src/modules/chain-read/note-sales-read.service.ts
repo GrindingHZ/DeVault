@@ -127,7 +127,11 @@ export class NoteSalesReadService {
         loanId: listing.pledgeId,
         lenderNoteId: listing.lenderNoteId,
         sellerAccountId: listing.seller,
-        status: 'OPEN',
+        /* The loan closing voids its sale (docs/14 NoteSale.void, fired by
+           repay and mark-default). On chain the listing object outlives the
+           loan, so a sale whose pledge is no longer active reads as VOIDED
+           rather than a buyable OPEN. */
+        status: pledge.terms.status === 'active' ? 'OPEN' : 'VOIDED',
         askPrice: toMoneyDto(listing.ask, decimals),
         createdAt: isoOf(nowMs),
         receiptId: pledge.receiptKey === '' ? listing.pledgeId : pledge.receiptKey,

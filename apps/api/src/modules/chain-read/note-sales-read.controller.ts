@@ -19,7 +19,10 @@ export class NoteSalesReadController {
     const address = this.addressOf(account);
     try {
       const { items } = await this.sales.read(Date.now());
-      return { items: items.filter((sale) => sale.sellerAccountId !== address), asOf: new Date().toISOString() };
+      return {
+        items: items.filter((sale) => sale.sellerAccountId !== address && sale.status === 'OPEN'),
+        asOf: new Date().toISOString(),
+      };
     } catch (error) {
       throw this.mapped(error);
     }

@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { InsufficientFunds } from '../../domain/ledger/insufficient-funds';
 import { SystemPaused } from '../../domain/shared/system-paused';
 import { domainErrorForAbort } from './chain-abort-codes';
 import { simulatedMoveAbortOf } from './chain-submitter';
@@ -9,19 +8,19 @@ import { simulatedMoveAbortOf } from './chain-submitter';
    prose in an error message rather than a failed transaction. */
 describe('simulatedMoveAbortOf', () => {
   const message =
-    "Transaction resolution failed: MoveAbort in 1st command, abort code: 0, in '0x16e286ad97a332e18c666dbed3218b2e70964e644f67e1f1f389a31b5cfbece2::escrow::take' (instruction 19)";
+    "Transaction resolution failed: MoveAbort in 1st command, abort code: 0, in '0x16e286ad97a332e18c666dbed3218b2e70964e644f67e1f1f389a31b5cfbece2::escrow::make_offer' (instruction 19)";
 
   it('reads the module, the function and the code out of the message', () => {
     expect(simulatedMoveAbortOf(message)).toEqual({
       module: 'escrow',
-      functionName: 'take',
+      functionName: 'make_offer',
       abortCode: 0n,
     });
   });
 
-  it('maps an escrow shortfall onto the domain error the ledger throws', () => {
+  it('leaves an escrow abort as a generic failure, since the api pre checks its inputs', () => {
     const abort = simulatedMoveAbortOf(message);
-    expect(abort === null ? null : domainErrorForAbort(abort)).toBeInstanceOf(InsufficientFunds);
+    expect(abort === null ? null : domainErrorForAbort(abort)).toBeNull();
   });
 
   it('maps a paused config onto the pause error', () => {

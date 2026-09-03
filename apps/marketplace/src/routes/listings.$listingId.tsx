@@ -8,11 +8,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router';
    Replace rather than push, so the back button returns to wherever the reader
    came from instead of bouncing them through the redirect again. */
 export const Route = createFileRoute('/listings/$listingId')({
-  beforeLoad: ({ params }) => {
-    throw redirect({
-      to: '/listings',
-      search: { listing: params.listingId },
-      replace: true,
-    });
+  beforeLoad: () => {
+    throw redirect({ to: '/listings', replace: true });
   },
 });

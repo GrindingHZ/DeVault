@@ -1,30 +1,18 @@
-import { browseListings, fetchListing, fetchMarketTape, fetchMyOffers } from '@depawn/contracts';
-import type { ListingSummary } from '@depawn/contracts';
-import { LifecycleSpine, Skeleton, Tape, Workspace, positionOf, spineFor } from '@depawn/ui';
-import type { CollateralRelationship, MarketRole } from '@depawn/ui';
+import { fetchListings } from '@depawn/contracts';
+import type { ListingsResponse } from '@depawn/contracts';
+import { EmptyState, Page, PageHeader, Skeleton } from '@depawn/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Navigate, createFileRoute, useNavigate } from '@tanstack/react-router';
+import { Navigate, createFileRoute } from '@tanstack/react-router';
 import type { ReactElement } from 'react';
-import { MarketShell } from '../market-shell';
-import { marketKeys } from '../market-keys';
 import { useCurrentAccount } from '../current-account';
-import { BrowsePane } from '../workspace/browse-pane';
-import type { BrowseDensity, BrowseSort } from '../workspace/browse-pane';
-import { DetailPane } from '../workspace/detail-pane';
-import { defaultDensity, defaultSort, parseWorkspaceSearch } from '../workspace-selection';
-import type { WorkspaceSearch } from '../workspace-selection';
+import { MarketShell } from '../market-shell';
+import { formatUsdc } from '../wallet/usdc';
 
 export const Route = createFileRoute('/listings/')({
-  validateSearch: parseWorkspaceSearch,
-  component: WorkspacePage,
+  component: ListingsPage,
 });
 
-/* The strip and the tape refresh on a timer. Polling rather than a stream:
-   the outbox is at least once (Q-023) and a push transport is a new failure
-   mode this screen does not need to earn its keep. */
-const tapePollMs = 15_000;
-
-function WorkspacePage(): ReactElement | null {
+function ListingsPage(): ReactElement | null {
   const currentAccount = useCurrentAccount();
   if (currentAccount.isPending) {
     return (
@@ -36,150 +24,98 @@ function WorkspacePage(): ReactElement | null {
   if (currentAccount.data === null || currentAccount.data === undefined) {
     return <Navigate to="/login" />;
   }
-  return <VaultFloor viewerAccountId={currentAccount.data.id} />;
+  return (
+    <MarketShell>
+      <Page>
+        <PageHeader
+          title="Browse"
+          description="Loans people are asking for against items in the vault, read from the chain. Make an offer to fund one."
+        />
+        <Browse ownAddress={currentAccount.data.walletAddress} />
+      </Page>
+    </MarketShell>
+  );
 }
 
-function VaultFloor({ viewerAccountId }: { readonly viewerAccountId: string }): ReactElement {
-  const search = Route.useSearch();
-  const navigate = useNavigate({ from: Route.fullPath });
+function Browse({ ownAddress }: { readonly ownAddress: string | null }): ReactElement {
+  const listingsQuery = useQuery({ queryKey: ['chain', 'listings'], queryFn: fetchListings });
 
-  /* Every pane reads the selection from here. Nothing is mirrored into React
-     state, so the back button, a refresh and a pasted link all land on the
-     same view without any pane knowing the others exist. */
-  function update(next: Partial<WorkspaceSearch>): void {
-    void navigate({ search: (previous) => ({ ...previous, ...next }), replace: false });
+  if (listingsQuery.isPending) {
+    return (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {[0, 1, 2].map((slot) => (
+          <div key={slot} className="rounded-lg border border-edge bg-surface-raised p-4">
+            <Skeleton lineCount={3} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (listingsQuery.isError || listingsQuery.data === undefined) {
+    return (
+      <p role="alert" className="font-body text-sm text-status-danger">
+        The market could not be read from the chain.
+      </p>
+    );
   }
 
-  const category = search.category ?? '';
-  const maxLoanToValue = search.maxLoanToValue === undefined ? '' : String(search.maxLoanToValue);
-  const sort = search.sort ?? defaultSort;
-  const density = search.density ?? defaultDensity;
-  const scope = search.scope ?? 'browse';
-  const selectedListingId = search.listing ?? null;
+  /* A borrower cannot fund their own item, so their own listings are left out
+     rather than shown as rows nobody in this seat could act on. */
+  const listings = listingsQuery.data.listings.filter((listing) => listing.borrower !== ownAddress);
 
-  const browseQuery = useQuery({
-    queryKey: marketKeys.browseWith(category, maxLoanToValue, sort),
-    queryFn: () =>
-      browseListings({
-        ...(category === '' ? {} : { category }),
-        ...(maxLoanToValue === '' ? {} : { maxLoanToValueBasisPoints: Number(maxLoanToValue) }),
-        sort,
-      }),
-  });
-
-  const myOffersQuery = useQuery({ queryKey: marketKeys.myOffers, queryFn: fetchMyOffers });
-
-  const tapeQuery = useQuery({
-    queryKey: marketKeys.marketTape,
-    queryFn: () => fetchMarketTape(),
-    refetchInterval: tapePollMs,
-  });
-
-  /* Shares a key with the detail pane, so React Query serves both from one
-     request. The route needs it because the spine belongs to the workspace
-     rather than to either pane. */
-  const selectedQuery = useQuery({
-    queryKey: marketKeys.detail(selectedListingId ?? ''),
-    queryFn: () => fetchListing(selectedListingId ?? ''),
-    enabled: selectedListingId !== null,
-    retry: false,
-  });
-
-  const myOffers = myOffersQuery.data?.items ?? [];
-  const livePendingListingIds = new Set(
-    myOffers.filter((offer) => offer.status === 'PENDING').map((offer) => offer.listingId),
-  );
-
-  function relationshipFor(listing: ListingSummary): CollateralRelationship {
-    return positionOf({
-      borrowerAccountId: listing.borrowerAccountId,
-      viewerAccountId,
-      hasLiveOffer: livePendingListingIds.has(listing.id),
-      hasFundedLoan: false,
-    }).relationship;
+  if (listings.length === 0) {
+    return (
+      <EmptyState
+        title="Nothing is listed right now"
+        description="When someone opens a loan against an item, it appears here for you to fund."
+      />
+    );
   }
-
-  const selectedDetail = selectedQuery.data;
-  const role: MarketRole =
-    selectedDetail === undefined
-      ? 'lender'
-      : positionOf({
-          borrowerAccountId: selectedDetail.borrowerAccountId,
-          viewerAccountId,
-          hasLiveOffer: livePendingListingIds.has(selectedDetail.id),
-          hasFundedLoan: false,
-        }).role;
-
-  /* Filtered here rather than at the api: the reader's own offers are
-     already loaded for the relationship markers, so asking the server again
-     would be a second round trip for something the client can already see. */
-  const allListings = browseQuery.data?.items ?? [];
-  const isMine = (listing: ListingSummary): boolean =>
-    listing.borrowerAccountId === viewerAccountId;
-  const visibleListings =
-    scope === 'offered'
-      ? allListings.filter((listing) => livePendingListingIds.has(listing.id))
-      : scope === 'listings'
-        ? allListings.filter(isMine)
-        : /* Browsing is for other people's things. A borrower cannot lend
-             against their own item, so leaving them in the lender's tab was
-             padding it with rows nobody could act on. */
-          allListings.filter((listing) => !isMine(listing));
 
   return (
-    <MarketShell fills>
-      <Workspace
-        browse={
-          <BrowsePane
-            listings={visibleListings}
-            isPending={browseQuery.isPending}
-            isError={browseQuery.isError}
-            selectedListingId={selectedListingId}
-            onSelect={(listingId) => update({ listing: listingId, offer: undefined })}
-            relationshipFor={relationshipFor}
-            nowEpochMs={Date.now()}
-            category={category}
-            onCategory={(value) =>
-              update({ category: value === '' ? undefined : value, listing: undefined })
-            }
-            scope={scope}
-            onScope={(value) =>
-              update({ scope: value === 'browse' ? undefined : value, listing: undefined })
-            }
-            sort={sort as BrowseSort}
-            onSort={(value) => update({ sort: value })}
-            density={density as BrowseDensity}
-            onDensity={(value) => update({ density: value })}
-          />
-        }
-        detail={
-          <DetailPane
-            listingId={selectedListingId}
-            viewerAccountId={viewerAccountId}
-            selectedOfferId={search.offer ?? null}
-            onSelectOffer={(offerId) => update({ offer: offerId })}
-            role={role}
-          />
-        }
-        spine={
-          selectedDetail === undefined ? null : (
-            <LifecycleSpine
-              role={role}
-              stages={spineFor(role, selectedDetail.status, {
-                hasLiveOffer: livePendingListingIds.has(selectedDetail.id),
-              })}
-              onSelectStage={(stage) => update({ stage })}
-            />
-          )
-        }
-        tape={
-          <Tape
-            items={tapeQuery.data?.events ?? []}
-            selectedListingId={selectedListingId}
-            onSelectListing={(listingId) => update({ listing: listingId, offer: undefined })}
-          />
-        }
-      />
-    </MarketShell>
+    <div
+      data-testid="browse-listings"
+      className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
+    >
+      {listings.map((listing) => (
+        <ListingCard key={listing.pledgeId} listing={listing} decimals={listingsQuery.data.decimals} />
+      ))}
+    </div>
+  );
+}
+
+function ListingCard({
+  listing,
+  decimals,
+}: {
+  readonly listing: ListingsResponse['listings'][number];
+  readonly decimals: number;
+}): ReactElement {
+  const appraised = BigInt(listing.appraisedValueBaseUnits);
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border border-edge bg-surface-raised p-4">
+      <div className="flex items-center justify-between">
+        <span className="font-body text-sm font-semibold text-ink-primary">{listing.itemCategory}</span>
+        <span className="font-figure text-sm tabular-nums text-ink-secondary">
+          {(listing.requestedAprBps / 100).toFixed(2)}% APR
+        </span>
+      </div>
+      {appraised > 0n ? (
+        <div>
+          <span className="font-body text-xs text-ink-secondary">Appraised at </span>
+          <span className="font-figure text-lg tabular-nums text-ink-primary">
+            {formatUsdc(appraised, decimals)}
+          </span>
+        </div>
+      ) : null}
+      <a
+        href={`https://suiscan.xyz/testnet/object/${listing.pledgeId}`}
+        target="_blank"
+        rel="noreferrer"
+        className="font-mono text-xs text-status-active underline"
+      >
+        {listing.pledgeId.slice(0, 10)}...{listing.pledgeId.slice(-6)}
+      </a>
+    </div>
   );
 }

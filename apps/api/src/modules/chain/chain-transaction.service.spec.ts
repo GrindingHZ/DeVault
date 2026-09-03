@@ -73,7 +73,11 @@ describe('ChainTransactionService', () => {
   });
 
   it('builds open, cancel, accept, repay, collect and claim against the member', async () => {
-    await service.openPledge(member, { receiptObjectId: object('r'), requestedAprBps: 3600 });
+    await service.openPledge(member, {
+      receiptObjectId: object('r'),
+      requestedPrincipalBaseUnits: '400000',
+      requestedAprBps: 3600,
+    });
     expect(gateway.member).toBe(member);
     expect(stepsOf(gateway.transaction as Transaction)).toEqual(['pledge::open']);
 
@@ -107,6 +111,7 @@ describe('ChainTransactionService', () => {
       holdKey: 'HOLD-1',
       coinObjectId: object('9'),
       amountBaseUnits: '400000',
+      aprBps: 1800,
       expiresAtMs: 1_800_000_000_000,
     });
     expect(stepsOf(gateway.transaction as Transaction)).toEqual(['split', 'escrow::make_offer']);

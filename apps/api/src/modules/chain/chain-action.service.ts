@@ -31,6 +31,7 @@ export class ChainActionService {
     const receiptObjectId = await this.resolver.receiptForKey(member, action.receiptKey);
     return this.transactions.openPledge(member, {
       receiptObjectId,
+      requestedPrincipalBaseUnits: action.requestedPrincipalBaseUnits,
       requestedAprBps: action.requestedAprBps,
     });
   }
@@ -53,6 +54,7 @@ export class ChainActionService {
       holdKey: randomUUID(),
       coinObjectId,
       amountBaseUnits: action.amountBaseUnits,
+      aprBps: action.aprBps,
       expiresAtMs: action.expiresAtMs,
     });
   }

@@ -16,6 +16,7 @@ export function appendMakeOffer(
     readonly pledgeObjectId: string;
     readonly holdKey: string;
     readonly payment: TransactionObjectArgument;
+    readonly aprBps: number;
     readonly expiresAtMs: bigint;
   },
 ): void {
@@ -27,6 +28,7 @@ export function appendMakeOffer(
       transaction.pure.id(input.pledgeObjectId),
       transaction.pure.vector('u8', bytesOf(input.holdKey)),
       input.payment,
+      transaction.pure.u16(input.aprBps),
       transaction.pure.u64(input.expiresAtMs),
       transaction.object.clock(),
     ],

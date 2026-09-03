@@ -32,6 +32,7 @@ function readU64(value: unknown): bigint {
 export interface OpenListing {
   readonly pledgeId: string;
   readonly borrower: string;
+  readonly requestedPrincipalBaseUnits: bigint;
   readonly requestedAprBps: number;
   readonly appraisedValueBaseUnits: bigint;
   readonly itemCategory: string;
@@ -92,6 +93,7 @@ export function openListingFromJson(
   return {
     pledgeId,
     borrower,
+    requestedPrincipalBaseUnits: readU64(json.requested_principal),
     requestedAprBps: Number(json.requested_apr_bps ?? 0),
     appraisedValueBaseUnits: readU64(receiptJson?.appraised_value),
     itemCategory: categoryNameOf(receiptJson?.item_category),

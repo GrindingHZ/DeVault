@@ -120,7 +120,11 @@ async function main(): Promise<void> {
 
   // 3. Borrower opens a pledge (sponsored).
   const opened = await sponsoredExecute(borrower, (tx) => {
-    appendOpenPledge(tx, deployment, { receiptObjectId: receipt, requestedAprBps: 3600 });
+    appendOpenPledge(tx, deployment, {
+      receiptObjectId: receipt,
+      requestedPrincipalBaseUnits: 400_000n,
+      requestedAprBps: 3600,
+    });
   });
   const pledge = createdOfType(opened, (type) => type.includes('::pledge::Pledge<'));
   log(`pledge ${pledge}`);
@@ -131,6 +135,7 @@ async function main(): Promise<void> {
       pledgeObjectId: pledge,
       holdKey: `HOLD-${stamp}`,
       payment: tx.object(lenderCoin) as TransactionObjectArgument,
+      aprBps: 3600,
       expiresAtMs: BigInt(Date.now() + 700_000),
     });
   });

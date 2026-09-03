@@ -65,10 +65,14 @@ function coinArgument(transaction: Transaction): TransactionObjectArgument {
 describe('pledge builders', () => {
   it('opens and cancels a pledge over the settlement coin', () => {
     const transaction = new Transaction();
-    appendOpenPledge(transaction, deployment, { receiptObjectId: receipt, requestedAprBps: 3600 });
+    appendOpenPledge(transaction, deployment, {
+      receiptObjectId: receipt,
+      requestedPrincipalBaseUnits: 500_000n,
+      requestedAprBps: 3600,
+    });
     appendCancelPledge(transaction, deployment, { pledgeObjectId: pledge });
     expect(callsOf(transaction)).toEqual([
-      { module: 'pledge', function: 'open', typeArguments: [coinType], argumentCount: 2 },
+      { module: 'pledge', function: 'open', typeArguments: [coinType], argumentCount: 4 },
       { module: 'pledge', function: 'cancel', typeArguments: [coinType], argumentCount: 1 },
     ]);
   });
@@ -112,6 +116,7 @@ describe('offer builders', () => {
       pledgeObjectId: pledge,
       holdKey: 'HOLD-1',
       payment: coinArgument(transaction),
+      aprBps: 1800,
       expiresAtMs: 1_700_000_600_000n,
     });
     appendRefundExpired(transaction, deployment, { holdObjectId: hold });

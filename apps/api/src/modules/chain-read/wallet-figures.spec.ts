@@ -164,8 +164,14 @@ describe('gRPC json parsers', () => {
 
   it('reads an OfferMade event and a receipt', () => {
     expect(
-      offerFromEventJson({ amount: '400000', hold_id: '0xh', owner: '0xo', pledge_id: '0xpl' }),
-    ).toEqual({ holdObjectId: '0xh', pledgeId: '0xpl', amountBaseUnits: 400_000n });
+      offerFromEventJson({
+        amount: '400000',
+        apr_bps: 3600,
+        hold_id: '0xh',
+        owner: '0xo',
+        pledge_id: '0xpl',
+      }),
+    ).toEqual({ holdObjectId: '0xh', pledgeId: '0xpl', amountBaseUnits: 400_000n, aprBps: 3600 });
     const receiptKey = Buffer.from('receipt-7', 'utf8').toString('base64');
     expect(
       itemFromJson('0xr', {

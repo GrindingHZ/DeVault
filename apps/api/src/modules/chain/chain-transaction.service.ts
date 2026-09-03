@@ -57,6 +57,7 @@ export class ChainTransactionService {
     return this.gateway.build(member, (transaction) =>
       appendOpenPledge(transaction, deployment, {
         receiptObjectId: request.receiptObjectId,
+        requestedPrincipalBaseUnits: BigInt(request.requestedPrincipalBaseUnits),
         requestedAprBps: request.requestedAprBps,
       }),
     );
@@ -77,6 +78,7 @@ export class ChainTransactionService {
         pledgeObjectId: request.pledgeObjectId,
         holdKey: request.holdKey,
         payment,
+        aprBps: request.aprBps,
         expiresAtMs: BigInt(request.expiresAtMs),
       });
     });

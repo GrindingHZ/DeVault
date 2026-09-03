@@ -24,12 +24,14 @@ describe('openListingFromJson', () => {
       openListingFromJson('0xp', 'receipt-9', {
         status: 0,
         borrower: '0xb',
+        requested_principal: '2500000',
         requested_apr_bps: 1200,
         receipt: { appraised_value: '5000000', item_category: 1 },
       }),
     ).toEqual({
       pledgeId: '0xp',
       borrower: '0xb',
+      requestedPrincipalBaseUnits: 2_500_000n,
       requestedAprBps: 1200,
       appraisedValueBaseUnits: 5_000_000n,
       itemCategory: 'WATCH',
@@ -59,6 +61,7 @@ describe('openListingFromJson', () => {
     ).toEqual({
       pledgeId: '0xp',
       borrower: '0xb',
+      requestedPrincipalBaseUnits: 0n,
       requestedAprBps: 900,
       appraisedValueBaseUnits: 0n,
       itemCategory: 'item',

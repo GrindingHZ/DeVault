@@ -8,8 +8,17 @@ import type {
 import { loanToValueBasisPointsFor, maxLendBaseUnits } from '../../config/loan-to-value';
 import { ReceiptMetadataStore } from '../receipt-metadata/receipt-metadata.store';
 import { ListingsReadService } from './listings-read.service';
+import type { PledgeOffer } from './listings-read.service';
 import type { OpenListing } from './listings-figures';
 import { toMoneyDto } from './chain-read-shapes';
+
+/* The keenest rate standing on a listing, in basis points, or null when nobody
+   has offered yet. Lenders compete by undercutting, so the keenest is the
+   lowest. */
+function bestRateOf(offers: readonly PledgeOffer[]): number | null {
+  const rates = offers.map((offer) => offer.aprBps).filter((rate) => rate > 0);
+  return rates.length === 0 ? null : Math.min(...rates);
+}
 
 /* Self-custody has no requested principal, term, or expiry on an open listing:
    a borrower opens a pledge at a rate and lenders compete on amount. The web2
@@ -47,10 +56,11 @@ export class MarketReadService {
      client-side -- browse hides your own, the listings tab shows only them -- so
      stripping them here would leave a borrower's own listings tab always empty. */
   async browse(nowMs: number): Promise<{ items: ListingSummary[] }> {
-    const { decimals, listings, offerCountByPledge } = await this.listings.read();
+    const { decimals, listings, offersByPledge } = await this.listings.read();
     const items: ListingSummary[] = [];
     for (const listing of listings) {
-      items.push(await this.toSummary(listing, decimals, offerCountByPledge, nowMs));
+      const offers = offersByPledge.get(listing.pledgeId) ?? [];
+      items.push(await this.toSummary(listing, decimals, offers, nowMs));
     }
     return { items };
   }
@@ -63,15 +73,11 @@ export class MarketReadService {
         continue;
       }
       const item = await this.itemOf(listing);
-      const category = categoryOf(listing.itemCategory);
       items.push({
         id: listing.pledgeId,
         borrowerAccountId: listing.borrower,
         receiptId: listing.receiptKey === '' ? listing.pledgeId : listing.receiptKey,
-        requestedPrincipal: toMoneyDto(
-          maxLendBaseUnits(listing.appraisedValueBaseUnits, category),
-          decimals,
-        ),
+        requestedPrincipal: toMoneyDto(listing.requestedPrincipalBaseUnits, decimals),
         maxAnnualPercentageRateBasisPoints: listing.requestedAprBps,
         requestedDurationMs: DEFAULT_DURATION_MS,
         expiresAt: new Date(nowMs + DEFAULT_EXPIRY_MS).toISOString(),
@@ -87,27 +93,27 @@ export class MarketReadService {
   }
 
   async detail(pledgeId: string, nowMs: number): Promise<ListingDetailResponse | null> {
-    const { decimals, listings, offerCountByPledge, offersByPledge } = await this.listings.read();
+    const { decimals, listings, offersByPledge } = await this.listings.read();
     const listing = listings.find((one) => one.pledgeId === pledgeId);
     if (listing === undefined) {
       return null;
     }
-    const summary = await this.toSummary(listing, decimals, offerCountByPledge, nowMs);
     const offers = offersByPledge.get(pledgeId) ?? [];
+    const summary = await this.toSummary(listing, decimals, offers, nowMs);
     const offerBook = offers.map((offer): RankedOfferResponse => {
       const principal = toMoneyDto(offer.amountBaseUnits, decimals);
-      /* The whole-term cost, so the borrower can rank offers of the same rate by
-         the money they raise: principal plus simple interest over the default
-         term. */
+      /* The whole-term cost at the offer's own rate: lenders compete by
+         undercutting, so an offer names the rate the loan would carry, and the
+         borrower ranks the book by what each would cost them. */
       const interest =
-        (offer.amountBaseUnits * BigInt(listing.requestedAprBps) * BigInt(DEFAULT_DURATION_MS)) /
+        (offer.amountBaseUnits * BigInt(offer.aprBps) * BigInt(DEFAULT_DURATION_MS)) /
         (10_000n * 365n * 24n * 60n * 60n * 1000n);
       return {
         id: offer.holdObjectId,
         listingId: pledgeId,
         lenderAccountId: offer.lender,
         principal,
-        annualPercentageRateBasisPoints: listing.requestedAprBps,
+        annualPercentageRateBasisPoints: offer.aprBps,
         durationMs: DEFAULT_DURATION_MS,
         expiresAt: new Date(nowMs + DEFAULT_EXPIRY_MS).toISOString(),
         createdAt: new Date(nowMs).toISOString(),
@@ -128,7 +134,7 @@ export class MarketReadService {
   private async toSummary(
     listing: OpenListing,
     decimals: number,
-    offerCountByPledge: ReadonlyMap<string, number>,
+    offers: readonly PledgeOffer[],
     nowMs: number,
   ): Promise<ListingSummary> {
     const item = await this.itemOf(listing);
@@ -138,10 +144,7 @@ export class MarketReadService {
       id: listing.pledgeId,
       borrowerAccountId: listing.borrower,
       receiptId: listing.receiptKey === '' ? listing.pledgeId : listing.receiptKey,
-      requestedPrincipal: toMoneyDto(
-        maxLendBaseUnits(listing.appraisedValueBaseUnits, category),
-        decimals,
-      ),
+      requestedPrincipal: toMoneyDto(listing.requestedPrincipalBaseUnits, decimals),
       maxAnnualPercentageRateBasisPoints: listing.requestedAprBps,
       requestedDurationMs: DEFAULT_DURATION_MS,
       expiresAt: new Date(nowMs + DEFAULT_EXPIRY_MS).toISOString(),
@@ -151,7 +154,9 @@ export class MarketReadService {
       itemDescription: item.itemDescription,
       hasPhotograph: item.hasPhotograph,
       loanToValueBasisPoints,
-      bestOfferRateBasisPoints: null,
+      /* The rate to beat: the lowest any standing offer has undercut to, or
+         none yet if nobody has offered. */
+      bestOfferRateBasisPoints: bestRateOf(offers),
       categoryMaxLoanToValueBasisPoints: loanToValueBasisPoints,
     };
   }

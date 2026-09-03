@@ -11,13 +11,19 @@ function target(deployment: ChainDeployment, name: string): string {
 export function appendOpenPledge(
   transaction: Transaction,
   deployment: ChainDeployment,
-  input: { readonly receiptObjectId: string; readonly requestedAprBps: number },
+  input: {
+    readonly receiptObjectId: string;
+    readonly requestedPrincipalBaseUnits: bigint;
+    readonly requestedAprBps: number;
+  },
 ): void {
   transaction.moveCall({
     target: target(deployment, 'open'),
     typeArguments: [deployment.settlementCoinType],
     arguments: [
+      transaction.object(deployment.configId),
       transaction.object(input.receiptObjectId),
+      transaction.pure.u64(input.requestedPrincipalBaseUnits),
       transaction.pure.u16(input.requestedAprBps),
     ],
   });

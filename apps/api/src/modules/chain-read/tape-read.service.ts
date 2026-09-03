@@ -30,6 +30,9 @@ interface Raw {
   readonly kind: TapeEvent['kind'];
   readonly pledgeId: string;
   readonly amount: bigint;
+  /* The offer's own rate for an OFFER_PLACED tick; zero for a LOAN_ORIGINATED,
+     which falls back to the pledge's accepted rate. */
+  readonly aprBps: number;
 }
 
 /* The market ticker, built from the chain's own events: an offer placed and a
@@ -65,9 +68,18 @@ export class TapeReadService {
 
     const raw: Raw[] = [];
     for (const event of offers.events) {
-      const json = event.json as { pledge_id?: unknown; amount?: unknown } | null;
+      const json = event.json as {
+        pledge_id?: unknown;
+        amount?: unknown;
+        apr_bps?: unknown;
+      } | null;
       if (typeof json?.pledge_id === 'string') {
-        raw.push({ kind: 'OFFER_PLACED', pledgeId: json.pledge_id, amount: readU64(json.amount) });
+        raw.push({
+          kind: 'OFFER_PLACED',
+          pledgeId: json.pledge_id,
+          amount: readU64(json.amount),
+          aprBps: Number(json.apr_bps ?? 0),
+        });
       }
     }
     for (const event of loans.events) {
@@ -77,6 +89,7 @@ export class TapeReadService {
           kind: 'LOAN_ORIGINATED',
           pledgeId: json.pledge_id,
           amount: readU64(json.principal),
+          aprBps: 0,
         });
       }
     }
@@ -117,7 +130,7 @@ export class TapeReadService {
         listingId: one.pledgeId,
         itemDescription: meta?.name ?? 'Vaulted item',
         itemCategory: pledge?.category ?? 'COLLECTIBLE',
-        rateBasisPoints: pledge?.aprBps ?? 0,
+        rateBasisPoints: one.aprBps > 0 ? one.aprBps : (pledge?.aprBps ?? 0),
         amount: toMoneyDto(one.amount, decimals),
       });
     }

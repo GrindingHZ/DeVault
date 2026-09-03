@@ -130,7 +130,10 @@ export class OffersReadService {
         listingId: offer.pledgeId,
         lenderAccountId: owner,
         principal: toMoneyDto(offer.amountBaseUnits, decimals),
-        annualPercentageRateBasisPoints: pledge?.terms?.aprBps ?? 0,
+        /* The rate the lender offered, from their own OfferMade event: a
+           standing pledge has not set its loan rate yet, and a funded one
+           carries the winner's, not this offer's. */
+        annualPercentageRateBasisPoints: offer.aprBps,
         durationMs: 0,
         expiresAt: new Date(expiresAtMs ?? nowMs).toISOString(),
         createdAt: new Date(nowMs).toISOString(),

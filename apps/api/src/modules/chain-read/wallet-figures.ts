@@ -227,6 +227,7 @@ export interface OfferEvent {
   readonly holdObjectId: string;
   readonly pledgeId: string;
   readonly amountBaseUnits: bigint;
+  readonly aprBps: number;
 }
 
 export function offerFromEventJson(json: Json | null): OfferEvent | null {
@@ -235,7 +236,12 @@ export function offerFromEventJson(json: Json | null): OfferEvent | null {
   if (typeof holdObjectId !== 'string' || typeof pledgeId !== 'string') {
     return null;
   }
-  return { holdObjectId, pledgeId, amountBaseUnits: readU64(json?.amount) };
+  return {
+    holdObjectId,
+    pledgeId,
+    amountBaseUnits: readU64(json?.amount),
+    aprBps: Number(json?.apr_bps ?? 0),
+  };
 }
 
 export function holdExpiresAtFromJson(json: Json | null): number {

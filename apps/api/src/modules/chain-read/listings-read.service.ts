@@ -12,6 +12,7 @@ import { DeploymentNotFound } from './wallet-read.service';
 export interface PledgeOffer {
   readonly holdObjectId: string;
   readonly amountBaseUnits: bigint;
+  readonly aprBps: number;
   readonly lender: string;
 }
 
@@ -60,6 +61,7 @@ export class ListingsReadService {
         pledge_id?: unknown;
         hold_id?: unknown;
         amount?: unknown;
+        apr_bps?: unknown;
         owner?: unknown;
       } | null;
       const pledgeId = json?.pledge_id;
@@ -70,9 +72,10 @@ export class ListingsReadService {
       offerCountByPledge.set(pledgeId, (offerCountByPledge.get(pledgeId) ?? 0) + 1);
       const amount =
         typeof json?.amount === 'string' && /^\d+$/.test(json.amount) ? BigInt(json.amount) : 0n;
+      const aprBps = Number(json?.apr_bps ?? 0);
       const lender = typeof json?.owner === 'string' ? json.owner : event.sender;
       const list = offersByPledge.get(pledgeId) ?? [];
-      list.push({ holdObjectId: holdId, amountBaseUnits: amount, lender });
+      list.push({ holdObjectId: holdId, amountBaseUnits: amount, aprBps, lender });
       offersByPledge.set(pledgeId, list);
     }
     const seeds = listingSeeds(events.events.map((event) => ({ json: event.json })));

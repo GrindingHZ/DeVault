@@ -65,7 +65,11 @@ async function main(): Promise<void> {
   // gateway the api uses.
   const gateway = new GrpcSponsoredTransactionGateway(client, operator);
   const sponsored = await gateway.build(memberAddress, (transaction) => {
-    appendOpenPledge(transaction, deployment, { receiptObjectId, requestedAprBps: 3600 });
+    appendOpenPledge(transaction, deployment, {
+      receiptObjectId,
+      requestedPrincipalBaseUnits: 100_000_000n,
+      requestedAprBps: 3600,
+    });
   });
   const memberSignature = (await member.signTransaction(fromBase64(sponsored.transactionBytes)))
     .signature;

@@ -46,7 +46,7 @@ describe('CollateralRow', () => {
 
   it('says so rather than showing a rate when nobody has offered', () => {
     render(<CollateralRow item={{ ...item, bestRateBasisPoints: null }} />);
-    expect(screen.getByText('no offers')).toBeTruthy();
+    expect(screen.getByText('No offers')).toBeTruthy();
   });
 
   it('names the reader relationship in words', () => {

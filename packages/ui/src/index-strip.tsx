@@ -54,7 +54,7 @@ export function IndexStrip({
             {entry.averageRateBasisPoints === null ? (
               /* No offers is not a rate of zero, and saying zero here would
                  read as free money. */
-              <span className="font-body text-xs text-ink-secondary">no offers</span>
+              <span className="font-body text-xs text-ink-secondary">No offers</span>
             ) : (
               <MarketDelta
                 compact

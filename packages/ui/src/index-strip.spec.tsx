@@ -45,7 +45,7 @@ describe('IndexStrip', () => {
         role="lender"
       />,
     );
-    expect(screen.getByText('no offers')).toBeTruthy();
+    expect(screen.getByText('No offers')).toBeTruthy();
   });
 
   it('reports the category the reader picked', () => {

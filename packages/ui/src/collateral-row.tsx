@@ -85,7 +85,7 @@ function AskingRate({ basisPoints }: { readonly basisPoints: number | null }): R
   if (basisPoints === null) {
     return (
       <span className="shrink-0 whitespace-nowrap font-body text-xs text-ink-secondary">
-        no offers
+        No offers
       </span>
     );
   }

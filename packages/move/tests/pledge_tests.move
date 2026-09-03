@@ -28,7 +28,20 @@ fun mint_receipt_to(scenario: &mut Scenario, holder: address) {
     let cap = scenario.take_from_sender<CustodianCap>();
     let mut clock = clock::create_for_testing(scenario.ctx());
     clock.set_for_testing(NOW);
-    custody::issue(&cap, b"01RECEIPT", b"VAULT-1", holder, b"h", 1_000_000, 0, 0, b"P", &clock, scenario.ctx());
+    custody::issue(
+        &cap,
+        b"01RECEIPT",
+        b"VAULT-1",
+        holder,
+        b"h",
+        1_000_000,
+        0,
+        0,
+        b"P",
+        b"".to_string(),
+        &clock,
+        scenario.ctx(),
+    );
     clock.destroy_for_testing();
     scenario.return_to_sender(cap);
 }

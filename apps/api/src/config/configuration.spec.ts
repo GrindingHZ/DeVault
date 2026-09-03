@@ -6,6 +6,7 @@ const variables = [
   'CUSTODY_DRIVER',
   'CUSTODIAN_WALLET_ADDRESSES',
   'STORAGE_DRIVER',
+  'PUBLIC_BASE_URL',
 ] as const;
 const saved: Partial<Record<(typeof variables)[number], string | undefined>> = {};
 
@@ -68,6 +69,22 @@ describe('loadConfiguration drivers', () => {
   it('refuses an unknown storage driver and names the variable', () => {
     process.env.STORAGE_DRIVER = 's3';
     expect(() => loadConfiguration()).toThrow(/STORAGE_DRIVER/);
+  });
+
+  /* The url ends up on chain inside every receipt, where nothing can correct
+     it afterwards, so it is read from one place rather than built per call. */
+  it('serves the local api as the public origin by default', () => {
+    expect(loadConfiguration().publicBaseUrl).toBe('http://localhost:3000');
+  });
+
+  it('reads the public origin from its own variable', () => {
+    process.env.PUBLIC_BASE_URL = 'https://devault-marketplace.vercel.app';
+    expect(loadConfiguration().publicBaseUrl).toBe('https://devault-marketplace.vercel.app');
+  });
+
+  it('drops a trailing slash, which would double the separator in a photo url', () => {
+    process.env.PUBLIC_BASE_URL = 'https://devault-marketplace.vercel.app/';
+    expect(loadConfiguration().publicBaseUrl).toBe('https://devault-marketplace.vercel.app');
   });
 
   it('has no authorised custodian wallets by default', () => {

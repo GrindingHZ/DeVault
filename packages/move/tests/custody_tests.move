@@ -23,6 +23,7 @@ fun issue(scenario: &mut Scenario, cap: &CustodianCap) {
         1_700_000_000_000,
         0,
         b"POL-1",
+        b"https://devault.example/api/v1/receipts/01RECEIPT/photo".to_string(),
         &clock,
         scenario.ctx(),
     );
@@ -56,6 +57,17 @@ fun issue_transfers_the_receipt_to_the_borrower() {
     finish(scenario, cap);
 }
 
+/* The wallet showing the receipt has only the object to go on, so the url of
+   the item's own photograph rides on it rather than in our database. */
+#[test]
+fun issue_carries_the_url_of_the_item_photograph() {
+    let (scenario, cap) = begin();
+    let receipt = scenario.take_from_sender<VaultReceipt>();
+    assert!(*receipt.image_url() == b"https://devault.example/api/v1/receipts/01RECEIPT/photo".to_string());
+    scenario.return_to_sender(receipt);
+    finish(scenario, cap);
+}
+
 #[test]
 fun issue_announces_the_receipt() {
     let mut scenario = test_scenario::begin(CUSTODIAN);
@@ -84,7 +96,20 @@ fun an_empty_receipt_key_is_refused() {
     scenario.next_tx(CUSTODIAN);
     let cap = scenario.take_from_sender<CustodianCap>();
     let clock = clock::create_for_testing(scenario.ctx());
-    custody::issue(&cap, b"", b"VAULT-1", BORROWER, b"h", 1, 0, 0, b"P", &clock, scenario.ctx());
+    custody::issue(
+        &cap,
+        b"",
+        b"VAULT-1",
+        BORROWER,
+        b"h",
+        1,
+        0,
+        0,
+        b"P",
+        b"".to_string(),
+        &clock,
+        scenario.ctx(),
+    );
     clock.destroy_for_testing();
     finish(scenario, cap);
 }
@@ -96,7 +121,20 @@ fun a_zero_appraisal_is_refused() {
     scenario.next_tx(CUSTODIAN);
     let cap = scenario.take_from_sender<CustodianCap>();
     let clock = clock::create_for_testing(scenario.ctx());
-    custody::issue(&cap, b"01R", b"VAULT-1", BORROWER, b"h", 0, 0, 0, b"P", &clock, scenario.ctx());
+    custody::issue(
+        &cap,
+        b"01R",
+        b"VAULT-1",
+        BORROWER,
+        b"h",
+        0,
+        0,
+        0,
+        b"P",
+        b"".to_string(),
+        &clock,
+        scenario.ctx(),
+    );
     clock.destroy_for_testing();
     finish(scenario, cap);
 }

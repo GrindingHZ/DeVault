@@ -19,6 +19,9 @@ export function appendIssueReceipt(
     readonly appraisedAtMs: bigint;
     readonly itemCategory: ItemCategory;
     readonly insuranceReference: string;
+    /* Absolute, because a wallet rendering the receipt has no origin of ours
+       to resolve a relative path against. */
+    readonly imageUrl: string;
   },
 ): void {
   transaction.moveCall({
@@ -33,6 +36,7 @@ export function appendIssueReceipt(
       transaction.pure.u64(input.appraisedAtMs),
       transaction.pure.u8(itemCategoryCodes[input.itemCategory]),
       transaction.pure.vector('u8', bytesOf(input.insuranceReference)),
+      transaction.pure.string(input.imageUrl),
       transaction.object.clock(),
     ],
   });

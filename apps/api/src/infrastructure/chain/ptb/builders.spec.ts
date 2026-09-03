@@ -162,6 +162,7 @@ describe('custody, config and attestation builders', () => {
       appraisedAtMs: 1_700_000_000_000n,
       itemCategory: 'WATCH',
       insuranceReference: 'POL-1',
+      imageUrl: 'https://devault.test/api/v1/receipts/01RECEIPT/photo',
     });
     appendEncumber(transaction, deployment, { receiptObjectId: receipt, loanKey: '01LOAN' });
     appendReissueToBuyer(transaction, deployment, {
@@ -170,7 +171,7 @@ describe('custody, config and attestation builders', () => {
       buyer: member,
     });
     expect(callsOf(transaction)).toEqual([
-      { module: 'custody', function: 'issue', typeArguments: [], argumentCount: 10 },
+      { module: 'custody', function: 'issue', typeArguments: [], argumentCount: 11 },
       { module: 'custody', function: 'encumber', typeArguments: [], argumentCount: 3 },
       { module: 'custody', function: 'reissue_to_buyer', typeArguments: [], argumentCount: 5 },
     ]);

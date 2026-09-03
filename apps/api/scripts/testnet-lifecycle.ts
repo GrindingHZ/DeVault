@@ -12,6 +12,7 @@ import { executionOf, failureOf } from '../src/infrastructure/chain/chain-result
 import { GrpcSponsoredTransactionGateway } from '../src/infrastructure/chain/grpc-sponsored-transaction';
 import { OperatorSigner } from '../src/infrastructure/chain/operator-signer';
 import { appendIssueReceipt } from '../src/infrastructure/chain/ptb/custody-calls';
+import { buildReceiptPhotoUrl } from '../src/modules/receipt-metadata/receipt-photo-url';
 import { appendMakeOffer } from '../src/infrastructure/chain/ptb/offer-calls';
 import {
   appendAcceptOffer,
@@ -113,6 +114,7 @@ async function main(): Promise<void> {
       appraisedAtMs: BigInt(Date.now()),
       itemCategory: 'BULLION',
       insuranceReference: 'POL-LC',
+      imageUrl: buildReceiptPhotoUrl(loadConfiguration().publicBaseUrl, `LC-${stamp}`),
     });
   });
   const receipt = createdOfType(issued, (type) => type.endsWith('::custody::VaultReceipt'));

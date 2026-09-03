@@ -9,6 +9,7 @@ import { OperatorSigner } from '../src/infrastructure/chain/operator-signer';
 import { fromBase64 } from '@mysten/sui/utils';
 import { GrpcSponsoredTransactionGateway } from '../src/infrastructure/chain/grpc-sponsored-transaction';
 import { appendIssueReceipt } from '../src/infrastructure/chain/ptb/custody-calls';
+import { buildReceiptPhotoUrl } from '../src/modules/receipt-metadata/receipt-photo-url';
 import { appendOpenPledge } from '../src/infrastructure/chain/ptb/pledge-calls';
 
 /* A single sponsored round trip against live testnet, to prove the flow the
@@ -32,8 +33,9 @@ async function main(): Promise<void> {
 
   // Step 1: operator issues a receipt to the member (operator signed).
   const issue = new Transaction();
+  const smokeReceiptKey = `SMOKE-${Date.now().toString()}`;
   appendIssueReceipt(issue, deployment, {
-    receiptKey: `SMOKE-${Date.now().toString()}`,
+    receiptKey: smokeReceiptKey,
     vault: 'VAULT-1',
     holder: memberAddress,
     intakeHash: 'sha256:smoke',
@@ -41,6 +43,7 @@ async function main(): Promise<void> {
     appraisedAtMs: BigInt(Date.now()),
     itemCategory: 'BULLION',
     insuranceReference: 'POL-SMOKE',
+    imageUrl: buildReceiptPhotoUrl(loadConfiguration().publicBaseUrl, smokeReceiptKey),
   });
   const issued = await client.core.signAndExecuteTransaction({
     transaction: issue,

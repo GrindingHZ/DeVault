@@ -8,8 +8,11 @@
 module depawn::custody;
 
 use depawn::config::CustodianCap;
+use std::string::String;
 use sui::clock::Clock;
+use sui::display;
 use sui::event;
+use sui::package;
 
 const EEmptyKey: u64 = 0;
 const EZeroValue: u64 = 1;
@@ -28,7 +31,36 @@ public struct VaultReceipt has key, store {
     appraised_at_ms: u64,
     item_category: u8,
     insurance_reference: vector<u8>,
+    /// Where the item's own photograph is served. A wallet showing the receipt
+    /// has only this object to go on, so the picture has to travel with it
+    /// rather than sit behind a login in our database.
+    image_url: String,
     issued_at_ms: u64,
+}
+
+/// Claimed at publish so the package can own a `Display`. A one time witness
+/// exists only here, in `init`, which is why a display cannot be added to a
+/// package that shipped without one.
+public struct CUSTODY has drop {}
+
+/* Init hands the publisher and the display to whoever published, matching the
+   capabilities in config. */
+#[allow(lint(self_transfer))]
+fun init(otw: CUSTODY, ctx: &mut TxContext) {
+    let publisher = package::claim(otw, ctx);
+    let mut receipt_display = display::new<VaultReceipt>(&publisher, ctx);
+    receipt_display.add(b"name".to_string(), b"DeVault Vault Receipt".to_string());
+    receipt_display.add(
+        b"description".to_string(),
+        b"Title to an item held in a DeVault vault. Whoever holds this object is the owner of record.".to_string(),
+    );
+    /* The only templated field. `receipt_key` is a byte vector and would not
+       substitute into a url, which is why the receipt carries the whole
+       address of its photograph instead of the key to build one. */
+    receipt_display.add(b"image_url".to_string(), b"{image_url}".to_string());
+    receipt_display.update_version();
+    transfer::public_transfer(publisher, ctx.sender());
+    transfer::public_transfer(receipt_display, ctx.sender());
 }
 
 public struct ReceiptIssued has copy, drop {
@@ -57,6 +89,7 @@ public fun issue(
     appraised_at_ms: u64,
     item_category: u8,
     insurance_reference: vector<u8>,
+    image_url: String,
     clock: &Clock,
     ctx: &mut TxContext,
 ) {
@@ -71,6 +104,7 @@ public fun issue(
         appraised_at_ms,
         item_category,
         insurance_reference,
+        image_url,
         issued_at_ms: clock.timestamp_ms(),
     };
     event::emit(ReceiptIssued {
@@ -106,3 +140,5 @@ public fun appraised_value(receipt: &VaultReceipt): u64 { receipt.appraised_valu
 public fun item_category(receipt: &VaultReceipt): u8 { receipt.item_category }
 
 public fun issued_at_ms(receipt: &VaultReceipt): u64 { receipt.issued_at_ms }
+
+public fun image_url(receipt: &VaultReceipt): &String { &receipt.image_url }

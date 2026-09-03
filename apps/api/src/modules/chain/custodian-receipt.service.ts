@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Transaction } from '@mysten/sui/transactions';
+import { loadConfiguration } from '../../config/configuration';
 import type { ItemCategory } from '../../domain/custody/item-category';
 import type { ChainClient } from '../../infrastructure/chain/chain-client';
 import { CHAIN_CLIENT } from '../../infrastructure/chain/chain.tokens';
@@ -7,6 +8,7 @@ import { ChainDeploymentRegistry } from '../../infrastructure/chain/chain-deploy
 import { executionOf, failureOf } from '../../infrastructure/chain/chain-result';
 import { OperatorSigner } from '../../infrastructure/chain/operator-signer';
 import { appendIssueReceipt } from '../../infrastructure/chain/ptb/custody-calls';
+import { buildReceiptPhotoUrl } from '../receipt-metadata/receipt-photo-url';
 import { ReceiptMetadataStore } from '../receipt-metadata/receipt-metadata.store';
 
 export interface IssueReceiptCommand {
@@ -64,6 +66,9 @@ export class CustodianReceiptService {
       appraisedAtMs: BigInt(Date.now()),
       itemCategory: command.itemCategory,
       insuranceReference: command.insuranceReference,
+      /* Minted into the object so a wallet can show the item itself, not a
+         placeholder. Nothing can correct it once the receipt exists. */
+      imageUrl: buildReceiptPhotoUrl(loadConfiguration().publicBaseUrl, receiptKey),
     });
     const result = await this.client.core.signAndExecuteTransaction({
       transaction,

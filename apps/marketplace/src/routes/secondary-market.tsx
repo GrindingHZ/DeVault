@@ -35,7 +35,9 @@ function SecondaryMarketPage(): ReactElement {
      by address; the account id would never match, hiding nothing the seller
      owns from their own browse. */
   return (
-    <SecondaryMarket viewerAccountId={currentAccount.data.walletAddress ?? currentAccount.data.id} />
+    <SecondaryMarket
+      viewerAccountId={currentAccount.data.walletAddress ?? currentAccount.data.id}
+    />
   );
 }
 

@@ -293,7 +293,11 @@ function OfferBookPanel({
        consumes; the term is the one the listing carried. */
     mutationFn: (offerId: string) =>
       sign(() =>
-        acceptOfferAction({ pledgeId: detail.id, holdObjectId: offerId, termMs: detail.requestedDurationMs }),
+        acceptOfferAction({
+          pledgeId: detail.id,
+          holdObjectId: offerId,
+          termMs: detail.requestedDurationMs,
+        }),
       ),
     onSuccess: async () => {
       setAcceptError(null);

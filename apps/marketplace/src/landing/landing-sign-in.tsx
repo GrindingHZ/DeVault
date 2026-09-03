@@ -46,7 +46,10 @@ export function SignInDialog({ isOpen, onClose }: SignInDialogProps): ReactEleme
         </Button>
         {wallet.mutation.isError ? (
           <p role="alert" className="font-body text-sm text-status-danger">
-            {messageForError(wallet.mutation.error, 'Could not sign in with your wallet. Try again.')}
+            {messageForError(
+              wallet.mutation.error,
+              'Could not sign in with your wallet. Try again.',
+            )}
           </p>
         ) : null}
       </div>

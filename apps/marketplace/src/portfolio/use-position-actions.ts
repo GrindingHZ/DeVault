@@ -66,7 +66,11 @@ function runAction(position: Position, sign: Sign): Promise<unknown> {
   }
   /* Reclaiming the hold behind a beaten or expired offer, a pull refund the
      escrow allows once the offer has lost or run out. */
-  if (position.action?.kind === 'reclaim' && position.offerId !== null && position.listingId !== null) {
+  if (
+    position.action?.kind === 'reclaim' &&
+    position.offerId !== null &&
+    position.listingId !== null
+  ) {
     const holdObjectId = position.offerId;
     const pledgeId = position.listingId;
     return sign(() => reclaimHoldAction({ holdObjectId, pledgeId }));

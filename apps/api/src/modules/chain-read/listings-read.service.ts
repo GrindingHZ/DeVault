@@ -19,20 +19,40 @@ export class ListingsReadService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async read(): Promise<{ readonly decimals: number; readonly listings: readonly OpenListing[] }> {
+  async read(): Promise<{
+    readonly decimals: number;
+    readonly listings: readonly OpenListing[];
+    readonly offerCountByPledge: ReadonlyMap<string, number>;
+  }> {
     const deployment = await readDeployment(this.prisma);
     if (deployment === null) {
       throw new DeploymentNotFound();
     }
     const decimals = deployment.settlementCoinDecimals;
-    const events = await this.client.core.listEvents({
-      filter: { eventType: `${deployment.packageId}::pledge::ListingOpened` },
-      limit: 200,
-      order: 'descending',
-    });
+    const [events, offerEvents] = await Promise.all([
+      this.client.core.listEvents({
+        filter: { eventType: `${deployment.packageId}::pledge::ListingOpened` },
+        limit: 200,
+        order: 'descending',
+      }),
+      this.client.core.listEvents({
+        filter: { eventType: `${deployment.packageId}::escrow::OfferMade` },
+        limit: 500,
+        order: 'descending',
+      }),
+    ]);
+    /* How many offers each pledge has drawn, so a listing can say a lender is
+       competing rather than only that it exists. */
+    const offerCountByPledge = new Map<string, number>();
+    for (const event of offerEvents.events) {
+      const pledgeId = (event.json as { pledge_id?: unknown } | null)?.pledge_id;
+      if (typeof pledgeId === 'string') {
+        offerCountByPledge.set(pledgeId, (offerCountByPledge.get(pledgeId) ?? 0) + 1);
+      }
+    }
     const seeds = listingSeeds(events.events.map((event) => ({ json: event.json })));
     if (seeds.length === 0) {
-      return { decimals, listings: [] };
+      return { decimals, listings: [], offerCountByPledge };
     }
     const receiptKeys = new Map(seeds.map((seed) => [seed.pledgeId, seed.receiptKey]));
     const objects = await this.client.core.getObjects({
@@ -51,6 +71,6 @@ export class ListingsReadService {
         listings.push(listing);
       }
     }
-    return { decimals, listings };
+    return { decimals, listings, offerCountByPledge };
   }
 }

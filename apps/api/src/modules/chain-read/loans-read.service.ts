@@ -13,34 +13,8 @@ import {
 } from './wallet-figures';
 import type { PledgeStatus, PledgeTerms } from './wallet-figures';
 import { DeploymentNotFound } from './wallet-read.service';
-
-interface Json {
-  [key: string]: unknown;
-}
-
-function objectEntry(entry: unknown): { objectId: string; json: Json | null } | null {
-  if (entry !== null && typeof entry === 'object' && !(entry instanceof Error)) {
-    const record = entry as { objectId?: unknown; json?: unknown; code?: unknown };
-    if (typeof record.objectId === 'string' && record.code === undefined) {
-      const json = record.json;
-      return { objectId: record.objectId, json: json === null || json === undefined ? null : (json as Json) };
-    }
-  }
-  return null;
-}
-
-/* The self-custody model has no cents: a settlement coin carries its own
-   decimals, and the loan book counts base units. The web2 ui speaks the money
-   dto, whose minor units are hundredths, so a base-unit amount is scaled down
-   to the coin's last two decimals here at the edge. */
-function toMoneyDto(baseUnits: bigint, decimals: number): { minorUnits: string; currency: string } {
-  const scale = 10n ** BigInt(Math.max(0, decimals - 2));
-  return { minorUnits: (baseUnits / scale).toString(), currency: 'USD' };
-}
-
-function isoOf(ms: number): string {
-  return new Date(ms).toISOString();
-}
+import { isoOf, objectEntry, receiptKeyOf, toMoneyDto } from './chain-read-shapes';
+import type { Json } from './chain-read-shapes';
 
 function loanStatusOf(status: PledgeStatus): LoanResponse['status'] {
   switch (status) {
@@ -51,16 +25,6 @@ function loanStatusOf(status: PledgeStatus): LoanResponse['status'] {
     default:
       return 'ACTIVE';
   }
-}
-
-function receiptKeyOf(pledgeJson: Json | null): string {
-  const receipt = pledgeJson?.receipt;
-  const key = receipt !== null && typeof receipt === 'object' ? (receipt as Json).receipt_key : undefined;
-  if (typeof key !== 'string') {
-    return '';
-  }
-  const text = Buffer.from(key, 'base64').toString('utf8');
-  return /^[\x20-\x7e]+$/.test(text) ? text : '';
 }
 
 export interface MyLoansResult {

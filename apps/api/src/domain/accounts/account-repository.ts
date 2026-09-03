@@ -5,6 +5,7 @@ import type { Account } from './account';
 export interface AccountRepository {
   findById(id: AccountId, context: UnitOfWorkContext): Promise<Account | null>;
   findByEmail(email: string, context: UnitOfWorkContext): Promise<Account | null>;
+  findByWalletAddress(address: string, context: UnitOfWorkContext): Promise<Account | null>;
   save(account: Account, context: UnitOfWorkContext): Promise<void>;
 }
 

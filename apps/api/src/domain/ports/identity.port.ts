@@ -3,7 +3,9 @@ import type { AccountId } from '../shared/identifiers';
 
 /* Phase 1 subjects come from a session; Phase 3 adds a wallet variant with a
    signed challenge, and the redemption flow calls verifyControl in both. */
-export type AuthenticatedSubject = { readonly kind: 'session'; readonly accountId: AccountId };
+export type AuthenticatedSubject =
+  | { readonly kind: 'session'; readonly accountId: AccountId }
+  | { readonly kind: 'wallet'; readonly address: string };
 
 export type ControlProof =
   | { readonly kind: 'session'; readonly accountId: AccountId }

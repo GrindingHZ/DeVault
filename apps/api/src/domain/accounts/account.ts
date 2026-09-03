@@ -9,10 +9,36 @@ export class Account {
     readonly passwordHash: string,
     readonly roles: readonly Role[],
     readonly version: number,
+    /* The Sui address a wallet signed in with, and the address this account's
+       on-chain wallet is owned by. Null for a password account until it links
+       one. */
+    readonly walletAddress: string | null,
   ) {}
 
   static create(input: { id: AccountId; email: string; passwordHash: string }): Account {
-    return new Account(input.id, input.email.toLowerCase(), input.passwordHash, ['MEMBER'], 0);
+    return new Account(
+      input.id,
+      input.email.toLowerCase(),
+      input.passwordHash,
+      ['MEMBER'],
+      0,
+      null,
+    );
+  }
+
+  /* A member who arrived by signing a wallet challenge rather than a
+     password. The address is the account's identity: it is the email, so
+     the rest of the system needs no new lookup, and it is the wallet field,
+     so the on-chain wallet is owned by the key that signed in. The password
+     hash is a real hash of a value nobody holds, so password login can never
+     match it. */
+  static createForWallet(input: {
+    id: AccountId;
+    address: string;
+    unusablePasswordHash: string;
+  }): Account {
+    const address = input.address.toLowerCase();
+    return new Account(input.id, address, input.unusablePasswordHash, ['MEMBER'], 0, address);
   }
 
   static restore(input: {
@@ -21,8 +47,16 @@ export class Account {
     passwordHash: string;
     roles: readonly Role[];
     version: number;
+    walletAddress: string | null;
   }): Account {
-    return new Account(input.id, input.email, input.passwordHash, input.roles, input.version);
+    return new Account(
+      input.id,
+      input.email,
+      input.passwordHash,
+      input.roles,
+      input.version,
+      input.walletAddress,
+    );
   }
 
   hasRole(role: Role): boolean {

@@ -20,6 +20,7 @@ describe('Account', () => {
       email: 'ops@example.test',
       passwordHash: 'hash',
       roles: ['OPERATIONS'],
+      walletAddress: null,
       version: 3,
     });
     expect(account.hasRole('OPERATIONS')).toBe(true);

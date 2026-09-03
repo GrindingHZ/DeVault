@@ -5,6 +5,7 @@ import { CHAIN_CLIENT } from '../../infrastructure/chain/chain.tokens';
 import { GrpcSponsoredTransactionGateway } from '../../infrastructure/chain/grpc-sponsored-transaction';
 import { OperatorSigner } from '../../infrastructure/chain/operator-signer';
 import { SPONSORED_TRANSACTION_GATEWAY } from '../../infrastructure/chain/sponsored-transaction';
+import { ReceiptMetadataModule } from '../receipt-metadata/receipt-metadata.module';
 import { ChainTransactionController } from './chain-transaction.controller';
 import { ChainTransactionService } from './chain-transaction.service';
 import { CustodianReceiptController } from './custodian-receipt.controller';
@@ -14,7 +15,7 @@ import { CustodianReceiptService } from './custodian-receipt.service';
    on, because it is the whole of the self-custody flow and has nothing to do
    in a database only process. */
 @Module({
-  imports: [ChainModule],
+  imports: [ChainModule, ReceiptMetadataModule],
   controllers: [ChainTransactionController, CustodianReceiptController],
   providers: [
     ChainTransactionService,

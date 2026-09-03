@@ -7,15 +7,17 @@ import { ChainDeploymentRegistry } from '../../infrastructure/chain/chain-deploy
 import { executionOf, failureOf } from '../../infrastructure/chain/chain-result';
 import { OperatorSigner } from '../../infrastructure/chain/operator-signer';
 import { appendIssueReceipt } from '../../infrastructure/chain/ptb/custody-calls';
+import { ReceiptMetadataStore } from '../receipt-metadata/receipt-metadata.store';
 
 export interface IssueReceiptCommand {
   readonly holder: string;
-  readonly receiptKey: string;
+  readonly name: string;
   readonly vault: string;
-  readonly intakeHash: string;
   readonly appraisedValueBaseUnits: string;
   readonly itemCategory: ItemCategory;
   readonly insuranceReference: string;
+  readonly mainImage: string;
+  readonly secondaryImages: readonly string[];
 }
 
 export class ReceiptNotCreated extends Error {
@@ -37,16 +39,24 @@ export class CustodianReceiptService {
     @Inject(CHAIN_CLIENT) private readonly client: ChainClient,
     private readonly operator: OperatorSigner,
     private readonly deployments: ChainDeploymentRegistry,
+    private readonly metadata: ReceiptMetadataStore,
   ) {}
 
-  async issue(command: IssueReceiptCommand): Promise<{ receiptObjectId: string; digest: string }> {
+  async issue(command: IssueReceiptCommand): Promise<{ receiptObjectId: string; receiptKey: string; digest: string }> {
     const deployment = this.deployments.current();
+    /* The name and photographs are stored off chain first; the receipt then
+       carries the key that finds them and the hash that commits to them. */
+    const { receiptKey, intakeHash } = await this.metadata.create({
+      name: command.name,
+      mainImage: command.mainImage,
+      secondaryImages: command.secondaryImages,
+    });
     const transaction = new Transaction();
     appendIssueReceipt(transaction, deployment, {
-      receiptKey: command.receiptKey,
+      receiptKey,
       vault: command.vault,
       holder: command.holder,
-      intakeHash: command.intakeHash,
+      intakeHash,
       appraisedValueBaseUnits: BigInt(command.appraisedValueBaseUnits),
       /* Real chain time; the demo clock never reaches an operator-signed tx. */
       appraisedAtMs: BigInt(Date.now()),
@@ -69,6 +79,6 @@ export class CustodianReceiptService {
     if (receipt === undefined) {
       throw new ReceiptNotCreated();
     }
-    return { receiptObjectId: receipt[0], digest: execution.digest };
+    return { receiptObjectId: receipt[0], receiptKey, digest: execution.digest };
   }
 }

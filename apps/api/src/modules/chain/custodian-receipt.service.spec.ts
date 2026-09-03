@@ -4,6 +4,7 @@ import type { ChainClient } from '../../infrastructure/chain/chain-client';
 import type { ChainDeployment } from '../../infrastructure/chain/chain-deployment';
 import { ChainDeploymentRegistry } from '../../infrastructure/chain/chain-deployment.registry';
 import { OperatorSigner } from '../../infrastructure/chain/operator-signer';
+import type { ReceiptMetadataStore } from '../receipt-metadata/receipt-metadata.store';
 import { CustodianReceiptService } from './custodian-receipt.service';
 
 const packageId = `0x${'a'.repeat(64)}`;
@@ -49,19 +50,23 @@ describe('CustodianReceiptService', () => {
     } as unknown as ChainClient;
     const registry = { current: () => deployment } as unknown as ChainDeploymentRegistry;
     const operator = { keypair: {} } as unknown as OperatorSigner;
-    const service = new CustodianReceiptService(client, operator, registry);
+    const metadata = {
+      create: async () => ({ receiptKey: 'receipt-1', intakeHash: 'sha256:abc' }),
+    } as unknown as ReceiptMetadataStore;
+    const service = new CustodianReceiptService(client, operator, registry, metadata);
 
     const result = await service.issue({
       holder: `0x${'e'.repeat(64)}`,
-      receiptKey: 'LC-1',
+      name: 'Rolex Submariner',
       vault: 'VAULT-1',
-      intakeHash: 'sha256:abc',
       appraisedValueBaseUnits: '800000000',
       itemCategory: 'BULLION',
       insuranceReference: 'POL-1',
+      mainImage: 'data:image/png;base64,aaaa',
+      secondaryImages: [],
     });
 
-    expect(result).toEqual({ receiptObjectId: receiptId, digest: 'DIGEST' });
+    expect(result).toEqual({ receiptObjectId: receiptId, receiptKey: 'receipt-1', digest: 'DIGEST' });
     expect(issueSteps(captured as unknown as Transaction)).toEqual(['custody::issue']);
   });
 });

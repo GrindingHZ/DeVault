@@ -238,6 +238,18 @@ export interface WalletItem {
   readonly objectId: string;
   readonly appraisedValueBaseUnits: bigint;
   readonly itemCategory: string;
+  readonly receiptKey: string;
+}
+
+/* The receipt_key is the api's own key for the receipt, stored on chain as the
+   utf-8 bytes of the string, so a gRPC node hands it back base64; it is the key
+   the off-chain name and photographs are filed under. */
+function decodeReceiptKey(value: unknown): string {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  const text = Buffer.from(value, 'base64').toString('utf8');
+  return /^[\x20-\x7e]+$/.test(text) ? text : value;
 }
 
 /* The receipt stores its category as the u8 code custody.move was issued with,
@@ -263,5 +275,6 @@ export function itemFromJson(objectId: string, json: Json | null): WalletItem | 
     objectId,
     appraisedValueBaseUnits: readU64(json.appraised_value),
     itemCategory: categoryNameOf(json.item_category),
+    receiptKey: decodeReceiptKey(json.receipt_key),
   };
 }

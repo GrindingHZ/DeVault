@@ -2,6 +2,7 @@ import {
   chainDeploymentResponseSchema,
   issueVaultReceiptResponseSchema,
   listingsResponseSchema,
+  receiptMetadataResponseSchema,
   releaseQueueResponseSchema,
   walletResponseSchema,
 } from '../chain-actions';
@@ -10,6 +11,7 @@ import type {
   IssueVaultReceiptRequest,
   IssueVaultReceiptResponse,
   ListingsResponse,
+  ReceiptMetadataResponse,
   ReleaseQueueResponse,
   WalletResponse,
 } from '../chain-actions';
@@ -64,5 +66,15 @@ export function issueVaultReceipt(body: IssueVaultReceiptRequest): Promise<Issue
     path: `${basePath}/chain/receipts/issue`,
     body,
     responseSchema: issueVaultReceiptResponseSchema,
+  });
+}
+
+/* The name and photographs behind a receipt, keyed by the receipt_key it
+   carries on chain. */
+export function fetchReceiptMetadata(receiptKey: string): Promise<ReceiptMetadataResponse> {
+  return requestJson({
+    method: 'GET',
+    path: `${basePath}/chain/receipts/${encodeURIComponent(receiptKey)}/metadata`,
+    responseSchema: receiptMetadataResponseSchema,
   });
 }

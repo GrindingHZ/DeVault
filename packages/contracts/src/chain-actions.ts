@@ -59,6 +59,7 @@ export const walletResponseSchema = z.object({
       objectId: z.string(),
       appraisedValueBaseUnits: baseUnits,
       itemCategory: z.string(),
+      receiptKey: z.string(),
     }),
   ),
   /* The member's loans as a lender: one row per pledge a note of theirs
@@ -193,19 +194,41 @@ export type BuildDelistPositionRequest = z.infer<typeof buildDelistPositionReque
    custodial step: a person confirms a physical item exists, appraises it, and
    takes custody, which no on-chain code can attest. Operator-signed, because
    the CustodianCap is the platform's; every later step is the member's own. */
+/* An item photograph carried inline as a data url. Kept off chain: the receipt
+   stores only the intake_hash that commits to the name and these images, and
+   the api serves them back from its object store. */
+const receiptImage = z
+  .string()
+  .max(8_000_000)
+  .refine((value) => /^data:image\/[a-z0-9.+-]+;base64,/i.test(value), {
+    message: 'must be an image data url',
+  });
+
 export const issueVaultReceiptRequestSchema = z.object({
   holder: z.string().min(3),
-  receiptKey: z.string().min(1).max(64),
+  name: z.string().min(1).max(120),
   vault: z.string().min(1).max(64),
-  intakeHash: z.string().min(1).max(200),
   appraisedValueBaseUnits: baseUnits,
   itemCategory: z.enum(['BULLION', 'WATCH', 'JEWELLERY', 'COLLECTIBLE', 'ART']),
   insuranceReference: z.string().max(120),
+  mainImage: receiptImage,
+  secondaryImages: z.array(receiptImage).max(2),
 });
 export type IssueVaultReceiptRequest = z.infer<typeof issueVaultReceiptRequestSchema>;
 
 export const issueVaultReceiptResponseSchema = z.object({
   receiptObjectId: z.string(),
+  receiptKey: z.string(),
   digest: z.string(),
 });
 export type IssueVaultReceiptResponse = z.infer<typeof issueVaultReceiptResponseSchema>;
+
+/* The name and photographs behind a receipt, read back from the api's object
+   store by the key the receipt carries on chain. Absent for a receipt issued
+   before this record existed, which the reader falls back from gracefully. */
+export const receiptMetadataResponseSchema = z.object({
+  name: z.string(),
+  mainImage: z.string(),
+  secondaryImages: z.array(z.string()),
+});
+export type ReceiptMetadataResponse = z.infer<typeof receiptMetadataResponseSchema>;

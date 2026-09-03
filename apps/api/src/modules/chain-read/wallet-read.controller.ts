@@ -34,6 +34,7 @@ export class WalletReadController {
         objectId: item.objectId,
         appraisedValueBaseUnits: item.appraisedValueBaseUnits.toString(),
         itemCategory: item.itemCategory,
+        receiptKey: item.receiptKey,
       })),
       lender: result.lender.map((standing) => ({
         pledgeId: standing.pledgeId,

@@ -128,10 +128,14 @@ describe('gRPC json parsers', () => {
     expect(
       offerFromEventJson({ amount: '400000', hold_id: '0xh', owner: '0xo', pledge_id: '0xpl' }),
     ).toEqual({ holdObjectId: '0xh', pledgeId: '0xpl', amountBaseUnits: 400_000n });
-    expect(itemFromJson('0xr', { appraised_value: '800000000', item_category: 'BULLION' })).toEqual({
+    const receiptKey = Buffer.from('receipt-7', 'utf8').toString('base64');
+    expect(
+      itemFromJson('0xr', { appraised_value: '800000000', item_category: 'BULLION', receipt_key: receiptKey }),
+    ).toEqual({
       objectId: '0xr',
       appraisedValueBaseUnits: 800_000_000n,
       itemCategory: 'BULLION',
+      receiptKey: 'receipt-7',
     });
     /* On chain the category is the u8 code, not the name. */
     expect(itemFromJson('0xr', { appraised_value: '1', item_category: 1 })?.itemCategory).toBe('WATCH');

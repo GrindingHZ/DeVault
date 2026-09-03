@@ -13,6 +13,7 @@ import { PersistenceModule } from './infrastructure/persistence/persistence.modu
 import { SystemStateModule } from './infrastructure/system-state/system-state.module';
 import { AccountsModule } from './modules/accounts/accounts.module';
 import { HealthModule } from './modules/health/health.module';
+import { ReceiptMetadataModule } from './modules/receipt-metadata/receipt-metadata.module';
 import { SharedHttpModule } from './modules/shared/shared-http.module';
 import { TestSupportModule } from './modules/test-support/test-support.module';
 import { ApiExceptionFilter } from './modules/shared/http/api-exception.filter';
@@ -45,6 +46,7 @@ export class AppModule implements NestModule {
         SharedHttpModule,
         AccountsModule,
         HealthModule,
+        ReceiptMetadataModule,
         ChainReadModule,
         ...testOnlyModules,
         ...chainModules,

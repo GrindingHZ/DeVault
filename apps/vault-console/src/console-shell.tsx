@@ -1,10 +1,8 @@
-import { logout } from '@depawn/contracts';
-import { AppBoundary, AppShell, Button, ToastRegion, useMutationFeedback } from '@depawn/ui';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { AppBoundary, AppShell, ToastRegion, useMutationFeedback } from '@depawn/ui';
+import { Link } from '@tanstack/react-router';
 import { createContext, useContext } from 'react';
 import type { ReactElement, ReactNode } from 'react';
-import { currentAccountKeys } from './current-account';
+import { AccountMenu } from './header/account-menu';
 
 interface Feedback {
   readonly reportSuccess: (text: string) => void;
@@ -14,7 +12,7 @@ interface Feedback {
 const FeedbackContext = createContext<Feedback | null>(null);
 
 /* Staff confirm an irreversible step and then need telling it happened.
-   Sealing and issuing said nothing at all before this. */
+   Issuing a receipt and handing one back said nothing at all before this. */
 export function useFeedback(): Feedback {
   return (
     useContext(FeedbackContext) ?? {
@@ -24,37 +22,27 @@ export function useFeedback(): Feedback {
   );
 }
 
+/* The custodian shell, on the same floor palette and header as the marketplace
+   so the two read as one product. The custodian does only two things, so the
+   nav is two tabs: register a receipt, and release one. */
 export function ConsoleShell({ children }: { readonly children: ReactNode }): ReactElement {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const feedback = useMutationFeedback();
-  const logoutMutation = useMutation({
-    mutationFn: logout,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: currentAccountKeys.me });
-      await navigate({ to: '/login' });
-    },
-  });
 
   return (
     <AppShell
-      productName="DeVault console"
-      surface="terminal"
+      productName="DeVault custody"
+      surface="floor"
       navigation={
         <>
           <Link to="/mint" className="font-body text-sm text-ink-secondary">
-            Issue
+            Register receipt
           </Link>
           <Link to="/releases" className="font-body text-sm text-ink-secondary">
-            Releases
+            Release
           </Link>
         </>
       }
-      actions={
-        <Button variant="secondary" onClick={() => logoutMutation.mutate()}>
-          Log out
-        </Button>
-      }
+      actions={<AccountMenu />}
     >
       <FeedbackContext.Provider
         value={{ reportSuccess: feedback.reportSuccess, reportFailure: feedback.reportFailure }}

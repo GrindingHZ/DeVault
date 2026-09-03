@@ -34,8 +34,8 @@ function MintPage(): ReactElement {
       <ConsoleShell>
         <Page>
           <PageHeader
-            title="Issue a receipt"
-            description="Take an item in and mint its VaultReceipt on chain to the borrower's wallet."
+            title="Register a vault receipt"
+            description="Take an item in, appraise it, and mint its receipt on chain to the member's wallet."
           />
           <div className="max-w-md">
             <IssueCard />

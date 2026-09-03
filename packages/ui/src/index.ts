@@ -17,6 +17,7 @@ export * from './glossary';
 export * from './item-photograph';
 export * from './image-carousel';
 export * from './category-icon';
+export * from './chain-link';
 export * from './loan-to-value';
 export * from './skeleton';
 export * from './stepper';

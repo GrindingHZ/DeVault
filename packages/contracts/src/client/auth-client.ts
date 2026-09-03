@@ -1,5 +1,12 @@
-import { accountResponseSchema } from '../auth';
-import type { AccountResponse, LoginRequest, RegisterRequest } from '../auth';
+import { accountResponseSchema, walletChallengeResponseSchema } from '../auth';
+import type {
+  AccountResponse,
+  LoginRequest,
+  RegisterRequest,
+  WalletChallengeRequest,
+  WalletChallengeResponse,
+  WalletVerifyRequest,
+} from '../auth';
 import { ApiError } from './api-error';
 import { requestJson, requestVoid } from './http';
 
@@ -18,6 +25,24 @@ export function login(body: LoginRequest): Promise<AccountResponse> {
   return requestJson({
     method: 'POST',
     path: `${basePath}/auth/login`,
+    body,
+    responseSchema: accountResponseSchema,
+  });
+}
+
+export function beginWalletSignIn(body: WalletChallengeRequest): Promise<WalletChallengeResponse> {
+  return requestJson({
+    method: 'POST',
+    path: `${basePath}/auth/wallet/challenge`,
+    body,
+    responseSchema: walletChallengeResponseSchema,
+  });
+}
+
+export function completeWalletSignIn(body: WalletVerifyRequest): Promise<AccountResponse> {
+  return requestJson({
+    method: 'POST',
+    path: `${basePath}/auth/wallet/verify`,
     body,
     responseSchema: accountResponseSchema,
   });

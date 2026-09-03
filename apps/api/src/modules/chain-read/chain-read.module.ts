@@ -14,6 +14,7 @@ import { MemberReadController } from './member-read.controller';
 import { MemberReadService } from './member-read.service';
 import { OffersReadController } from './offers-read.controller';
 import { OffersReadService } from './offers-read.service';
+import { PayoffReadController } from './payoff-read.controller';
 import { ReleaseReadController } from './release-read.controller';
 import { ReleaseReadService } from './release-read.service';
 import { WalletReadController } from './wallet-read.controller';
@@ -34,6 +35,7 @@ import { WalletReadService } from './wallet-read.service';
     OffersReadController,
     MarketReadController,
     MemberReadController,
+    PayoffReadController,
   ],
   providers: [
     WalletReadService,

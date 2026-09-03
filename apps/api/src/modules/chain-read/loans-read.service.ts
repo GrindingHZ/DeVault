@@ -32,6 +32,15 @@ export interface MyLoansResult {
   readonly asOfMs: number;
 }
 
+export interface PayoffQuote {
+  readonly loanId: string;
+  readonly principal: { minorUnits: string; currency: string };
+  readonly accruedInterest: { minorUnits: string; currency: string };
+  readonly total: { minorUnits: string; currency: string };
+  readonly quotedAtMs: number;
+  readonly validUntilMs: number;
+}
+
 /* The member's loans, read from the chain and shaped into the LoanResponse the
    restored portfolio speaks. A note the member holds names its pledge; the
    pledge carries the terms, its status, and the wrapped receipt whose key finds
@@ -113,5 +122,31 @@ export class LoansReadService {
       });
     }
     return { items, asOfMs: nowMs };
+  }
+
+  /* What settling a loan costs right now: principal plus interest accrued to
+     this instant, quoted for a minute. The chain recomputes the same figure at
+     repayment, so this is the number to show, not the number to enforce. */
+  async payoffQuote(pledgeId: string, nowMs: number): Promise<PayoffQuote | null> {
+    const deployment = await readDeployment(this.prisma);
+    if (deployment === null) {
+      throw new DeploymentNotFound();
+    }
+    const decimals = deployment.settlementCoinDecimals;
+    const objects = await this.client.core.getObjects({ objectIds: [pledgeId], include: { json: true } });
+    const entry = objectEntry(objects.objects[0]);
+    const terms = entry === null ? null : pledgeTermsFromJson(entry.objectId, entry.json);
+    if (terms === null) {
+      return null;
+    }
+    const accrued = accruedBaseUnits(terms, nowMs);
+    return {
+      loanId: pledgeId,
+      principal: toMoneyDto(terms.principalBaseUnits, decimals),
+      accruedInterest: toMoneyDto(accrued, decimals),
+      total: toMoneyDto(terms.principalBaseUnits + accrued, decimals),
+      quotedAtMs: nowMs,
+      validUntilMs: nowMs + 60_000,
+    };
   }
 }

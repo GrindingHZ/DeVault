@@ -2,6 +2,7 @@ import {
   ApiError,
   acceptOfferAction,
   fetchListing,
+  fetchReceiptMetadata,
   liquidityNoteForCategory,
   messageForError,
   nameForCategory,
@@ -11,6 +12,7 @@ import type { ListingDetailResponse, MoneyDto } from '@depawn/contracts';
 import {
   Button,
   Explain,
+  ImageCarousel,
   ItemPhotograph,
   LoanToValue,
   BestRate,
@@ -125,6 +127,22 @@ function DetailBody({
   readonly role: MarketRole;
 }): ReactElement {
   const isBorrower = role === 'borrower';
+  /* The item's photographs, main first, read from the off-chain store the
+     receipt key files them under. Shown large in a carousel; a receipt issued
+     before this record existed simply has none, and the header falls back to
+     the placeholder. */
+  const metadata = useQuery({
+    queryKey: ['chain', 'receipt-metadata', detail.receiptId],
+    queryFn: () => fetchReceiptMetadata(detail.receiptId),
+    enabled: detail.hasPhotograph,
+    retry: false,
+  });
+  const images =
+    metadata.data === undefined
+      ? []
+      : [metadata.data.mainImage, ...metadata.data.secondaryImages].filter(
+          (source) => source.length > 0,
+        );
   /* The best standing rate, and the one behind it. The delta is the gap a
      lender has to close, which is more use than the same rate compared with
      itself a minute ago. */
@@ -147,13 +165,17 @@ function DetailBody({
 
   return (
     <div className="flex flex-col">
-      <header className="flex items-start gap-4 border-b border-edge p-4">
-        <ItemPhotograph
-          src={detail.hasPhotograph ? `/api/v1/receipts/${detail.receiptId}/photo` : null}
-          alt={detail.itemDescription}
-          size="detail"
-          testId="item-photograph"
-        />
+      <header className="flex flex-col gap-4 border-b border-edge p-4 sm:flex-row sm:items-start">
+        {images.length > 0 ? (
+          <ImageCarousel images={images} alt={detail.itemDescription} testId="item-photograph" />
+        ) : (
+          <ItemPhotograph
+            src={detail.hasPhotograph ? `/api/v1/receipts/${detail.receiptId}/photo` : null}
+            alt={detail.itemDescription}
+            size="detail"
+            testId="item-photograph"
+          />
+        )}
         <div className="min-w-0 flex-1">
           <h2
             data-testid="item-description"

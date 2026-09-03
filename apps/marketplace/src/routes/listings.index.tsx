@@ -1,4 +1,4 @@
-import { browseListings, fetchListing, fetchMarketTape, fetchMyOffers } from '@depawn/contracts';
+import { browseListings, fetchListing, fetchMyOffers, nameForCategory } from '@depawn/contracts';
 import type { ListingSummary } from '@depawn/contracts';
 import { LifecycleSpine, Skeleton, Tape, Workspace, positionOf, spineFor } from '@depawn/ui';
 import type { CollateralRelationship, MarketRole } from '@depawn/ui';
@@ -18,11 +18,6 @@ export const Route = createFileRoute('/listings/')({
   validateSearch: parseWorkspaceSearch,
   component: WorkspacePage,
 });
-
-/* The strip and the tape refresh on a timer. Polling rather than a stream:
-   the outbox is at least once (Q-023) and a push transport is a new failure
-   mode this screen does not need to earn its keep. */
-const tapePollMs = 15_000;
 
 function WorkspacePage(): ReactElement | null {
   const currentAccount = useCurrentAccount();
@@ -75,12 +70,6 @@ function VaultFloor({ viewerAccountId }: { readonly viewerAccountId: string }): 
 
   const myOffersQuery = useQuery({ queryKey: marketKeys.myOffers, queryFn: fetchMyOffers });
 
-  const tapeQuery = useQuery({
-    queryKey: marketKeys.marketTape,
-    queryFn: () => fetchMarketTape(),
-    refetchInterval: tapePollMs,
-  });
-
   /* Shares a key with the detail pane, so React Query serves both from one
      request. The route needs it because the spine belongs to the workspace
      rather than to either pane. */
@@ -132,6 +121,21 @@ function VaultFloor({ viewerAccountId }: { readonly viewerAccountId: string }): 
              padding it with rows nobody could act on. */
           allListings.filter((listing) => !isMine(listing));
 
+  /* The ticker shows the browse items: the open listings the reader can lend
+     against, their own excluded, each with the keenest rate it has drawn so far
+     (its asked maximum until a lender undercuts) and the principal it wants. */
+  const tapeItems = allListings
+    .filter((listing) => !isMine(listing))
+    .map((listing) => ({
+      listingId: listing.id,
+      itemCategory: listing.itemCategory,
+      categoryLabel: nameForCategory(listing.itemCategory),
+      itemDescription: listing.itemDescription,
+      rateBasisPoints:
+        listing.bestOfferRateBasisPoints ?? listing.maxAnnualPercentageRateBasisPoints,
+      amount: listing.requestedPrincipal,
+    }));
+
   return (
     <MarketShell fills>
       <Workspace
@@ -180,7 +184,7 @@ function VaultFloor({ viewerAccountId }: { readonly viewerAccountId: string }): 
         }
         tape={
           <Tape
-            items={tapeQuery.data?.events ?? []}
+            items={tapeItems}
             selectedListingId={selectedListingId}
             onSelectListing={(listingId) => update({ listing: listingId, offer: undefined })}
           />

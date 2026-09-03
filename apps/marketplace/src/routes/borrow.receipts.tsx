@@ -1,18 +1,48 @@
-import { fetchReceiptMetadata, openPledgeAction, redeemAction } from '@depawn/contracts';
-import type { WalletResponse } from '@depawn/contracts';
-import { Button, EmptyState, Field, Page, PageHeader, Skeleton } from '@depawn/ui';
+import {
+  fetchMyListings,
+  fetchMyReceipts,
+  fetchMyRedemptionRequests,
+  openPledgeAction,
+  redeemAction,
+} from '@depawn/contracts';
+import type {
+  MoneyDto,
+  MyListingResponse,
+  ReceiptResponse,
+  RedemptionRequestResponse,
+} from '@depawn/contracts';
+import {
+  Button,
+  Dialog,
+  EmptyState,
+  Field,
+  Money,
+  Page,
+  PageHeader,
+  PageSection,
+  Skeleton,
+} from '@depawn/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Navigate, createFileRoute } from '@tanstack/react-router';
+import { Navigate, createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
+import { z } from 'zod';
 import { useCurrentAccount } from '../current-account';
+import { HoldingDetail } from '../holdings/holding-detail';
+import { HoldingTile } from '../holdings/holding-tile';
 import { marketKeys } from '../market-keys';
-import { MarketShell } from '../market-shell';
-import { formatUsdc } from '../wallet/usdc';
+import { MarketShell, useFeedback } from '../market-shell';
 import { useSponsoredWrite } from '../wallet/use-sponsored-write';
-import { useWallet } from '../wallet/use-wallet';
+
+/* Which item the reader has opened, in the URL rather than in React state, so
+   the back button closes the record and a link opens on it. */
+const receiptsSearchSchema = z.object({ item: z.string().min(1).optional() });
 
 export const Route = createFileRoute('/borrow/receipts')({
+  validateSearch: (input: Record<string, unknown>) => {
+    const parsed = receiptsSearchSchema.safeParse(input);
+    return parsed.success ? parsed.data : {};
+  },
   component: BorrowReceiptsPage,
 });
 
@@ -35,7 +65,7 @@ function BorrowReceiptsPage(): ReactElement | null {
       <Page>
         <PageHeader
           title="My items"
-          description="The receipts the vault has issued to your wallet, read from the chain."
+          description="What the vault is holding for you, and what you can do with each one."
         />
         <Holdings />
       </Page>
@@ -43,210 +73,298 @@ function BorrowReceiptsPage(): ReactElement | null {
   );
 }
 
-function Holdings(): ReactElement {
-  const wallet = useWallet();
+/* Money is minor units in a string, so the sum is bigint and never a float. */
+function totalOf(values: readonly MoneyDto[], currency: string): MoneyDto {
+  const minorUnits = values
+    .filter((value) => value.currency === currency)
+    .reduce((running, value) => running + BigInt(value.minorUnits), 0n);
+  return { minorUnits: minorUnits.toString(), currency };
+}
 
-  if (wallet.isPending) {
+function Holdings(): ReactElement {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate({ from: Route.fullPath });
+  const search = Route.useSearch();
+  const feedback = useFeedback();
+  const sign = useSponsoredWrite();
+  const receiptsQuery = useQuery({ queryKey: marketKeys.myReceipts, queryFn: fetchMyReceipts });
+  const redemptionsQuery = useQuery({
+    queryKey: marketKeys.myRedemptions,
+    queryFn: fetchMyRedemptionRequests,
+  });
+  /* An item on the market is still the borrower's and still shows here; its
+     receipt cannot say so on its own, so the live listing is read alongside to
+     mark the item "taking offers" and to send the borrower to the listing
+     rather than offer to list it a second time. */
+  const listingsQuery = useQuery({ queryKey: marketKeys.myListings, queryFn: fetchMyListings });
+  const [listingReceipt, setListingReceipt] = useState<ReceiptResponse | null>(null);
+
+  const redemptionMutation = useMutation({
+    mutationFn: (receiptId: string) => sign(() => redeemAction({ receiptKey: receiptId })),
+    onSuccess: async () => {
+      feedback.reportSuccess('The request is in. Collect it at the counter.');
+      await queryClient.invalidateQueries({ queryKey: marketKeys.myReceipts });
+      await queryClient.invalidateQueries({ queryKey: marketKeys.myRedemptions });
+    },
+    onError: () => feedback.reportFailure('The request could not be made. Nothing has changed.'),
+  });
+
+  function openItem(receiptId: string | undefined): void {
+    void navigate({ search: () => (receiptId === undefined ? {} : { item: receiptId }) });
+  }
+
+  const liveListingByReceipt = new Map<string, MyListingResponse>(
+    (listingsQuery.data?.items ?? [])
+      .filter((listing) => listing.status === 'ACTIVE')
+      .map((listing) => [listing.receiptId, listing]),
+  );
+
+  /* What a borrower can do with an item, and nothing they cannot. An encumbered
+     item is securing a loan and has no action here: it is freed by repaying,
+     which the portfolio drives. An item already on the market is not listable
+     again, and the way to it is the listing. */
+  function actionsFor(receipt: ReceiptResponse): ReactNode {
+    if (receipt.status !== 'IN_VAULT') {
+      return undefined;
+    }
+    const listing = liveListingByReceipt.get(receipt.id);
+    if (listing !== undefined) {
+      return (
+        <Button
+          variant="secondary"
+          className="whitespace-nowrap"
+          data-testid={`view-listing-${receipt.id}`}
+          onClick={() => void navigate({ to: '/listings', search: { listing: listing.id } })}
+        >
+          View listing
+        </Button>
+      );
+    }
+    return (
+      <>
+        <Button
+          variant="secondary"
+          data-testid={`list-${receipt.id}`}
+          onClick={() => setListingReceipt(receipt)}
+        >
+          List for a loan
+        </Button>
+        <Button
+          variant="secondary"
+          className="whitespace-nowrap"
+          data-testid={`redeem-${receipt.id}`}
+          onClick={() => redemptionMutation.mutate(receipt.id)}
+          disabled={redemptionMutation.isPending}
+        >
+          Ask for it back
+        </Button>
+      </>
+    );
+  }
+
+  if (receiptsQuery.isPending) {
     return (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {[0, 1, 2].map((slot) => (
-          <div key={slot} className="rounded-lg border border-edge bg-surface-raised p-4">
+          <div key={slot} className="rounded-lg border border-edge bg-surface-raised p-3">
+            <div className="mb-3 h-36 rounded-md bg-surface-sunken" />
             <Skeleton lineCount={3} />
           </div>
         ))}
       </div>
     );
   }
-  if (wallet.isError || wallet.data === undefined) {
+  if (receiptsQuery.isError || receiptsQuery.data === undefined) {
     return (
       <p role="alert" className="font-body text-sm text-status-danger">
-        Your items could not be read from the chain.
+        Your items could not be loaded.
       </p>
     );
   }
 
-  const money = wallet.data;
-  const items = money.items;
+  const receipts = receiptsQuery.data.items;
+  const redemptionByReceipt = new Map<string, RedemptionRequestResponse>(
+    (redemptionsQuery.data?.items ?? []).map((item) => [item.receiptId, item]),
+  );
+  const opened = receipts.find((receipt) => receipt.id === search.item);
 
-  if (items.length === 0) {
+  if (receipts.length === 0) {
     return (
       <EmptyState
         title="Nothing in the vault yet"
-        description="Bring an item to a vault. Once staff appraise it and take custody, its receipt is minted to your wallet and appears here."
+        description="Bring an item to a vault. Once staff have appraised it and taken custody, it appears here and you can borrow against it."
       />
     );
   }
 
-  const appraised = items.reduce((total, item) => total + BigInt(item.appraisedValueBaseUnits), 0n);
+  const currency = receipts[0]?.appraisedValue.currency ?? 'USD';
+  const inVault = receipts.filter((receipt) => receipt.status === 'IN_VAULT');
+  const securing = receipts.filter((receipt) => receipt.status === 'ENCUMBERED');
 
   return (
     <>
-      <dl className="flex flex-wrap gap-8 border-b border-edge pb-4">
-        <div>
-          <dt className="font-body text-xs text-ink-secondary">Appraised</dt>
-          <dd className="mt-1 font-figure text-lg tabular-nums text-ink-primary">
-            {formatUsdc(appraised, money.decimals)}
-          </dd>
-          <dd className="mt-0.5 font-body text-xs text-ink-secondary">
-            Across {items.length} {items.length === 1 ? 'item' : 'items'}, free to borrow against
-          </dd>
-        </div>
-      </dl>
+      <PageSection>
+        <dl className="flex flex-wrap gap-8 border-b border-edge pb-4">
+          <Total
+            label="Appraised"
+            hint={`Across ${String(receipts.length)} item${receipts.length === 1 ? '' : 's'}`}
+            value={totalOf(
+              receipts.map((receipt) => receipt.appraisedValue),
+              currency,
+            )}
+          />
+          <Total
+            label="Securing loans"
+            hint={securing.length === 0 ? 'Nothing pledged' : 'Pledged until settled'}
+            tone={securing.length === 0 ? 'default' : 'warning'}
+            value={totalOf(
+              securing.map((receipt) => receipt.appraisedValue),
+              currency,
+            )}
+          />
+          <Total
+            label="Free to borrow against"
+            hint={`${String(inVault.length)} item${inVault.length === 1 ? '' : 's'} in the vault`}
+            value={totalOf(
+              inVault.map((receipt) => receipt.appraisedValue),
+              currency,
+            )}
+          />
+        </dl>
+      </PageSection>
 
       <div
         data-testid="my-receipts"
-        className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
       >
-        {items.map((item) => (
-          <ReceiptCard key={item.objectId} item={item} decimals={money.decimals} />
+        {receipts.map((receipt) => (
+          <HoldingTile
+            key={receipt.id}
+            receipt={receipt}
+            redemption={redemptionByReceipt.get(receipt.id)}
+            listingStatus={liveListingByReceipt.get(receipt.id)?.status ?? null}
+            onOpen={openItem}
+            actions={actionsFor(receipt)}
+          />
         ))}
       </div>
+
+      {opened === undefined ? null : (
+        <HoldingDetail
+          receipt={opened}
+          redemption={redemptionByReceipt.get(opened.id)}
+          listing={liveListingByReceipt.get(opened.id)}
+          onClose={() => openItem(undefined)}
+        />
+      )}
+
+      {listingReceipt === null ? null : (
+        <ListReceiptDialog receipt={listingReceipt} onClose={() => setListingReceipt(null)} />
+      )}
     </>
   );
 }
 
-function ReceiptCard({
-  item,
-  decimals,
+function Total({
+  label,
+  hint,
+  value,
+  tone,
 }: {
-  readonly item: WalletResponse['items'][number];
-  readonly decimals: number;
+  readonly label: string;
+  readonly hint: string;
+  readonly value: MoneyDto;
+  readonly tone?: 'default' | 'warning';
 }): ReactElement {
-  /* The name and photographs live off chain, keyed by the receipt_key the object
-     carries. A receipt issued before this record existed simply has none, and
-     the card falls back to its category and value. */
-  const metadata = useQuery({
-    queryKey: ['chain', 'receipt-metadata', item.receiptKey],
-    queryFn: () => fetchReceiptMetadata(item.receiptKey),
-    enabled: item.receiptKey !== '',
-    retry: false,
-  });
-  const meta = metadata.data;
-
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-edge bg-surface-raised p-4">
-      {meta === undefined ? (
-        <div className="flex aspect-video items-center justify-center rounded-md bg-surface-sunken font-body text-xs text-ink-secondary">
-          {item.itemCategory}
-        </div>
-      ) : (
-        <img
-          src={meta.mainImage}
-          alt={meta.name}
-          className="aspect-video w-full rounded-md border border-edge object-cover"
-        />
-      )}
-      <div className="flex flex-col gap-1">
-        <span className="font-body text-sm font-semibold text-ink-primary">
-          {meta?.name ?? item.itemCategory}
-        </span>
-        <span className="font-body text-xs text-ink-secondary">{item.itemCategory}</span>
-        <span className="font-figure text-lg tabular-nums text-ink-primary">
-          {formatUsdc(BigInt(item.appraisedValueBaseUnits), decimals)}
-        </span>
-      </div>
-      {meta === undefined || meta.secondaryImages.length === 0 ? null : (
-        <div className="flex flex-wrap gap-2">
-          {meta.secondaryImages.map((source, index) => (
-            <img
-              key={source.slice(0, 24) + String(index)}
-              src={source}
-              alt={`${meta.name} photograph ${String(index + 2)}`}
-              className="h-14 w-14 rounded-md border border-edge object-cover"
-            />
-          ))}
-        </div>
-      )}
-      <a
-        href={`https://suiscan.xyz/testnet/object/${item.objectId}`}
-        target="_blank"
-        rel="noreferrer"
-        className="font-mono text-xs text-ink-secondary underline"
+    <div>
+      <dt className="font-body text-xs text-ink-secondary">{label}</dt>
+      <dd
+        className={`mt-1 font-figure text-lg tabular-nums ${
+          tone === 'warning' ? 'text-status-warning' : 'text-ink-primary'
+        }`}
       >
-        {item.objectId.slice(0, 10)}...{item.objectId.slice(-6)}
-      </a>
-      <ListForLoan receiptKey={item.receiptKey} />
+        <Money value={value} />
+      </dd>
+      <dd className="mt-0.5 font-body text-xs text-ink-secondary">{hint}</dd>
     </div>
   );
 }
 
-/* Open a loan against the item: the borrower names the rate they are willing to
-   pay, and lenders compete on how much they will lend at it. */
-function ListForLoan({ receiptKey }: { readonly receiptKey: string }): ReactElement | null {
-  const sign = useSponsoredWrite();
+/* Listing in self-custody is a single signed move: the borrower names the rate
+   they will pay and lenders compete on how much to lend, up to the item's
+   category ceiling. There is no principal or duration to set here, so the
+   dialog is one field. The receipt is wrapped into a shared pledge, so the item
+   leaves the wallet and this screen begins reading it back as "taking offers"
+   from its listing. */
+function ListReceiptDialog({
+  receipt,
+  onClose,
+}: {
+  readonly receipt: ReceiptResponse;
+  readonly onClose: () => void;
+}): ReactElement {
   const queryClient = useQueryClient();
-  const [rate, setRate] = useState('18');
-  const [error, setError] = useState<string | null>(null);
+  const feedback = useFeedback();
+  const sign = useSponsoredWrite();
+  const [rateInput, setRateInput] = useState('18.00');
+  const [inputError, setInputError] = useState<string | null>(null);
 
-  const list = useMutation({
+  const listMutation = useMutation({
     mutationFn: () => {
-      const percent = Number(rate);
+      const percent = Number(rateInput);
       if (!Number.isFinite(percent) || percent <= 0) {
-        return Promise.reject(new Error('Enter a rate like 18.'));
+        return Promise.reject(new Error('Enter a rate like 18.00.'));
       }
       return sign(() =>
-        openPledgeAction({ receiptKey, requestedAprBps: Math.round(percent * 100) }),
+        openPledgeAction({ receiptKey: receipt.id, requestedAprBps: Math.round(percent * 100) }),
       );
     },
     onSuccess: async () => {
-      setError(null);
+      feedback.reportSuccess('The item is listed and taking offers.');
       await queryClient.invalidateQueries({ queryKey: marketKeys.myListings });
+      await queryClient.invalidateQueries({ queryKey: marketKeys.myReceipts });
       await queryClient.invalidateQueries({ queryKey: marketKeys.browse });
+      onClose();
     },
-    onError: (cause: unknown) =>
-      setError(cause instanceof Error ? cause.message : 'The listing could not be opened.'),
+    onError: (error) =>
+      setInputError(error instanceof Error ? error.message : 'The listing could not be opened.'),
   });
 
-  if (receiptKey === '') {
-    return null;
-  }
-
   return (
-    <form
-      className="flex items-end gap-2 border-t border-edge pt-3"
-      onSubmit={(event) => {
-        event.preventDefault();
-        list.mutate();
-      }}
-    >
-      <Field
-        label="Rate you will pay (% p.a.)"
-        value={rate}
-        onChange={(event) => setRate(event.target.value)}
-      />
-      <Button type="submit" disabled={list.isPending}>
-        List for a loan
-      </Button>
-      {error === null ? null : (
-        <p role="alert" className="font-body text-xs text-status-danger">
-          {error}
+    <Dialog title="List this item for a loan" isOpen onClose={onClose}>
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setInputError(null);
+          listMutation.mutate();
+        }}
+      >
+        <p className="font-body text-sm text-ink-secondary">
+          {receipt.itemDescription} is appraised at <Money value={receipt.appraisedValue} />.
+          Lenders compete on how much to lend against it, up to its category ceiling. You set the
+          annual rate you are willing to pay.
         </p>
-      )}
-      <CollectItem receiptKey={receiptKey} />
-    </form>
-  );
-}
-
-/* Collect the item by burning the receipt: staff read the burn at the counter
-   and hand it over. A loose receipt in the wallet is always the holder's to
-   redeem. */
-function CollectItem({ receiptKey }: { readonly receiptKey: string }): ReactElement {
-  const sign = useSponsoredWrite();
-  const queryClient = useQueryClient();
-  const collect = useMutation({
-    mutationFn: () => sign(() => redeemAction({ receiptKey })),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['chain', 'wallet'] });
-    },
-  });
-  return (
-    <Button
-      type="button"
-      variant="secondary"
-      disabled={collect.isPending}
-      onClick={() => collect.mutate()}
-    >
-      Collect
-    </Button>
+        <Field
+          label="Rate you will pay (% p.a.)"
+          value={rateInput}
+          onChange={(event) => setRateInput(event.target.value)}
+        />
+        {inputError === null ? null : (
+          <p role="alert" className="font-body text-sm text-status-danger">
+            {inputError}
+          </p>
+        )}
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={listMutation.isPending}>
+            List for a loan
+          </Button>
+        </div>
+      </form>
+    </Dialog>
   );
 }

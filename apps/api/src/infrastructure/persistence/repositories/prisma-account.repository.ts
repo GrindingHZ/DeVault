@@ -27,6 +27,13 @@ export class PrismaAccountRepository implements AccountRepository {
     return row === null ? null : toAccount(row);
   }
 
+  async findByWalletAddress(address: string, context: UnitOfWorkContext): Promise<Account | null> {
+    const row = await transactionOf(context).account.findUnique({
+      where: { walletAddress: address.toLowerCase() },
+    });
+    return row === null ? null : toAccount(row);
+  }
+
   async save(account: Account, context: UnitOfWorkContext): Promise<void> {
     const transaction = transactionOf(context);
     const row = toAccountRow(account);

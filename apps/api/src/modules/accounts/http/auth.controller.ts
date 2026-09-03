@@ -1,7 +1,21 @@
 import { Body, Controller, HttpCode, Post, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { loginRequestSchema, registerRequestSchema } from '@depawn/contracts';
-import type { AccountResponse, LoginRequest, RegisterRequest } from '@depawn/contracts';
+import {
+  loginRequestSchema,
+  registerRequestSchema,
+  walletChallengeRequestSchema,
+  walletVerifyRequestSchema,
+} from '@depawn/contracts';
+import type {
+  AccountResponse,
+  LoginRequest,
+  RegisterRequest,
+  WalletChallengeRequest,
+  WalletChallengeResponse,
+  WalletVerifyRequest,
+} from '@depawn/contracts';
+import { BeginWalletSignInUseCase } from '../application/begin-wallet-sign-in.use-case';
+import { CompleteWalletSignInUseCase } from '../application/complete-wallet-sign-in.use-case';
 import { LoginUseCase } from '../application/login.use-case';
 import { LogoutUseCase } from '../application/logout.use-case';
 import { RegisterAccountUseCase } from '../application/register-account.use-case';
@@ -16,6 +30,8 @@ export class AuthController {
   constructor(
     private readonly registerAccount: RegisterAccountUseCase,
     private readonly login: LoginUseCase,
+    private readonly beginWalletSignIn: BeginWalletSignInUseCase,
+    private readonly completeWalletSignIn: CompleteWalletSignInUseCase,
     private readonly logout: LogoutUseCase,
   ) {}
 
@@ -43,6 +59,39 @@ export class AuthController {
       throw new DomainErrorHttpException(result.error, 401);
     }
 
+    response.cookie(SESSION_COOKIE_NAME, result.value.sessionToken, {
+      httpOnly: true,
+      sameSite: 'strict',
+      path: '/',
+      expires: new Date(Number(result.value.expiresAt.epochMilliseconds)),
+    });
+    return toAccountResponse(result.value.account);
+  }
+
+  @Public()
+  @Post('wallet/challenge')
+  @HttpCode(200)
+  async walletChallenge(
+    @Body(new ZodValidationPipe(walletChallengeRequestSchema)) body: WalletChallengeRequest,
+  ): Promise<WalletChallengeResponse> {
+    const issued = await this.beginWalletSignIn.execute({ address: body.address });
+    return { message: issued.message, expiresAt: issued.expiresAt.toString() };
+  }
+
+  @Public()
+  @Post('wallet/verify')
+  @HttpCode(200)
+  async walletVerify(
+    @Body(new ZodValidationPipe(walletVerifyRequestSchema)) body: WalletVerifyRequest,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<AccountResponse> {
+    const result = await this.completeWalletSignIn.execute({
+      address: body.address,
+      signature: body.signature,
+    });
+    if (!result.ok) {
+      throw new DomainErrorHttpException(result.error, 401);
+    }
     response.cookie(SESSION_COOKIE_NAME, result.value.sessionToken, {
       httpOnly: true,
       sameSite: 'strict',

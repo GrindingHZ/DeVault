@@ -26,6 +26,7 @@ export function toAccount(row: AccountRow): Account {
     passwordHash: row.passwordHash,
     roles: row.roles.map((role) => domainRoleByPrismaRole[role]),
     version: row.version,
+    walletAddress: row.walletAddress,
   });
 }
 
@@ -33,6 +34,7 @@ export function toAccountRow(account: Account): {
   id: string;
   email: string;
   passwordHash: string;
+  walletAddress: string | null;
   roles: PrismaRole[];
   version: number;
 } {
@@ -40,6 +42,7 @@ export function toAccountRow(account: Account): {
     id: account.id,
     email: account.email,
     passwordHash: account.passwordHash,
+    walletAddress: account.walletAddress,
     roles: account.roles.map((role) => prismaRoleByDomainRole[role]),
     version: account.version,
   };

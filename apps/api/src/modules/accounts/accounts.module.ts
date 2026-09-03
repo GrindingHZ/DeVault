@@ -4,12 +4,18 @@ import { ACCOUNT_REPOSITORY } from '../../domain/accounts/account-repository';
 import { PASSWORD_HASHER } from '../../domain/accounts/password-hasher';
 import { SESSION_REPOSITORY } from '../../domain/accounts/session-repository';
 import { SESSION_TOKEN_ISSUER } from '../../domain/accounts/session-token-issuer';
+import { WALLET_CHALLENGE_REPOSITORY } from '../../domain/accounts/wallet-challenge-repository';
+import { WALLET_SIGNATURE_VERIFIER } from '../../domain/accounts/wallet-signature-verifier';
 import { ID_GENERATOR } from '../../domain/shared/id-generator';
 import { UlidIdGeneratorAdapter } from '../../infrastructure/id/ulid-id-generator.adapter';
 import { PrismaAccountRepository } from '../../infrastructure/persistence/repositories/prisma-account.repository';
 import { PrismaSessionRepository } from '../../infrastructure/persistence/repositories/prisma-session.repository';
+import { PrismaWalletChallengeRepository } from '../../infrastructure/persistence/repositories/prisma-wallet-challenge.repository';
+import { SuiWalletSignatureVerifier } from '../../infrastructure/security/sui-wallet-signature-verifier.adapter';
 import { Argon2PasswordHasherAdapter } from '../../infrastructure/security/argon2-password-hasher.adapter';
 import { CryptoSessionTokenIssuerAdapter } from '../../infrastructure/security/crypto-session-token-issuer.adapter';
+import { BeginWalletSignInUseCase } from './application/begin-wallet-sign-in.use-case';
+import { CompleteWalletSignInUseCase } from './application/complete-wallet-sign-in.use-case';
 import { LoginUseCase } from './application/login.use-case';
 import { LogoutUseCase } from './application/logout.use-case';
 import { RegisterAccountUseCase } from './application/register-account.use-case';
@@ -24,12 +30,16 @@ import { MeController } from './http/me.controller';
   providers: [
     RegisterAccountUseCase,
     LoginUseCase,
+    BeginWalletSignInUseCase,
+    CompleteWalletSignInUseCase,
     LogoutUseCase,
     ResolveSessionUseCase,
     { provide: ACCOUNT_REPOSITORY, useClass: PrismaAccountRepository },
     { provide: SESSION_REPOSITORY, useClass: PrismaSessionRepository },
     { provide: PASSWORD_HASHER, useClass: Argon2PasswordHasherAdapter },
     { provide: SESSION_TOKEN_ISSUER, useClass: CryptoSessionTokenIssuerAdapter },
+    { provide: WALLET_CHALLENGE_REPOSITORY, useClass: PrismaWalletChallengeRepository },
+    { provide: WALLET_SIGNATURE_VERIFIER, useClass: SuiWalletSignatureVerifier },
     { provide: ID_GENERATOR, useClass: UlidIdGeneratorAdapter },
     { provide: SESSION_LIFETIME_MS, useValue: defaultSessionLifetimeMs },
     { provide: APP_GUARD, useClass: AuthGuard },

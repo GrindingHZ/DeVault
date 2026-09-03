@@ -33,6 +33,13 @@ export class InMemoryAccountRepository implements AccountRepository {
     return Promise.resolve(match ?? null);
   }
 
+  findByWalletAddress(address: string): Promise<Account | null> {
+    const match = [...this.accounts.values()].find(
+      (account) => account.walletAddress === address.toLowerCase(),
+    );
+    return Promise.resolve(match ?? null);
+  }
+
   save(account: Account): Promise<void> {
     this.accounts.set(account.id, account);
     return Promise.resolve();

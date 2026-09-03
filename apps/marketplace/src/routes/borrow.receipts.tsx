@@ -1,4 +1,4 @@
-import { fetchReceiptMetadata, openPledgeAction } from '@depawn/contracts';
+import { fetchReceiptMetadata, openPledgeAction, redeemAction } from '@depawn/contracts';
 import type { WalletResponse } from '@depawn/contracts';
 import { Button, EmptyState, Field, Page, PageHeader, Skeleton } from '@depawn/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -222,6 +222,31 @@ function ListForLoan({ receiptKey }: { readonly receiptKey: string }): ReactElem
           {error}
         </p>
       )}
+      <CollectItem receiptKey={receiptKey} />
     </form>
+  );
+}
+
+/* Collect the item by burning the receipt: staff read the burn at the counter
+   and hand it over. A loose receipt in the wallet is always the holder's to
+   redeem. */
+function CollectItem({ receiptKey }: { readonly receiptKey: string }): ReactElement {
+  const sign = useSponsoredWrite();
+  const queryClient = useQueryClient();
+  const collect = useMutation({
+    mutationFn: () => sign(() => redeemAction({ receiptKey })),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['chain', 'wallet'] });
+    },
+  });
+  return (
+    <Button
+      type="button"
+      variant="secondary"
+      disabled={collect.isPending}
+      onClick={() => collect.mutate()}
+    >
+      Collect
+    </Button>
   );
 }

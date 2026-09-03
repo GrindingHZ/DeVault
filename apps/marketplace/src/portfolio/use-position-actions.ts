@@ -1,4 +1,4 @@
-import { claimAction, delistPositionAction } from '@depawn/contracts';
+import { claimAction, delistPositionAction, reclaimHoldAction } from '@depawn/contracts';
 import type { ChainExecutionResponse, SponsoredTransactionResponse } from '@depawn/contracts';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { marketKeys } from '../market-keys';
@@ -51,9 +51,16 @@ function runAction(position: Position, sign: Sign): Promise<unknown> {
     const listingObjectId = position.noteSale.id;
     return sign(() => delistPositionAction({ listingObjectId }));
   }
-  /* Withdrawing a standing offer and reclaiming an outbid hold are pull refunds
-     with no build endpoint yet, so they are not wired. */
-  return Promise.reject(new Error('That action is not available on chain yet.'));
+  /* Reclaiming the hold behind a beaten or expired offer, a pull refund the
+     escrow allows once the offer has lost or run out. */
+  if (position.action?.kind === 'reclaim' && position.offerId !== null && position.listingId !== null) {
+    const holdObjectId = position.offerId;
+    const pledgeId = position.listingId;
+    return sign(() => reclaimHoldAction({ holdObjectId, pledgeId }));
+  }
+  /* Withdrawing a still-standing offer has no chain move: the escrow only
+     refunds a hold once it has expired or lost. */
+  return Promise.reject(new Error('That action is not available on chain.'));
 }
 
 /* Doing the thing a position is waiting for.

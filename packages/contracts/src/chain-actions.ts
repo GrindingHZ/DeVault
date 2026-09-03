@@ -115,6 +115,37 @@ export const releaseQueueResponseSchema = z.object({
 });
 export type ReleaseQueueResponse = z.infer<typeof releaseQueueResponseSchema>;
 
+/* The member's own on-chain history, read from the events their transactions
+   emitted. Every row is one transaction, named for what it did, and carries the
+   transaction hash and every object it touched so a reader can open each on a
+   Sui explorer and see the proof for themselves. A reference is a hash to link
+   (the transaction, an object, an account) or a key to show (the receipt key is
+   the api's own reference, not an on-chain address). */
+export const chainActivityReferenceSchema = z.object({
+  label: z.string(),
+  value: z.string(),
+  kind: z.enum(['transaction', 'object', 'address', 'key']),
+});
+export type ChainActivityReference = z.infer<typeof chainActivityReferenceSchema>;
+
+export const chainActivityEntrySchema = z.object({
+  transactionDigest: z.string(),
+  /* A stable code the ui keys its wording and tone off; `label` is the words. */
+  kind: z.string(),
+  label: z.string(),
+  description: z.string(),
+  /* Milliseconds since the epoch, or null when the node did not carry a time
+     for the event. */
+  atMs: z.number().nullable(),
+  references: z.array(chainActivityReferenceSchema),
+});
+export type ChainActivityEntry = z.infer<typeof chainActivityEntrySchema>;
+
+export const chainActivityResponseSchema = z.object({
+  items: z.array(chainActivityEntrySchema),
+});
+export type ChainActivityResponse = z.infer<typeof chainActivityResponseSchema>;
+
 /* The open market, read from the chain: the pledges a borrower has opened and
    not yet had funded, for a lender to browse and offer against. The appraised
    value is the collateral behind the loan; a listing whose collateral shape the

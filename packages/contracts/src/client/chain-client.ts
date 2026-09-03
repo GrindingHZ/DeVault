@@ -1,4 +1,5 @@
 import {
+  chainActivityResponseSchema,
   chainDeploymentResponseSchema,
   chainExecutionResponseSchema,
   issueVaultReceiptResponseSchema,
@@ -10,6 +11,7 @@ import {
 } from '../chain-actions';
 import type {
   AcceptOfferAction,
+  ChainActivityResponse,
   BuildAcceptOfferRequest,
   BuildBuyPositionRequest,
   BuildCancelPledgeRequest,
@@ -220,5 +222,15 @@ export function fetchReceiptMetadata(receiptKey: string): Promise<ReceiptMetadat
     method: 'GET',
     path: `${basePath}/chain/receipts/${encodeURIComponent(receiptKey)}/metadata`,
     responseSchema: receiptMetadataResponseSchema,
+  });
+}
+
+/* The member's own on-chain history: one row per transaction, with the hashes
+   that prove it on a Sui explorer. */
+export function fetchChainActivity(): Promise<ChainActivityResponse> {
+  return requestJson({
+    method: 'GET',
+    path: `${basePath}/me/activity`,
+    responseSchema: chainActivityResponseSchema,
   });
 }

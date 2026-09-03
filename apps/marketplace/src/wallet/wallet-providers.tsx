@@ -1,0 +1,23 @@
+import { SuiClientProvider, WalletProvider, createNetworkConfig } from '@mysten/dapp-kit';
+import type { ReactElement, ReactNode } from 'react';
+import '@mysten/dapp-kit/dist/index.css';
+
+/* The networks a connected wallet may sign against. The api decides which one
+   settles; this only tells the wallet which chain a signature is for. */
+const { networkConfig } = createNetworkConfig({
+  localnet: { url: 'http://127.0.0.1:9000', network: 'localnet' },
+  testnet: { url: 'https://fullnode.testnet.sui.io:443', network: 'testnet' },
+  mainnet: { url: 'https://fullnode.mainnet.sui.io:443', network: 'mainnet' },
+});
+
+/* dapp-kit's providers, so a real wallet like Slush is detected and can sign.
+   autoConnect brings a previously approved wallet back on reload. The test
+   sign in path does not go through these; it signs with a fixture key in the
+   app's own code (docs/06-testing.md), so the providers are inert there. */
+export function WalletProviders({ children }: { readonly children: ReactNode }): ReactElement {
+  return (
+    <SuiClientProvider networks={networkConfig} defaultNetwork="localnet">
+      <WalletProvider autoConnect>{children}</WalletProvider>
+    </SuiClientProvider>
+  );
+}

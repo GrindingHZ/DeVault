@@ -2,17 +2,31 @@ import { logout } from '@depawn/contracts';
 import { ChevronDownIcon, LogOutIcon, Popover } from '@depawn/ui';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
+import type { AccountResponse } from '@depawn/contracts';
 import type { ReactElement } from 'react';
 import { currentAccountKeys, useCurrentAccount } from '../current-account';
 
-/* The first letter of the name in front of the address, which is what a
-   person calls themselves even when the account is keyed by email. */
-function initialOf(email: string): string {
-  return (email.trim()[0] ?? '?').toUpperCase();
+/* How to name whoever is signed in: their email, or the short tail of the
+   wallet address for an account that arrived by signing one. */
+function identityOf(account: AccountResponse): string {
+  if (account.email !== null) {
+    return account.email;
+  }
+  const address = account.walletAddress ?? '';
+  return address.length <= 12 ? address : `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-function handleOf(email: string): string {
-  return email.split('@')[0] ?? email;
+function initialOf(account: AccountResponse): string {
+  if (account.email !== null) {
+    return (account.email.trim()[0] ?? '?').toUpperCase();
+  }
+  return 'W';
+}
+
+function handleOf(account: AccountResponse): string {
+  return account.email === null
+    ? identityOf(account)
+    : (account.email.split('@')[0] ?? account.email);
 }
 
 /* Who is signed in, and the way out.
@@ -41,7 +55,7 @@ export function AccountMenu(): ReactElement | null {
 
   return (
     <Popover
-      label={`Signed in as ${account.email}. Open account menu`}
+      label={`Signed in as ${identityOf(account)}. Open account menu`}
       testId="account-menu"
       width={260}
       triggerClassName={[
@@ -55,7 +69,7 @@ export function AccountMenu(): ReactElement | null {
             aria-hidden="true"
             className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-accent font-body text-sm font-semibold text-surface-base"
           >
-            {initialOf(account.email)}
+            {initialOf(account)}
           </span>
           <span className="text-ink-secondary">
             <ChevronDownIcon />
@@ -65,13 +79,11 @@ export function AccountMenu(): ReactElement | null {
     >
       <div className="flex flex-col">
         <div className="border-b border-edge px-4 py-3">
-          <p className="font-body text-sm font-semibold text-ink-primary">
-            {handleOf(account.email)}
-          </p>
+          <p className="font-body text-sm font-semibold text-ink-primary">{handleOf(account)}</p>
           {/* The whole address, because two accounts on one machine is the
               normal case in a demo and the handle alone will not separate
               them. */}
-          <p className="truncate font-body text-xs text-ink-secondary">{account.email}</p>
+          <p className="truncate font-body text-xs text-ink-secondary">{identityOf(account)}</p>
         </div>
         <button
           type="button"

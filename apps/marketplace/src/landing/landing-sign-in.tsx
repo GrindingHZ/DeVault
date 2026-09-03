@@ -8,6 +8,7 @@ import type { ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 import { currentAccountKeys } from '../current-account';
 import { signIn } from './landing-copy';
+import { useWalletSignIn } from '../wallet/use-wallet-sign-in';
 
 function messageFor(error: unknown): string {
   if (error instanceof ApiError && error.code === 'UNAUTHENTICATED') {
@@ -31,6 +32,13 @@ export function SignInDialog({ isOpen, onClose }: SignInDialogProps): ReactEleme
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const form = useForm<LoginRequest>({ resolver: zodResolver(loginRequestSchema) });
+
+  async function onSignedIn(): Promise<void> {
+    await queryClient.refetchQueries({ queryKey: currentAccountKeys.me });
+    await navigate({ to: '/portfolio' });
+  }
+
+  const wallet = useWalletSignIn({ onSuccess: onSignedIn });
 
   const loginMutation = useMutation({
     mutationFn: login,
@@ -78,6 +86,23 @@ export function SignInDialog({ isOpen, onClose }: SignInDialogProps): ReactEleme
           </p>
         ) : null}
       </form>
+      <div className="mt-4 flex flex-col gap-2 border-t border-edge pt-4">
+        <p className="font-body text-xs text-ink-secondary">Or bring your own wallet.</p>
+        <Button
+          data-testid="wallet-sign-in"
+          variant="secondary"
+          type="button"
+          disabled={wallet.mutation.isPending}
+          onClick={() => wallet.mutation.mutate()}
+        >
+          {wallet.isTestWallet ? 'Sign in with test wallet' : 'Sign in with a Sui wallet'}
+        </Button>
+        {wallet.mutation.isError ? (
+          <p role="alert" className="font-body text-sm text-status-danger">
+            {messageFor(wallet.mutation.error)}
+          </p>
+        ) : null}
+      </div>
     </Dialog>
   );
 }

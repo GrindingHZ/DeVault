@@ -85,8 +85,15 @@ export async function publishPackage(input: PublishPackageInput): Promise<ChainD
     operatorCapId: objectOfType('::config::OperatorCap'),
     custodianCapId: objectOfType('::config::CustodianCap'),
     treasuryCapId: treasuryCap === undefined ? null : treasuryCap[0],
+    /* The package ships its own six decimal USDC and its treasury, so the
+       platform can mint what a demo member needs rather than routing every
+       tester through Circle's faucet. The stand in is the settlement coin
+       wherever the package published one; Circle's own type is the fallback
+       for a deployment that omits it. */
     settlementCoinType:
-      network === 'localnet' ? `${packageId}::usdc::USDC` : circleUsdcByNetwork[network],
+      treasuryCap !== undefined || network === 'localnet'
+        ? `${packageId}::usdc::USDC`
+        : circleUsdcByNetwork[network],
     settlementCoinDecimals: usdcDecimals,
     publishedAt: new Date(),
     publishedBy: input.signer.address,

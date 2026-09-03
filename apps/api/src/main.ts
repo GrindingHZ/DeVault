@@ -2,7 +2,6 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
-import { json, urlencoded } from 'express';
 import { AppModule } from './app.module';
 import { OutboxDrainWorker } from './infrastructure/events/outbox-drain.worker';
 import { isChainDriverEnabled, loadConfiguration } from './config/configuration';
@@ -15,8 +14,8 @@ async function bootstrap(): Promise<void> {
   app.use(cookieParser());
   /* Item photographs ride inline in the issue request as base64 data urls, so
      the body parser is opened past its 100kb default. */
-  app.use(json({ limit: '20mb' }));
-  app.use(urlencoded({ extended: true, limit: '20mb' }));
+  app.useBodyParser('json', { limit: '20mb' });
+  app.useBodyParser('urlencoded', { extended: true, limit: '20mb' });
   app.setGlobalPrefix('api/v1');
   // The drain runs in the serving process only. Tests call drainOnce
   // directly so no timer outlives a suite.

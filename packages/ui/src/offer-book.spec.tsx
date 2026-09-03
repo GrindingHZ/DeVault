@@ -196,6 +196,35 @@ describe('OfferBook', () => {
     expect(container.innerHTML).not.toContain('NaN');
   });
 
+  /* Every offer is a hold locked in escrow, and the book is where a reader
+     checks that the money behind a rate is really there. */
+  it('links each offer to its hold on chain when the book carries one', () => {
+    const { container } = render(
+      <OfferBook
+        offers={book.map((one) => ({ ...one, chainObjectId: `0xhold-${one.id}` }))}
+        role="lender"
+        currency="USD"
+      />,
+    );
+    const links = [...container.querySelectorAll('tbody a')];
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([
+      expect.stringContaining('/object/0xhold-a'),
+      expect.stringContaining('/object/0xhold-b'),
+      expect.stringContaining('/object/0xhold-c'),
+    ]);
+    const headings = container.querySelectorAll('thead th').length;
+    expect(headings).toBe(5);
+    for (const row of container.querySelectorAll('tbody tr')) {
+      expect(row.querySelectorAll('td')).toHaveLength(headings);
+    }
+  });
+
+  it('shows no chain column when no offer carries an object', () => {
+    const { container } = render(<OfferBook offers={book} role="lender" currency="USD" />);
+    expect(container.querySelectorAll('tbody a')).toHaveLength(0);
+    expect(container.querySelectorAll('thead th')).toHaveLength(4);
+  });
+
   it('says something useful when nobody has offered', () => {
     render(<OfferBook offers={[]} role="borrower" currency="USD" />);
     expect(screen.getByText('No offers yet')).toBeTruthy();

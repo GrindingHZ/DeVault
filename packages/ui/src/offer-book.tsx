@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import type { CSSProperties, ReactElement, ReactNode } from 'react';
+import { ChainLink } from './chain-link';
 import { EmptyState } from './empty-state';
 import type { MarketRole } from './market-delta';
 import { formatMoney } from './money';
@@ -11,6 +12,9 @@ import { formatRate } from './rate';
 export interface OfferBookOffer extends DepthInput {
   readonly totalCostToBorrower?: MoneyValue;
   readonly isMine?: boolean;
+  /* The hold in escrow that backs this offer, when the book is read from a
+     chain. Spelled with `undefined` for `exactOptionalPropertyTypes`. */
+  readonly chainObjectId?: string | undefined;
 }
 
 /* An escape rather than an HTML numeric entity. The token check scans for a
@@ -21,7 +25,7 @@ const bestMarker = '▸';
 /* A plain hyphen. The typographic dash a table like this usually wants is an
    em dash, and scripts/check-prose.sh forbids one everywhere, comments and
    copy alike. */
-const noPremium = '-';
+const dash = '-';
 
 export interface OfferBookProps {
   readonly offers: readonly OfferBookOffer[];
@@ -50,6 +54,7 @@ interface BookRow {
   readonly premiumShare: number;
   readonly isBest: boolean;
   readonly isMine: boolean;
+  readonly chainObjectId: string | null;
 }
 
 function buildRows(offers: readonly OfferBookOffer[]): readonly BookRow[] {
@@ -77,6 +82,7 @@ function buildRows(offers: readonly OfferBookOffer[]): readonly BookRow[] {
       premiumShare: widest <= 0n ? 0 : Number((premium * 10_000n) / widest) / 100,
       isBest: row.isBest,
       isMine: extras.get(row.offerId)?.isMine === true,
+      chainObjectId: extras.get(row.offerId)?.chainObjectId ?? null,
     };
   });
 }
@@ -122,6 +128,10 @@ export function OfferBook({
 
   const best = rows[0];
   const worst = rows[rows.length - 1];
+  /* The column exists only where there is something to open. A book read
+     from the ledger would otherwise carry a heading over a column of
+     dashes. */
+  const hasChain = rows.some((row) => row.chainObjectId !== null);
 
   return (
     <div className="flex flex-col">
@@ -144,6 +154,7 @@ export function OfferBook({
             <col />
             <col />
             <col />
+            {hasChain ? <col className="w-40" /> : null}
           </colgroup>
           <thead className="sticky top-0 z-10 bg-surface-sunken">
             <tr className="text-ink-secondary">
@@ -160,6 +171,11 @@ export function OfferBook({
               <th scope="col" className="px-2 py-1 text-right font-body font-medium">
                 vs best
               </th>
+              {hasChain ? (
+                <th scope="col" className="px-2 py-1 text-left font-body font-medium">
+                  On chain
+                </th>
+              ) : null}
             </tr>
           </thead>
           <tbody>
@@ -170,6 +186,7 @@ export function OfferBook({
                 currency={currency}
                 groupName={groupName}
                 isSelectable={isSelectable}
+                hasChain={hasChain}
                 /* Selection is meaningless without a way to change it. A
                    lender arriving on a link that carries an offer id would
                    otherwise see a row singled out and no way to see why. */
@@ -201,6 +218,7 @@ function BookRowView({
   currency,
   groupName,
   isSelectable,
+  hasChain,
   isSelected,
   onSelectOffer,
 }: {
@@ -208,6 +226,7 @@ function BookRowView({
   readonly currency: string;
   readonly groupName: string;
   readonly isSelectable: boolean;
+  readonly hasChain: boolean;
   readonly isSelected: boolean;
   /* Spelled with `undefined` because the package compiles under
      `exactOptionalPropertyTypes`: an absent prop and a prop holding
@@ -308,11 +327,28 @@ function BookRowView({
             className={`relative ${row.premium === 0n ? 'text-ink-secondary' : 'text-ink-primary'}`}
           >
             {row.premium === 0n
-              ? noPremium
+              ? dash
               : `+${formatMoney({ minorUnits: row.premium.toString(), currency })}`}
           </span>
         </Choosable>
       </td>
+      {/* The hold itself, so the money behind a rate can be seen locked
+          rather than taken on the book's word. Not choosable: the link is
+          the control in this cell, and a click on it must open the explorer
+          rather than pick the row. */}
+      {hasChain ? (
+        <td className="px-2 py-1 text-left">
+          {row.chainObjectId === null ? (
+            <span className="text-ink-secondary">{dash}</span>
+          ) : (
+            <ChainLink
+              value={row.chainObjectId}
+              kind="object"
+              testId={`offer-chain-${row.offerId}`}
+            />
+          )}
+        </td>
+      ) : null}
     </tr>
   );
 }

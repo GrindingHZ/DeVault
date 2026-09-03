@@ -5,7 +5,7 @@ import { readDeployment } from '../../infrastructure/chain/chain-deployment.regi
 import { PrismaService } from '../../infrastructure/persistence/prisma.service';
 import { ReceiptMetadataStore } from '../receipt-metadata/receipt-metadata.store';
 import { WALLET_READ_CLIENT } from './chain-read.tokens';
-import { isoOf, objectEntry, receiptKeyOf, toMoneyDto } from './chain-read-shapes';
+import { fallbackNameFor, isoOf, objectEntry, receiptKeyOf, toMoneyDto } from './chain-read-shapes';
 import type { Json } from './chain-read-shapes';
 import { accruedBaseUnits, pledgeTermsFromJson } from './wallet-figures';
 import type { PledgeTerms } from './wallet-figures';
@@ -145,7 +145,7 @@ export class NoteSalesReadService {
         askPrice: toMoneyDto(listing.ask, decimals),
         createdAt: isoOf(nowMs),
         receiptId: pledge.receiptKey === '' ? listing.pledgeId : pledge.receiptKey,
-        itemDescription: meta?.name ?? 'Vaulted item',
+        itemDescription: meta?.name ?? fallbackNameFor(pledge.category),
         itemCategory: pledge.category,
         hasPhotograph: meta !== null,
         principal: toMoneyDto(pledge.terms.principalBaseUnits, decimals),

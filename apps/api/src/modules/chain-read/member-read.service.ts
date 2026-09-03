@@ -6,7 +6,7 @@ import { readDeployment } from '../../infrastructure/chain/chain-deployment.regi
 import { PrismaService } from '../../infrastructure/persistence/prisma.service';
 import { ReceiptMetadataStore } from '../receipt-metadata/receipt-metadata.store';
 import { WALLET_READ_CLIENT } from './chain-read.tokens';
-import { decodeBytes, isoOf, objectEntry, toMoneyDto } from './chain-read-shapes';
+import { decodeBytes, fallbackNameFor, isoOf, objectEntry, toMoneyDto } from './chain-read-shapes';
 import type { Json } from './chain-read-shapes';
 import { listingSeeds } from './listings-figures';
 import { itemFromJson } from './wallet-figures';
@@ -174,7 +174,7 @@ export class MemberReadService {
       appraisedValue: toMoneyDto(item.appraisedValueBaseUnits, decimals),
       appraisedAt: isoOf(appraisedAtMs > 0 ? appraisedAtMs : Date.now()),
       itemCategory: category,
-      itemDescription: name ?? 'Vaulted item',
+      itemDescription: name ?? fallbackNameFor(category),
       serialNumbers: [],
       hasPhotograph,
       insurancePolicyReference: item.insuranceReference,

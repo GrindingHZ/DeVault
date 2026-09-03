@@ -10,7 +10,7 @@ import { ReceiptMetadataStore } from '../receipt-metadata/receipt-metadata.store
 import { ListingsReadService } from './listings-read.service';
 import type { PledgeOffer } from './listings-read.service';
 import type { OpenListing } from './listings-figures';
-import { toMoneyDto } from './chain-read-shapes';
+import { fallbackNameFor, toMoneyDto } from './chain-read-shapes';
 
 /* The keenest rate standing on a listing, in basis points, or null when nobody
    has offered yet. Lenders compete by undercutting, so the keenest is the
@@ -171,6 +171,9 @@ export class MarketReadService {
 
   private async itemOf(listing: OpenListing): Promise<ListingItem> {
     const meta = listing.receiptKey === '' ? null : await this.metadata.read(listing.receiptKey);
-    return { itemDescription: meta?.name ?? 'Vaulted item', hasPhotograph: meta !== null };
+    return {
+      itemDescription: meta?.name ?? fallbackNameFor(categoryOf(listing.itemCategory)),
+      hasPhotograph: meta !== null,
+    };
   }
 }

@@ -13,7 +13,14 @@ import {
 } from './wallet-figures';
 import type { PledgeStatus, PledgeTerms } from './wallet-figures';
 import { DeploymentNotFound } from './wallet-read.service';
-import { isoOf, objectEntry, receiptKeyOf, toMoneyDto } from './chain-read-shapes';
+import {
+  categoryOfPledgeJson,
+  fallbackNameFor,
+  isoOf,
+  objectEntry,
+  receiptKeyOf,
+  toMoneyDto,
+} from './chain-read-shapes';
 import type { Json } from './chain-read-shapes';
 
 function loanStatusOf(status: PledgeStatus): LoanResponse['status'] {
@@ -109,7 +116,7 @@ export class LoansReadService {
       items.push({
         id: terms.pledgeId,
         receiptId: receiptKey === '' ? terms.pledgeId : receiptKey,
-        itemDescription: meta?.name ?? 'Vaulted item',
+        itemDescription: meta?.name ?? fallbackNameFor(categoryOfPledgeJson(pledgeJson)),
         hasPhotograph: meta !== null,
         borrowerAccountId: borrower,
         principal: toMoneyDto(terms.principalBaseUnits, decimals),

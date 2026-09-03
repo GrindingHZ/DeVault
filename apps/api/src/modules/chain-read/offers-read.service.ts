@@ -14,7 +14,13 @@ import {
 } from './wallet-figures';
 import type { HoldStatus, OfferEvent, PledgeStatus, PledgeTerms } from './wallet-figures';
 import { DeploymentNotFound } from './wallet-read.service';
-import { objectEntry, receiptKeyOf, toMoneyDto } from './chain-read-shapes';
+import {
+  categoryOfPledgeJson,
+  fallbackNameFor,
+  objectEntry,
+  receiptKeyOf,
+  toMoneyDto,
+} from './chain-read-shapes';
 
 export interface MyOffersResult {
   readonly items: readonly MyOfferResponse[];
@@ -99,13 +105,17 @@ export class OffersReadService {
         holdById.set(entry.objectId, holdExpiresAtFromJson(entry.json));
       }
     }
-    const pledgeById = new Map<string, { terms: PledgeTerms | null; receiptKey: string }>();
+    const pledgeById = new Map<
+      string,
+      { terms: PledgeTerms | null; receiptKey: string; category: string }
+    >();
     for (const object of pledges.objects) {
       const entry = objectEntry(object);
       if (entry !== null) {
         pledgeById.set(entry.objectId, {
           terms: pledgeTermsFromJson(entry.objectId, entry.json),
           receiptKey: receiptKeyOf(entry.json),
+          category: categoryOfPledgeJson(entry.json),
         });
       }
     }
@@ -142,7 +152,7 @@ export class OffersReadService {
           pledge?.terms?.status ?? null,
           fundedPledgeIds.has(offer.pledgeId),
         ),
-        itemDescription: meta?.name ?? 'Vaulted item',
+        itemDescription: meta?.name ?? fallbackNameFor(pledge?.category ?? 'COLLECTIBLE'),
         receiptId: receiptKey === '' ? offer.pledgeId : receiptKey,
         hasPhotograph: meta !== null,
         isHoldHeld: status === 'committed' || status === 'reclaimable',

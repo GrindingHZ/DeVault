@@ -75,6 +75,21 @@ export class ReceiptMetadataStore {
     return { receiptKey, intakeHash };
   }
 
+  /* The main photograph as raw bytes, for serving straight to an img tag at
+     the receipt-photo url the restored ui asks for. */
+  async readMainImage(receiptKey: string): Promise<{ mime: string; bytes: Buffer } | null> {
+    const manifestBytes = await this.storage.get(this.metaKey(receiptKey));
+    if (manifestBytes === null) {
+      return null;
+    }
+    const manifest = JSON.parse(Buffer.from(manifestBytes).toString('utf8')) as StoredMetadata;
+    const bytes = await this.storage.get(this.slotKey(receiptKey, manifest.main.slot));
+    if (bytes === null) {
+      return null;
+    }
+    return { mime: manifest.main.mime, bytes: Buffer.from(bytes) };
+  }
+
   async read(receiptKey: string): Promise<ReceiptMetadata | null> {
     const manifestBytes = await this.storage.get(this.metaKey(receiptKey));
     if (manifestBytes === null) {

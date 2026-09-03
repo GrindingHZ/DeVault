@@ -40,13 +40,13 @@ export class MarketReadService {
     private readonly metadata: ReceiptMetadataStore,
   ) {}
 
-  async browse(viewerAddress: string, nowMs: number): Promise<{ items: ListingSummary[] }> {
+  /* Every open listing, the reader's own included. The workspace filters by tab
+     client-side -- browse hides your own, the listings tab shows only them -- so
+     stripping them here would leave a borrower's own listings tab always empty. */
+  async browse(nowMs: number): Promise<{ items: ListingSummary[] }> {
     const { decimals, listings, offerCountByPledge } = await this.listings.read();
     const items: ListingSummary[] = [];
     for (const listing of listings) {
-      if (listing.borrower === viewerAddress) {
-        continue;
-      }
       items.push(await this.toSummary(listing, decimals, offerCountByPledge, nowMs));
     }
     return { items };

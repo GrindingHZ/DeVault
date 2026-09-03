@@ -19,10 +19,9 @@ export class MarketReadController {
   constructor(private readonly market: MarketReadService) {}
 
   @Get('listings')
-  async browse(@CurrentAccount() account: Account): Promise<ListingsPageResponse> {
-    const address = this.addressOf(account);
+  async browse(): Promise<ListingsPageResponse> {
     try {
-      const { items } = await this.market.browse(address, Date.now());
+      const { items } = await this.market.browse(Date.now());
       return { items, nextCursor: null };
     } catch (error) {
       throw this.mapped(error);

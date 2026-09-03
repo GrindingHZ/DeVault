@@ -45,10 +45,16 @@ function Track({ track }: { readonly track: LiquidityTrack }): ReactElement {
             one fact told twice rather than a number with a decoration beside
             it. */}
         <p className="font-figure font-bold tabular-nums text-accent">
-          <span style={{ fontSize: 'clamp(1.5rem, 2.6vw, 2rem)' }}>
-            {Math.round(track.ltvPct * fill)}
+          {/* The animated figure is decoration for sighted readers; the real
+              share is read out once, so assistive technology and any
+              un-scrolled snapshot never hear a category lend 0%. */}
+          <span className="sr-only">{`${String(track.ltvPct)}%`}</span>
+          <span aria-hidden="true">
+            <span style={{ fontSize: 'clamp(1.5rem, 2.6vw, 2rem)' }}>
+              {Math.round(track.ltvPct * fill)}
+            </span>
+            <span className="ml-0.5 text-base">%</span>
           </span>
-          <span className="ml-0.5 text-base">%</span>
         </p>
       </div>
 

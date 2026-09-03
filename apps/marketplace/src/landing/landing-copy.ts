@@ -26,7 +26,7 @@ export const heroCta = 'See how it works';
 
 export const life = {
   eyebrow: 'The life of one receipt',
-  heading: 'One object, five states, one row in the ledger.',
+  heading: 'One object, five states, one record on chain.',
 } as const;
 
 /* This section was a heading, a slogan and five bars, and it never said what
@@ -67,8 +67,8 @@ export const custody = {
 export const footer = {
   close: 'Bring the object. Take the cheapest offer.',
   cta: 'Sign in',
-  markCaption: 'The ledger, custody, and the name',
-  finePrint: 'A demonstration build. Figures are the seeded dataset.',
+  markCaption: 'The chain, custody, and the name',
+  finePrint: 'A demonstration build on Sui testnet. The figures are illustrative.',
 } as const;
 
 export const signIn = {

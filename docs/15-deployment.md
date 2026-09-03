@@ -126,25 +126,46 @@ minted while this is wrong keeps the wrong url for good.
 
 ## Step 3: Vercel, the two front ends
 
-Do this twice, once per app. The settings are identical except for the three values in the table.
+Do this twice, once per app. Everything is identical except the three values in the table.
 
 1. Go to `vercel.com/new` and import `GrindingHZ/DeVault`.
-2. Leave **Root Directory** as the repository root. Both apps import `@depawn/contracts` and
-   `@depawn/ui` from source, so a build needs the whole workspace present.
-3. Set **Framework Preset** to **Other**, then open **Build and Output Settings** and override:
+
+2. **Leave Root Directory as the repository root.** Vercel offers to set it to the app folder
+   because it detects Turborepo. Refuse. Vercel reads `vercel.json` from inside the root directory,
+   and `vercel.json` lives at the repository root. Point the root directory at an app folder and the
+   rewrites are silently absent: every api call answers 404 and every deep link answers 404, with
+   nothing in the build log to say why.
+
+3. Set **Framework Preset** to **Other**.
+
+4. Open **Build and Output Settings**. Each field here has its own **Override** toggle beside it.
+   Typing a value is not enough. Flip the toggle on for all three, or the preset default stays in
+   force and the field you filled in is ignored.
 
 | Setting | marketplace | vault console |
 |---|---|---|
-| Project name | `devault-marketplace` | `devault-vault` |
-| Build command | `pnpm --filter @depawn/marketplace run build` | `pnpm --filter @depawn/vault-console run build` |
-| Output directory | `apps/marketplace/dist` | `apps/vault-console/dist` |
+| Project name | anything you like | anything you like |
+| Install Command | `pnpm install --frozen-lockfile --filter @depawn/marketplace...` | `pnpm install --frozen-lockfile --filter @depawn/vault-console...` |
+| Build Command | `pnpm --filter @depawn/marketplace run build` | `pnpm --filter @depawn/vault-console run build` |
+| Output Directory | `apps/marketplace/dist` | `apps/vault-console/dist` |
 
-4. Under **Environment Variables** add `VITE_SUI_NETWORK` with the value `testnet`. Vite reads it at
+The trailing `...` on the install filter is significant. It means the package plus its workspace
+dependencies, which resolves to the app, `@depawn/contracts` and `@depawn/ui`. Without it the build
+fails on missing workspace imports. With a bare `pnpm install` instead, Vercel installs the whole
+workspace, which drags in the api's `@testcontainers/postgresql`, then `ssh2`, then `cpu-features`,
+and spends the build compiling native code through node-gyp that no front end needs.
+
+5. Under **Environment Variables** add `VITE_SUI_NETWORK` with the value `testnet`. Vite reads it at
    build time, so it has to exist before the first build, and changing it later needs a redeploy.
 
    Leave `VITE_TEST_WALLET` unset. It mounts a test wallet meant only for Playwright.
 
-5. Select **Deploy**.
+6. Select **Deploy**.
+
+The project name is free. Nothing in the repository refers to either front end by name. What is not
+free is the Render service name `devault-api`, which is written into `vercel.json`, and
+`PUBLIC_BASE_URL`, which has to name an origin that will still resolve in a year because it is
+minted into every receipt.
 
 The repository's `vercel.json` supplies the rest: it rewrites `/api/*` to Render and sends every
 other path to `index.html` so a deep link like `/listings/01M0...` still loads the app shell rather
@@ -186,3 +207,5 @@ the CustodianCap. This setup is sized for a testnet demonstration and nothing mo
 | Sign in appears to work, refresh logs you out | The front end is calling Render directly. The cookie is `sameSite: 'strict'` and needs the rewrite |
 | Photographs vanish after a deploy | `STORAGE_DRIVER` is not `supabase` on Render |
 | Deep link 404s, root page fine | `vercel.json` did not reach the build. Check Root Directory is the repository root |
+| Vercel: `No Output Directory named "dist" found` | The Output Directory override toggle is off, so the preset default won. Flip the toggle |
+| Vercel build compiles `cpu-features` through node-gyp | The install command is not scoped. Add `--filter @depawn/<app>...` |

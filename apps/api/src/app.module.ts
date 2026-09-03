@@ -16,8 +16,6 @@ import { SystemStateModule } from './infrastructure/system-state/system-state.mo
 import { AccountsModule } from './modules/accounts/accounts.module';
 import { CustodyApiModule } from './modules/custody/custody-api.module';
 import { HealthModule } from './modules/health/health.module';
-import { LendingApiModule } from './modules/lending/lending-api.module';
-import { MarketplaceApiModule } from './modules/marketplace/marketplace-api.module';
 import { SharedHttpModule } from './modules/shared/shared-http.module';
 import { TestSupportModule } from './modules/test-support/test-support.module';
 import { ApiExceptionFilter } from './modules/shared/http/api-exception.filter';
@@ -52,8 +50,6 @@ export class AppModule implements NestModule {
         SharedHttpModule,
         AccountsModule,
         CustodyApiModule,
-        MarketplaceApiModule,
-        LendingApiModule,
         HealthModule,
         ChainReadModule,
         ...testOnlyModules,

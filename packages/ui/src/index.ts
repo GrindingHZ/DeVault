@@ -15,6 +15,8 @@ export * from './empty-state';
 export * from './explain';
 export * from './glossary';
 export * from './item-photograph';
+export * from './image-carousel';
+export * from './category-icon';
 export * from './loan-to-value';
 export * from './skeleton';
 export * from './stepper';

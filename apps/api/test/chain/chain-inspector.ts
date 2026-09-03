@@ -18,8 +18,13 @@ export interface ChainEventSnapshot {
   readonly json: Readonly<Record<string, unknown>>;
 }
 
+interface CollectedEvent extends ChainEventSnapshot {
+  readonly identity: string;
+}
+
 export class ChainInspector {
   private readonly newest = new Map<string, string | null>();
+  private readonly previousNewest = new Map<string, string | null>();
 
   constructor(
     private readonly client: ChainClient,
@@ -46,21 +51,71 @@ export class ChainInspector {
      first. Read newest first down to the last event seen, because the node
      prunes its oldest ledger data and a read from the beginning of time is
      refused; the first call only marks where the module currently ends. */
-  async newEvents(module: string): Promise<ChainEventSnapshot[]> {
-    const known = this.newest.get(module);
-    const collected: (ChainEventSnapshot & { readonly identity: string })[] = [];
+  async newEvents(module: string, atLeast = 1): Promise<ChainEventSnapshot[]> {
+    const started = Date.now();
+    for (;;) {
+      const events = await this.readNewEvents(module);
+      if (events.length >= atLeast || Date.now() - started > 30_000) {
+        return events;
+      }
+      this.rewind(module, events);
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  }
+
+  /* Waits until the node's event index has caught up with a transaction the
+     test already holds the digest of, so a following read cannot mistake a
+     straggler for the next step's work. */
+  async syncDigest(module: string, digest: string): Promise<void> {
+    const started = Date.now();
+    while (Date.now() - started < 30_000) {
+      const events = await this.readNewEvents(module);
+      if (events.some((event) => event.digest === digest)) {
+        return;
+      }
+      this.rewind(module, events);
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    throw new Error(`The event index never showed ${digest} for ${module}`);
+  }
+
+  private rewind(module: string, events: readonly ChainEventSnapshot[]): void {
+    if (events.length > 0) {
+      this.newest.set(module, this.previousNewest.get(module) ?? null);
+    }
+  }
+
+  /* New events are the newest, so a descending read from the tip finds them
+     on the first pages. Paging stops at the last event seen, and a read that
+     falls into data the node has pruned is the end of what it holds rather
+     than an error. */
+  private async readNewEvents(module: string): Promise<ChainEventSnapshot[]> {
+    const known = this.newest.get(module) ?? null;
+    this.previousNewest.set(module, known);
+    const collected: CollectedEvent[] = [];
     let before: string | null = null;
-    let reachedKnown = false;
-    for (let page = 0; page < 10 && !reachedKnown; page += 1) {
-      const response = await boundedChainRead(`events of ${module}`, (signal) =>
-        this.client.listEvents({
-          filter: { emitModule: `${this.packageId}::${module}` },
-          order: 'descending',
-          before,
-          limit: 50,
-          signal,
-        }),
-      );
+    for (let page = 0; page < 4; page += 1) {
+      let response;
+      try {
+        response = await boundedChainRead(`events of ${module}`, (signal) =>
+          this.client.listEvents({
+            filter: { emitModule: `${this.packageId}::${module}` },
+            order: 'descending',
+            before,
+            limit: 50,
+            signal,
+          }),
+        );
+      } catch (error: unknown) {
+        if (
+          error instanceof Error &&
+          /below earliest available|pruned|missing tx_seq/.test(error.message)
+        ) {
+          break;
+        }
+        throw error;
+      }
+      let reachedKnown = false;
       for (const entry of response.events) {
         const identity = `${entry.transactionDigest}:${entry.eventIndex}`;
         if (identity === known) {
@@ -68,23 +123,22 @@ export class ChainInspector {
           break;
         }
         const [, name = ''] = entry.eventType.split(/::(?=[^:]+$)/);
-        collected.push({ identity, name, digest: entry.transactionDigest, json: entry.json ?? {} });
+        collected.push({ name, digest: entry.transactionDigest, json: entry.json ?? {}, identity });
       }
-      if (!response.hasNextPage) {
+      if (reachedKnown || !response.hasNextPage) {
         break;
       }
       before = response.endCursor;
     }
-    const newest = collected[0]?.identity ?? known ?? null;
+    const newest = collected[0]?.identity ?? known;
     this.newest.set(module, newest);
-    if (known === undefined) {
-      return [];
-    }
     return collected.reverse().map(({ name, digest, json }) => ({ name, digest, json }));
   }
 
-  async attestations(): Promise<{ eventType: string; subjectId: string; payload: string }[]> {
-    const events = await this.newEvents('attestation');
+  async attestations(
+    atLeast = 1,
+  ): Promise<{ eventType: string; subjectId: string; payload: string }[]> {
+    const events = await this.newEvents('attestation', atLeast);
     return events.map((event) => ({
       eventType: textOfBytesField(event.json.event_type),
       subjectId: textOfBytesField(event.json.subject_id),

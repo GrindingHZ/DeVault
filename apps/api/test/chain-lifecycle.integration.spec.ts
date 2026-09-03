@@ -209,6 +209,12 @@ describe.skipIf(!reachable)(`the loan book on sui (localnet at ${localnetGrpcUrl
       borrower,
       {},
     );
+    const originationReference: string = accepted.body.originationSettlementRef.reference;
+    // Every module's index has caught up with the origination before the
+    // caller starts reading what its own steps produce.
+    await inspector.syncDigest('escrow', originationReference);
+    await inspector.syncDigest('custody', originationReference);
+    await inspector.syncDigest('attestation', originationReference);
     return {
       loanId: accepted.body.id,
       listingId: listing.body.id,
@@ -217,7 +223,7 @@ describe.skipIf(!reachable)(`the loan book on sui (localnet at ${localnetGrpcUrl
       lender,
       ops,
       staff,
-      originationReference: accepted.body.originationSettlementRef.reference,
+      originationReference,
     };
   }
 
@@ -231,9 +237,9 @@ describe.skipIf(!reachable)(`the loan book on sui (localnet at ${localnetGrpcUrl
     const lender = await loginAs(`lender-${suffix}@chain.test`, 'MEMBER');
     const ops = await loginAs(`ops-${suffix}@chain.test`, 'OPERATIONS');
     const staff = await loginAs(`staff-${suffix}@chain.test`, 'VAULT_STAFF');
-    await inspector.newEvents('escrow');
-    await inspector.newEvents('custody');
-    await inspector.attestations();
+    await inspector.newEvents('escrow', 0);
+    await inspector.newEvents('custody', 0);
+    await inspector.attestations(0);
 
     // A deposit mints on the local network and lands in a wallet the lender
     // owns on chain.
@@ -245,7 +251,7 @@ describe.skipIf(!reachable)(`the loan book on sui (localnet at ${localnetGrpcUrl
     expect(await digestResolves(deposit.body.settlementRef.reference)).toBe(true);
     const lenderWallet = await walletOf(lender);
     expect(lenderWallet.balance).toBe(units(250_000n));
-    const deposited = await inspector.newEvents('escrow');
+    const deposited = await inspector.newEvents('escrow', 2);
     expect(deposited.map((event) => event.name)).toEqual(['WalletOpened', 'FundsDeposited']);
     expect(deposited[1]?.json.owner).toBe(lender.address);
 
@@ -281,7 +287,7 @@ describe.skipIf(!reachable)(`the loan book on sui (localnet at ${localnetGrpcUrl
       durationMs: Number(30n * oneDay),
       expiresAt: new Date(Number(harness.clock.now().epochMilliseconds) + 3_600_000).toISOString(),
     });
-    const held = await inspector.newEvents('escrow');
+    const held = await inspector.newEvents('escrow', 1);
     expect(held.map((event) => event.name)).toEqual(['FundsHeld']);
     expect(held[0]?.json.amount).toBe(units(250_000n));
     const holdRow = await harness.prisma.chainFundsHold.findFirstOrThrow({
@@ -310,7 +316,7 @@ describe.skipIf(!reachable)(`the loan book on sui (localnet at ${localnetGrpcUrl
     const encumbered = await inspector.object(receiptObject);
     expect(encumbered.json.status).toBe(1);
     expect(textOfBytesField(encumbered.json.encumbered_by)).toBe(accepted.body.id);
-    const released = await inspector.newEvents('escrow');
+    const released = await inspector.newEvents('escrow', 5);
     expect(released.map((event) => event.name)).toEqual([
       'HoldReleased',
       'WalletOpened',
@@ -343,7 +349,13 @@ describe.skipIf(!reachable)(`the loan book on sui (localnet at ${localnetGrpcUrl
     expect(repaid.body.loan.status).toBe('REPAID');
     expect((await walletOf(lender)).balance).toBe(units(BigInt(quote.body.total.minorUnits)));
     expect((await inspector.object(receiptObject)).json.status).toBe(0);
-    await inspector.newEvents('escrow');
+    // The borrower's wallet already exists from the disbursement, so the
+    // deposit that funds the interest opens none; then the repayment moves.
+    const repaymentEvents = await inspector.newEvents('escrow', 2);
+    expect(repaymentEvents.map((event) => event.name)).toEqual([
+      'FundsDeposited',
+      'FundsTransferred',
+    ]);
     expect((await inspector.newEvents('custody')).map((event) => event.name)).toEqual([
       'EncumbranceReleased',
     ]);
@@ -365,8 +377,8 @@ describe.skipIf(!reachable)(`the loan book on sui (localnet at ${localnetGrpcUrl
     expect(await digestResolves(loan.originationReference)).toBe(true);
     harness.clock.advanceBy(pastGrace());
     await signInAgain(loan.lender);
-    await inspector.newEvents('custody');
-    await inspector.attestations();
+    await inspector.newEvents('custody', 0);
+    await inspector.attestations(0);
 
     // No money moves on a default, so the only chain trace is the attestation.
     await post(`/api/v1/loans/${loan.loanId}/default`, loan.lender, {});
@@ -404,16 +416,18 @@ describe.skipIf(!reachable)(`the loan book on sui (localnet at ${localnetGrpcUrl
     const bidder = await loginAs(`bidder-${randomUUID().slice(0, 8)}@chain.test`, 'MEMBER');
     await signInAgain(loan.ops);
     await post('/api/v1/me/deposits', loan.ops, { email: bidder.email, amount: amount('400000') });
-    await inspector.newEvents('escrow');
-    await inspector.newEvents('custody');
-    await inspector.attestations();
+    await inspector.newEvents('escrow', 0);
+    await inspector.newEvents('custody', 0);
+    await inspector.attestations(0);
     const operatorBefore = BigInt(await operatorWalletBalance());
     const oldReceiptObject = await receiptObjectOf(loan.receiptId);
 
     await post(`/api/v1/liquidations/${scheduled.body.id}/bids`, bidder, {
       amount: amount('300000'),
     });
-    expect((await inspector.newEvents('escrow')).map((event) => event.name)).toEqual(['FundsHeld']);
+    expect((await inspector.newEvents('escrow', 1)).map((event) => event.name)).toEqual([
+      'FundsHeld',
+    ]);
     expect((await walletOf(bidder)).balance).toBe(units(100_000n));
 
     const closed = await post(`/api/v1/liquidations/${scheduled.body.id}/close`, loan.ops, {});
@@ -424,7 +438,7 @@ describe.skipIf(!reachable)(`the loan book on sui (localnet at ${localnetGrpcUrl
     expect((await walletOf(loan.lender)).balance).toBe(units(253_698n));
     expect(BigInt(await operatorWalletBalance()) - operatorBefore).toBe(BigInt(units(926n)));
     expect((await walletOf(loan.borrower)).balance).toBe(units(245_000n + 45_376n));
-    expect((await inspector.newEvents('escrow')).map((event) => event.name)).toEqual([
+    expect((await inspector.newEvents('escrow', 4)).map((event) => event.name)).toEqual([
       'HoldReleased',
       'Paid',
       'Paid',
@@ -440,11 +454,11 @@ describe.skipIf(!reachable)(`the loan book on sui (localnet at ${localnetGrpcUrl
     const reissued = await inspector.object(await receiptObjectOf(reissuedRow.id));
     expect(reissued.json.holder).toBe(bidder.address);
     expect(textOfBytesField(reissued.json.receipt_key)).toBe(reissuedRow.id);
-    expect((await inspector.newEvents('custody')).map((event) => event.name)).toEqual([
+    expect((await inspector.newEvents('custody', 2)).map((event) => event.name)).toEqual([
       'ReceiptLiquidated',
       'ReceiptIssued',
     ]);
-    expect((await inspector.attestations()).map((event) => event.eventType)).toEqual([
+    expect((await inspector.attestations(2)).map((event) => event.eventType)).toEqual([
       'LiquidationSettled',
       'ReceiptIssued',
     ]);
@@ -458,6 +472,11 @@ describe.skipIf(!reachable)(`the loan book on sui (localnet at ${localnetGrpcUrl
       SELECT COUNT(*)::bigint AS count FROM outbox_event WHERE payload::text LIKE '%pending:%'
     `;
     expect(pendingOutbox[0]?.count).toBe(0n);
+    const pendingAudit = await harness.prisma.$queryRaw<{ count: bigint }[]>`
+      SELECT COUNT(*)::bigint AS count FROM audit_log
+      WHERE after::text LIKE '%pending:%' OR before::text LIKE '%pending:%'
+    `;
+    expect(pendingAudit[0]?.count).toBe(0n);
     const unresolved = await harness.prisma.chainSettlement.count({ where: { digest: null } });
     expect(unresolved).toBe(0);
     await expectLedgerBalances(harness.prisma).toSumToZero();

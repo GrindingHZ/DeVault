@@ -4,6 +4,7 @@ import { APP_FILTER } from '@nestjs/core';
 import { isChainDriverEnabled, loadConfiguration } from './config/configuration';
 import { hasAdvanceableClock } from './config/runtime-mode';
 import { ChainModule } from './infrastructure/chain/chain.module';
+import { ChainTransactionModule } from './modules/chain/chain-transaction.module';
 import { ClockModule } from './infrastructure/clock/clock.module';
 import { CustodyModule } from './infrastructure/custody/custody.module';
 import { ProtocolParametersModule } from './infrastructure/parameters/protocol-parameters.module';
@@ -36,7 +37,9 @@ import { RequestLoggingMiddleware } from './modules/shared/http/request-logging.
 export class AppModule implements NestModule {
   static forRuntime(): DynamicModule {
     const testOnlyModules = hasAdvanceableClock() ? [TestSupportModule] : [];
-    const chainModules = isChainDriverEnabled(loadConfiguration()) ? [ChainModule] : [];
+    const chainModules = isChainDriverEnabled(loadConfiguration())
+      ? [ChainModule, ChainTransactionModule]
+      : [];
     return {
       module: AppModule,
       imports: [

@@ -32,6 +32,7 @@ async function main(): Promise<void> {
     throw new Error('No deployment recorded');
   }
   const coinType = deployment.settlementCoinType;
+  const treasury = deployment.treasuryCapId ?? '';
   const stamp = Date.now().toString();
 
   const borrower = Ed25519Keypair.generate();
@@ -81,7 +82,7 @@ async function main(): Promise<void> {
       const coin = tx.moveCall({
         target: '0x2::coin::mint',
         typeArguments: [coinType],
-        arguments: [tx.object(deployment.treasuryCapId ?? ''), tx.pure.u64(amount)],
+        arguments: [tx.object(treasury), tx.pure.u64(amount)],
       });
       tx.transferObjects([coin], to);
     });

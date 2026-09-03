@@ -1,5 +1,6 @@
 export * from './admin';
 export * from './auth';
+export * from './chain-actions';
 export * from './client/admin-client';
 export * from './client/api-error';
 export * from './client/auth-client';

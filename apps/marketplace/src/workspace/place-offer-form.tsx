@@ -117,7 +117,7 @@ export function PlaceOfferForm({
        amount, so the lender funds the requested principal and the rate control
        is a preview. The amount is the requested principal restated in the
        settlement coin's base units. */
-    mutationFn: (_input: { rateBasisPoints: number }) =>
+    mutationFn: () =>
       sign(() =>
         makeOfferAction({
           pledgeId: detail.id,
@@ -152,7 +152,7 @@ export function PlaceOfferForm({
             return;
           }
           setInputError(null);
-          offerMutation.mutate({ rateBasisPoints: basisPoints });
+          offerMutation.mutate();
         }}
       >
         <div className="flex flex-col gap-1">

@@ -5,6 +5,11 @@
 /// signed by the member who acts and carries no capability: the object holds
 /// only shared state and the one signer's own inputs
 /// (docs/superpowers/specs/2026-08-26-self-custody-loan-book-design.md).
+///
+/// A pledge is never deleted. A cancelled listing and a collected loan stay
+/// behind as the record of what happened, because an offer made against
+/// either before it closed can only prove it lost by reading the status
+/// here; without the record its money would wait out its own expiry.
 module depawn::pledge;
 
 use depawn::config::Config;
@@ -21,6 +26,8 @@ const OPEN: u8 = 0;
 const ACTIVE: u8 = 1;
 const REPAID: u8 = 2;
 const DEFAULTED: u8 = 3;
+const CANCELLED: u8 = 4;
+const CLOSED: u8 = 5;
 
 const BASIS_POINTS_IN_WHOLE: u128 = 10_000;
 
@@ -36,6 +43,10 @@ const EWrongNote: u64 = 8;
 const EZeroPrincipal: u64 = 9;
 const EPrincipalTooHigh: u64 = 10;
 const EBadCategory: u64 = 11;
+const ESelfOffer: u64 = 12;
+const EWrongAmount: u64 = 13;
+const EOfferExpired: u64 = 14;
+const ENotActive: u64 = 15;
 
 /// `receipt` is an `Option` so a later transition can take the item out
 /// without leaving a sentinel behind. `parked` is empty until a repayment
@@ -138,27 +149,64 @@ public fun open<T>(
     transfer::share_object(pledge);
 }
 
-public fun cancel<T>(pledge: Pledge<T>, ctx: &mut TxContext) {
+/// Takes the listing down. The receipt goes back to the borrower and the
+/// pledge stays behind as CANCELLED, so an offer made against it before it
+/// came down proves it lost against this status and is refunded at once.
+public fun cancel<T>(pledge: &mut Pledge<T>, ctx: &mut TxContext) {
     assert!(pledge.borrower == ctx.sender(), ENotBorrower);
     assert!(pledge.status == OPEN, ENotOpen);
-    let Pledge { id, borrower, mut receipt, parked, .. } = pledge;
-    let item = receipt.extract();
-    receipt.destroy_none();
-    parked.destroy_zero();
+    let item = pledge.receipt.extract();
+    pledge.status = CANCELLED;
     event::emit(ListingCancelled {
-        pledge_id: id.to_inner(),
+        pledge_id: object::id(pledge),
         receipt_key: *item.receipt_key(),
     });
-    id.delete();
-    transfer::public_transfer(item, borrower);
+    transfer::public_transfer(item, pledge.borrower);
+}
+
+/// A lender's offer, made against the listing itself rather than its id, so
+/// the chain refuses one on a listing that is no longer open, one from the
+/// borrower, one for any amount but the principal asked, and one above the
+/// asked rate. Lenders compete on the rate alone: the amount is the
+/// borrower's, which is why it is checked rather than chosen. The hold this
+/// shares can only be consumed by `accept` on this pledge or refunded to the
+/// lender.
+public fun offer<T>(
+    config: &Config,
+    pledge: &Pledge<T>,
+    hold_key: vector<u8>,
+    payment: Coin<T>,
+    apr_bps: u16,
+    expires_at: u64,
+    clock: &Clock,
+    ctx: &mut TxContext,
+) {
+    assert!(pledge.status == OPEN, ENotOpen);
+    assert!(pledge.borrower != ctx.sender(), ESelfOffer);
+    assert!(payment.value() == pledge.requested_principal, EWrongAmount);
+    assert!(apr_bps <= pledge.requested_apr_bps, ERateTooHigh);
+    escrow::make_offer(
+        config, object::id(pledge), hold_key, payment, apr_bps, expires_at, clock, ctx,
+    );
+}
+
+/// A losing offer's money goes home the moment its pledge stops taking
+/// offers, whatever stopped it: another hold accepted, or the listing taken
+/// down. The proof is the pledge's own status and accepted key, read here,
+/// so nobody's word is taken for whether the offer lost. Anyone may trigger
+/// it; the money can only reach the hold's owner.
+public fun refund_losing<T>(pledge: &Pledge<T>, hold: FundsHold<T>, ctx: &mut TxContext) {
+    assert!(escrow::hold_pledge_id(&hold) == object::id(pledge), EWrongPledge);
+    escrow::refund_losing(hold, pledge.status != OPEN, pledge.accepted_hold_key, ctx);
 }
 
 /// The whole of origination, in one transaction the borrower signs once. The
 /// chosen offer is shared, so no second lender signature is needed: the
 /// lender committed when they made the offer, and the module guarantees the
 /// funds can only reach the borrower here or return to the lender on a
-/// refund. Loan to value is checked by the api before this is built; the
-/// appraisal is not read a second time on chain.
+/// refund. An offer past its own expiry is the lender's to reclaim, not the
+/// borrower's to take. The principal was held to the item's ceiling when the
+/// listing opened, so the appraisal is not read a second time here.
 public fun accept<T>(
     pledge: &mut Pledge<T>,
     hold: FundsHold<T>,
@@ -170,6 +218,8 @@ public fun accept<T>(
     assert!(pledge.status == OPEN, ENotOpen);
     assert!(pledge.borrower == ctx.sender(), ENotBorrower);
     assert!(escrow::hold_pledge_id(&hold) == object::id(pledge), EWrongPledge);
+    let now = clock.timestamp_ms();
+    assert!(now < escrow::hold_expires_at(&hold), EOfferExpired);
     let params = config.parameters();
     assert!(pledge.requested_apr_bps <= params.max_annual_percentage_rate_bps(), ERateTooHigh);
 
@@ -178,7 +228,6 @@ public fun accept<T>(
        rate or below it, never above. */
     assert!(offered_apr_bps <= pledge.requested_apr_bps, ERateTooHigh);
     let principal = funds.value();
-    let now = clock.timestamp_ms();
     let matures_at = now + term_ms;
 
     let mut proceeds = coin::from_balance(funds, ctx);
@@ -224,7 +273,7 @@ public fun repay<T>(
     clock: &Clock,
     ctx: &mut TxContext,
 ) {
-    assert!(pledge.status == ACTIVE, ENotOpen);
+    assert!(pledge.status == ACTIVE, ENotActive);
     assert!(note.borrower_note_pledge() == object::id(pledge), EWrongNote);
     let now = clock.timestamp_ms();
     assert!(now < pledge.matures_at_ms + pledge.grace_period_ms, EPastGrace);
@@ -249,18 +298,17 @@ public fun repay<T>(
 }
 
 /// Signed by whoever holds the lender note, after repayment. Pulls the parked
-/// payoff and closes the pledge. The payee is the note holder, so a note sold
-/// on the secondary market pays its buyer, not the original lender.
-public fun collect<T>(pledge: Pledge<T>, note: LenderNote, ctx: &mut TxContext) {
+/// payoff and closes the pledge, which stays as the record of the loan. The
+/// payee is the note holder, so a note sold on the secondary market pays its
+/// buyer, not the original lender.
+public fun collect<T>(pledge: &mut Pledge<T>, note: LenderNote, ctx: &mut TxContext) {
     assert!(pledge.status == REPAID, ENotRepaid);
-    assert!(note.lender_note_pledge() == object::id(&pledge), EWrongNote);
+    assert!(note.lender_note_pledge() == object::id(pledge), EWrongNote);
     note.burn_lender_note();
-    let Pledge { id, receipt, parked, .. } = pledge;
-    receipt.destroy_none();
-    let amount = parked.value();
-    event::emit(LoanSettled { pledge_id: id.to_inner(), amount });
-    id.delete();
-    transfer::public_transfer(coin::from_balance(parked, ctx), ctx.sender());
+    let payoff = pledge.parked.withdraw_all();
+    pledge.status = CLOSED;
+    event::emit(LoanSettled { pledge_id: object::id(pledge), amount: payoff.value() });
+    transfer::public_transfer(coin::from_balance(payoff, ctx), ctx.sender());
 }
 
 /// Signed by whoever holds the lender note, after the grace cliff. The
@@ -273,7 +321,7 @@ public fun claim_default<T>(
     clock: &Clock,
     ctx: &mut TxContext,
 ) {
-    assert!(pledge.status == ACTIVE, ENotOpen);
+    assert!(pledge.status == ACTIVE, ENotActive);
     assert!(note.lender_note_pledge() == object::id(pledge), EWrongNote);
     assert!(clock.timestamp_ms() >= pledge.matures_at_ms + pledge.grace_period_ms, EBeforeGrace);
     note.burn_lender_note();
@@ -304,3 +352,7 @@ public fun requested_apr_bps<T>(pledge: &Pledge<T>): u16 { pledge.requested_apr_
 public fun is_open<T>(pledge: &Pledge<T>): bool { pledge.status == OPEN }
 
 public fun is_active<T>(pledge: &Pledge<T>): bool { pledge.status == ACTIVE }
+
+public fun is_cancelled<T>(pledge: &Pledge<T>): bool { pledge.status == CANCELLED }
+
+public fun is_closed<T>(pledge: &Pledge<T>): bool { pledge.status == CLOSED }

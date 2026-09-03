@@ -5,6 +5,10 @@
 /// pause blocks a new offer but never a refund, so the exit the lender
 /// controls can never be locked
 /// (docs/superpowers/specs/2026-08-26-self-custody-loan-book-design.md).
+///
+/// The hold is made and judged through `pledge`, which reads the listing:
+/// this module never sees more than a pledge id and the facts that module
+/// read, which is what keeps it free of a dependency the other way.
 module depawn::escrow;
 
 use depawn::config::Config;
@@ -61,8 +65,11 @@ public struct OfferRefunded has copy, drop {
 
 /// The one entrance a pause closes. The lender's coin becomes the hold's
 /// balance; the expiry must clear the minimum offer lifetime so a lender
-/// cannot bait a borrower and yank the money before the minimum.
-public fun make_offer<T>(
+/// cannot bait a borrower and yank the money before the minimum. Reached
+/// only through `pledge::offer`, which has read the listing the id names
+/// and refused one that is not open: a hold can never be made against a
+/// pledge that cannot accept it.
+public(package) fun make_offer<T>(
     config: &Config,
     pledge_id: ID,
     hold_key: vector<u8>,
@@ -106,10 +113,11 @@ public fun refund_expired<T>(hold: FundsHold<T>, clock: &Clock, ctx: &mut TxCont
     refund(hold, ctx);
 }
 
-/// A loser reclaims the moment the pledge matches another hold. The caller
-/// reads the pledge's status and accepted key and passes them, so this module
-/// stays free of a dependency on `pledge`.
-public fun refund_losing<T>(
+/// A loser reclaims the moment the pledge stops taking offers. Reached only
+/// through `pledge::refund_losing`, which reads the pledge's status and
+/// accepted key off the object and passes them, so the facts are the
+/// chain's and not the caller's.
+public(package) fun refund_losing<T>(
     hold: FundsHold<T>,
     pledge_matched: bool,
     accepted_hold_key: vector<u8>,

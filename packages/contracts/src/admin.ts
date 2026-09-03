@@ -62,3 +62,22 @@ export const advanceClockResponseSchema = z.object({
 
 export type AdvanceClockRequest = z.infer<typeof advanceClockRequestSchema>;
 export type AdvanceClockResponse = z.infer<typeof advanceClockResponseSchema>;
+
+/* Flow 10's third column: the projection against the chain. `enabled` is
+   false on the ledger drivers, where there is nothing to compare. */
+export const chainDriftSchema = z.object({
+  subjectType: z.enum(['wallet', 'hold', 'receipt', 'config']),
+  subjectId: z.string(),
+  field: z.string(),
+  expected: z.string(),
+  actual: z.string(),
+});
+
+export const chainReconciliationResponseSchema = z.object({
+  enabled: z.boolean(),
+  ranAt: z.string(),
+  checked: z.number().int().nonnegative(),
+  drift: z.array(chainDriftSchema),
+});
+
+export type ChainReconciliationResponse = z.infer<typeof chainReconciliationResponseSchema>;

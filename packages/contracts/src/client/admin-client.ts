@@ -1,6 +1,7 @@
 import {
   advanceClockResponseSchema,
   auditPageResponseSchema,
+  chainReconciliationResponseSchema,
   healthResponseSchema,
   systemStateResponseSchema,
 } from '../admin';
@@ -25,6 +26,7 @@ import type {
   AdvanceClockRequest,
   AdvanceClockResponse,
   AuditPageResponse,
+  ChainReconciliationResponse,
   HealthResponse,
   PauseSystemRequest,
   SystemStateResponse,
@@ -177,5 +179,13 @@ export function fetchRequestMetrics(): Promise<RequestMetricsResponse> {
     method: 'GET',
     path: `${basePath}/admin/metrics`,
     responseSchema: requestMetricsResponseSchema,
+  });
+}
+
+export function fetchChainReconciliation(): Promise<ChainReconciliationResponse> {
+  return requestJson({
+    method: 'GET',
+    path: `${basePath}/admin/chain/reconciliation`,
+    responseSchema: chainReconciliationResponseSchema,
   });
 }

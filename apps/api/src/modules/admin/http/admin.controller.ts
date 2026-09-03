@@ -6,15 +6,16 @@ import {
 } from '@depawn/contracts';
 import type {
   AuditPageResponse,
+  ChainReconciliationResponse,
   DeadLettersResponse,
-  RequestMetricsResponse,
   ExposureByVaultResponse,
+  LatestReconciliationResponse,
   LoanBookResponse,
   PauseSystemRequest,
-  ReconcileRequest,
-  LatestReconciliationResponse,
-  ReconciliationRunResponse,
   ProtocolParametersResponse,
+  ReconcileRequest,
+  ReconciliationRunResponse,
+  RequestMetricsResponse,
   SystemStateResponse,
   UpdateParametersRequest,
 } from '@depawn/contracts';
@@ -34,6 +35,7 @@ import { DeadLetterQuery } from '../application/dead-letter.query';
 import { LoanBookQuery } from '../application/loan-book.query';
 import { ReconcileVaultUseCase } from '../application/reconcile-vault.use-case';
 import { ReconciliationHistoryQuery } from '../application/reconciliation-history.query';
+import { ChainReconciliationQuery } from '../application/chain-reconciliation.query';
 import { PauseSystemUseCase } from '../application/pause-system.use-case';
 import { UpdateProtocolParametersUseCase } from '../application/update-protocol-parameters.use-case';
 import type { ProtocolParametersView } from '../application/update-protocol-parameters.use-case';
@@ -54,6 +56,7 @@ function toSystemStateResponse(state: SystemState): SystemStateResponse {
 export class AdminController {
   constructor(
     private readonly pauseSystem: PauseSystemUseCase,
+    private readonly chainReconciliation: ChainReconciliationQuery,
     private readonly auditSearch: AuditSearchQuery,
     private readonly reconcileVault: ReconcileVaultUseCase,
     private readonly reconciliationHistory: ReconciliationHistoryQuery,
@@ -68,6 +71,19 @@ export class AdminController {
   @Get('system-state')
   async readState(): Promise<SystemStateResponse> {
     return toSystemStateResponse(await this.pauseSystem.read());
+  }
+
+  /* Flow 10's third column. Operations only, like the pause. */
+  @Roles('OPERATIONS')
+  @Get('chain/reconciliation')
+  async reconcileChain(): Promise<ChainReconciliationResponse> {
+    const report = await this.chainReconciliation.run();
+    return {
+      enabled: report.enabled,
+      ranAt: new Date(Number(report.ranAt.epochMilliseconds)).toISOString(),
+      checked: report.checked,
+      drift: [...report.drift],
+    };
   }
 
   @Roles('OPERATIONS')

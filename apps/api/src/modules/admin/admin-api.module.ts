@@ -6,6 +6,7 @@ import { DeadLetterQuery } from './application/dead-letter.query';
 import { LoanBookQuery } from './application/loan-book.query';
 import { ReconcileVaultUseCase } from './application/reconcile-vault.use-case';
 import { ReconciliationHistoryQuery } from './application/reconciliation-history.query';
+import { ChainReconciliationQuery } from './application/chain-reconciliation.query';
 import { PauseSystemUseCase } from './application/pause-system.use-case';
 import { UpdateProtocolParametersUseCase } from './application/update-protocol-parameters.use-case';
 import { AdminController } from './http/admin.controller';
@@ -14,6 +15,7 @@ import { AdminController } from './http/admin.controller';
   controllers: [AdminController],
   providers: [
     PauseSystemUseCase,
+    ChainReconciliationQuery,
     AuditSearchQuery,
     DeadLetterQuery,
     ReconcileVaultUseCase,

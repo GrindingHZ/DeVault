@@ -1,10 +1,14 @@
 import { Global, Module } from '@nestjs/common';
 import { isChainDriverEnabled, loadConfiguration } from '../config/configuration';
 import { AUDIT_PORT } from '../domain/ports/audit.port';
+import { CHAIN_RECONCILIATION_PORT } from '../domain/ports/chain-reconciliation.port';
+import type { ChainReconciliationPort } from '../domain/ports/chain-reconciliation.port';
 import { DOMAIN_EVENT_PUBLISHER } from '../domain/ports/domain-event-publisher.port';
 import type { DomainEventPublisher } from '../domain/ports/domain-event-publisher.port';
 import { OBJECT_STORAGE_PORT } from '../domain/ports/object-storage.port';
 import { PrismaAuditAdapter } from './audit/prisma-audit.adapter';
+import { ChainReconciliation } from './chain/indexer/chain-reconciliation';
+import { ChainReconciliationUnavailable } from './chain/indexer/chain-reconciliation-unavailable';
 import { OutboxDomainEventPublisher } from './events/outbox-domain-event-publisher';
 import { SuiDomainEventPublisher } from './events/sui-domain-event-publisher';
 import {
@@ -31,6 +35,16 @@ import { FilesystemObjectStorageAdapter } from './storage/filesystem-object-stor
     { provide: OBJECT_STORAGE_PORT, useClass: FilesystemObjectStorageAdapter },
     { provide: OUTBOX_HANDLER, useClass: LoggingOutboxHandler },
     OutboxDrainWorker,
+    ChainReconciliationUnavailable,
+    {
+      provide: CHAIN_RECONCILIATION_PORT,
+      useFactory: (
+        unavailable: ChainReconciliationUnavailable,
+        chain: ChainReconciliation | undefined,
+      ): ChainReconciliationPort =>
+        isChainDriverEnabled(loadConfiguration()) && chain !== undefined ? chain : unavailable,
+      inject: [ChainReconciliationUnavailable, { token: ChainReconciliation, optional: true }],
+    },
   ],
   exports: [
     AUDIT_PORT,
@@ -38,6 +52,7 @@ import { FilesystemObjectStorageAdapter } from './storage/filesystem-object-stor
     OBJECT_STORAGE_PORT,
     OutboxDrainWorker,
     OutboxDomainEventPublisher,
+    CHAIN_RECONCILIATION_PORT,
   ],
 })
 export class PlatformServicesModule {}

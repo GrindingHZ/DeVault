@@ -1,8 +1,10 @@
-import { Card, Page, PageHeader, Skeleton } from '@depawn/ui';
+import { requestTestnetUsdc } from '@depawn/contracts';
+import { Button, Card, Page, PageHeader, Skeleton } from '@depawn/ui';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Navigate, createFileRoute } from '@tanstack/react-router';
 import type { ReactElement } from 'react';
 import { useCurrentAccount } from '../current-account';
-import { MarketShell } from '../market-shell';
+import { MarketShell, useFeedback } from '../market-shell';
 import { formatUsdc } from '../wallet/usdc';
 import { useWalletMoney } from '../wallet/use-wallet-money';
 import type { ReceiptSummary } from '../wallet/chain-objects';
@@ -123,7 +125,42 @@ function WalletBody(): ReactElement {
       ) : null}
 
       <ItemsCard receipts={money.receipts} decimals={decimals} />
+      <GetUsdcCard />
     </>
+  );
+}
+
+function GetUsdcCard(): ReactElement {
+  const queryClient = useQueryClient();
+  const feedback = useFeedback();
+  const grant = useMutation({
+    mutationFn: requestTestnetUsdc,
+    onSuccess: async () => {
+      feedback.reportSuccess('Testnet USDC is on its way to your wallet.');
+      await queryClient.invalidateQueries();
+    },
+  });
+
+  return (
+    <Card title="Get USDC">
+      <p className="mb-3 font-body text-sm text-ink-secondary">
+        On testnet the operator mints USDC straight to your wallet, so you can lend and borrow
+        without funding it yourself.
+      </p>
+      <Button
+        data-testid="get-usdc"
+        type="button"
+        disabled={grant.isPending}
+        onClick={() => grant.mutate()}
+      >
+        Get testnet USDC
+      </Button>
+      {grant.isError ? (
+        <p role="alert" className="mt-2 font-body text-sm text-status-danger">
+          The mint did not go through. Try again.
+        </p>
+      ) : null}
+    </Card>
   );
 }
 

@@ -39,6 +39,11 @@ export const chainDeploymentResponseSchema = z.object({
 });
 export type ChainDeploymentResponse = z.infer<typeof chainDeploymentResponseSchema>;
 
+/* The testnet faucet answers the digest of the mint, so a member can see the
+   grant land on chain. */
+export const usdcFaucetResponseSchema = z.object({ digest: z.string() });
+export type UsdcFaucetResponse = z.infer<typeof usdcFaucetResponseSchema>;
+
 export const buildOpenPledgeRequestSchema = z.object({
   receiptObjectId: objectId,
   requestedAprBps: z.number().int().nonnegative().max(65_535),

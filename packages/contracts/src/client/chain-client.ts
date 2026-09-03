@@ -1,5 +1,5 @@
-import { chainDeploymentResponseSchema } from '../chain-actions';
-import type { ChainDeploymentResponse } from '../chain-actions';
+import { chainDeploymentResponseSchema, usdcFaucetResponseSchema } from '../chain-actions';
+import type { ChainDeploymentResponse, UsdcFaucetResponse } from '../chain-actions';
 import { requestJson } from './http';
 
 const basePath = '/api/v1';
@@ -12,5 +12,14 @@ export function fetchChainDeployment(): Promise<ChainDeploymentResponse> {
     method: 'GET',
     path: `${basePath}/chain/deployment`,
     responseSchema: chainDeploymentResponseSchema,
+  });
+}
+
+/* Ask the operator to mint testnet USDC into the signed-in member's wallet. */
+export function requestTestnetUsdc(): Promise<UsdcFaucetResponse> {
+  return requestJson({
+    method: 'POST',
+    path: `${basePath}/chain/faucet`,
+    responseSchema: usdcFaucetResponseSchema,
   });
 }

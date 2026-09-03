@@ -36,6 +36,23 @@ function networkFrom(raw: string | undefined): SuiNetwork {
   throw new Error(`SUI_NETWORK must be localnet, testnet or mainnet, got ${raw}`);
 }
 
+export interface NetworkEndpoints {
+  readonly network: SuiNetwork;
+  readonly grpcUrl: string;
+}
+
+/* The read only endpoints for the configured network, without the operator
+   keys loadChainConfiguration demands. Verifying a zkLogin sign in needs a
+   full node to read the network's JWKs and current epoch, and it runs whether
+   or not the settlement chain driver is on. */
+export function readNetworkEndpoints(): NetworkEndpoints {
+  const network = networkFrom(process.env.SUI_NETWORK);
+  return {
+    network,
+    grpcUrl: process.env.SUI_GRPC_URL ?? endpointsByNetwork[network].grpcUrl,
+  };
+}
+
 function required(variable: string): string {
   const value = process.env[variable];
   if (value === undefined || value === '') {

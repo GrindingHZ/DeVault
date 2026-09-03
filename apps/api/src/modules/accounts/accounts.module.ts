@@ -6,6 +6,8 @@ import { SESSION_REPOSITORY } from '../../domain/accounts/session-repository';
 import { SESSION_TOKEN_ISSUER } from '../../domain/accounts/session-token-issuer';
 import { WALLET_CHALLENGE_REPOSITORY } from '../../domain/accounts/wallet-challenge-repository';
 import { WALLET_SIGNATURE_VERIFIER } from '../../domain/accounts/wallet-signature-verifier';
+import { readNetworkEndpoints } from '../../config/chain-configuration';
+import { createReadOnlyChainClient } from '../../infrastructure/chain/chain-client';
 import { ID_GENERATOR } from '../../domain/shared/id-generator';
 import { UlidIdGeneratorAdapter } from '../../infrastructure/id/ulid-id-generator.adapter';
 import { PrismaAccountRepository } from '../../infrastructure/persistence/repositories/prisma-account.repository';
@@ -39,7 +41,14 @@ import { MeController } from './http/me.controller';
     { provide: PASSWORD_HASHER, useClass: Argon2PasswordHasherAdapter },
     { provide: SESSION_TOKEN_ISSUER, useClass: CryptoSessionTokenIssuerAdapter },
     { provide: WALLET_CHALLENGE_REPOSITORY, useClass: PrismaWalletChallengeRepository },
-    { provide: WALLET_SIGNATURE_VERIFIER, useClass: SuiWalletSignatureVerifier },
+    {
+      /* Its own read-only client, so a zkLogin sign in can be verified whether
+         or not the settlement chain driver is on, and without the operator
+         key. */
+      provide: WALLET_SIGNATURE_VERIFIER,
+      useFactory: (): SuiWalletSignatureVerifier =>
+        new SuiWalletSignatureVerifier(createReadOnlyChainClient(readNetworkEndpoints())),
+    },
     { provide: ID_GENERATOR, useClass: UlidIdGeneratorAdapter },
     { provide: SESSION_LIFETIME_MS, useValue: defaultSessionLifetimeMs },
     { provide: APP_GUARD, useClass: AuthGuard },

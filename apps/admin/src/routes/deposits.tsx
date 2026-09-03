@@ -1,5 +1,15 @@
 import { ApiError, deposit, messageForError } from '@depawn/contracts';
-import { Button, Card, Field, Page, PageHeader, Skeleton, toMinorUnits } from '@depawn/ui';
+import { useChainNetwork } from '../use-chain-network';
+import {
+  Button,
+  Card,
+  Field,
+  Page,
+  PageHeader,
+  Skeleton,
+  toMinorUnits,
+  SettlementReference,
+} from '@depawn/ui';
 import { useMutation } from '@tanstack/react-query';
 import { Navigate, createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
@@ -59,8 +69,12 @@ function DepositCard(): ReactElement {
   const [amountInput, setAmountInput] = useState('');
   const [inputError, setInputError] = useState<string | null>(null);
   const feedback = useFeedback();
+  const network = useChainNetwork();
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
-  const [lastReference, setLastReference] = useState<string | null>(null);
+  const [lastSettlement, setLastSettlement] = useState<{
+    kind: 'ledger' | 'chain';
+    reference: string;
+  } | null>(null);
 
   const depositMutation = useMutation({
     mutationFn: (minorUnits: string) =>
@@ -73,7 +87,7 @@ function DepositCard(): ReactElement {
       ),
     onSuccess: (response) => {
       feedback.reportSuccess('The deposit landed.');
-      setLastReference(response.settlementRef.reference);
+      setLastSettlement(response.settlementRef);
       setAmountInput('');
       setIdempotencyKey(crypto.randomUUID());
     },
@@ -116,12 +130,9 @@ function DepositCard(): ReactElement {
             {depositMessageFor(depositMutation.error)}
           </p>
         ) : null}
-        {lastReference === null ? null : (
+        {lastSettlement === null ? null : (
           <p className="font-body text-sm text-ink-secondary">
-            Settled with reference{' '}
-            <span data-testid="deposit-reference" className="font-mono text-xs">
-              {lastReference}
-            </span>
+            Settled with reference <SettlementReference value={lastSettlement} network={network} />
           </p>
         )}
       </form>

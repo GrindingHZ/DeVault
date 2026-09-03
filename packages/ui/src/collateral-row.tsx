@@ -85,7 +85,7 @@ function AskingRate({ basisPoints }: { readonly basisPoints: number | null }): R
      phrase broke onto a second line and pushed the row out of rhythm. */
   if (basisPoints === null) {
     return (
-      <span className="shrink-0 whitespace-nowrap font-body text-xs text-ink-secondary">
+      <span className="shrink-0 whitespace-nowrap font-body text-[11px] font-medium uppercase tracking-wider text-ink-secondary">
         No offers
       </span>
     );

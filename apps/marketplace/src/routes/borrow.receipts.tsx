@@ -227,8 +227,16 @@ function Holdings(): ReactElement {
   }
 
   const currency = receipts[0]?.appraisedValue.currency ?? 'USD';
-  const inVault = receipts.filter((receipt) => receipt.status === 'IN_VAULT');
+  /* Three buckets that add up to the appraisal. An item on the market is not
+     free to borrow against, it is already asking, so it gets its own figure
+     rather than padding the free one. */
   const securing = receipts.filter((receipt) => receipt.status === 'ENCUMBERED');
+  const listed = receipts.filter(
+    (receipt) => receipt.status === 'IN_VAULT' && liveListingByReceipt.has(receipt.id),
+  );
+  const free = receipts.filter(
+    (receipt) => receipt.status === 'IN_VAULT' && !liveListingByReceipt.has(receipt.id),
+  );
 
   return (
     <>
@@ -252,10 +260,18 @@ function Holdings(): ReactElement {
             )}
           />
           <Total
-            label="Free to borrow against"
-            hint={`${String(inVault.length)} item${inVault.length === 1 ? '' : 's'} in the vault`}
+            label="Listed for a loan"
+            hint={listed.length === 0 ? 'Nothing on the market' : 'Taking offers'}
             value={totalOf(
-              inVault.map((receipt) => receipt.appraisedValue),
+              listed.map((receipt) => receipt.appraisedValue),
+              currency,
+            )}
+          />
+          <Total
+            label="Free to borrow against"
+            hint={`${String(free.length)} item${free.length === 1 ? '' : 's'} in the vault`}
+            value={totalOf(
+              free.map((receipt) => receipt.appraisedValue),
               currency,
             )}
           />

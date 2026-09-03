@@ -36,9 +36,12 @@ export class Account {
     id: AccountId;
     address: string;
     unusablePasswordHash: string;
+    /* Derived from the custodian allowlist at sign in: a member for an ordinary
+       wallet, vault staff for an authorised one. */
+    roles: readonly Role[];
   }): Account {
     const address = input.address.toLowerCase();
-    return new Account(input.id, address, input.unusablePasswordHash, ['MEMBER'], 0, address);
+    return new Account(input.id, address, input.unusablePasswordHash, input.roles, 0, address);
   }
 
   static restore(input: {

@@ -6,6 +6,8 @@ import { SESSION_REPOSITORY } from '../../domain/accounts/session-repository';
 import { SESSION_TOKEN_ISSUER } from '../../domain/accounts/session-token-issuer';
 import { WALLET_CHALLENGE_REPOSITORY } from '../../domain/accounts/wallet-challenge-repository';
 import { WALLET_SIGNATURE_VERIFIER } from '../../domain/accounts/wallet-signature-verifier';
+import { CUSTODIAN_WALLET_ADDRESSES } from '../../domain/accounts/custodian-addresses';
+import { loadConfiguration } from '../../config/configuration';
 import { readNetworkEndpoints } from '../../config/chain-configuration';
 import { createReadOnlyChainClient } from '../../infrastructure/chain/chain-client';
 import { ID_GENERATOR } from '../../domain/shared/id-generator';
@@ -50,6 +52,10 @@ import { MeController } from './http/me.controller';
         new SuiWalletSignatureVerifier(createReadOnlyChainClient(readNetworkEndpoints())),
     },
     { provide: ID_GENERATOR, useClass: UlidIdGeneratorAdapter },
+    {
+      provide: CUSTODIAN_WALLET_ADDRESSES,
+      useFactory: (): ReadonlySet<string> => new Set(loadConfiguration().custodianWalletAddresses),
+    },
     { provide: SESSION_LIFETIME_MS, useValue: defaultSessionLifetimeMs },
     { provide: APP_GUARD, useClass: AuthGuard },
   ],

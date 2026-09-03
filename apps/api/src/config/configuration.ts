@@ -7,6 +7,11 @@ export interface Configuration {
   readonly storageDirectory: string;
   readonly settlementDriver: SettlementDriver;
   readonly custodyDriver: CustodyDriver;
+  /* The wallet addresses the platform has authorised as vault staff. A wallet
+     here signs in to the custodian console; every other wallet is a member.
+     Config, not a row, so a database reset never revokes a custodian: the
+     authority lives with the operator, not in the data. */
+  readonly custodianWalletAddresses: readonly string[];
 }
 
 /* A driver switch that is set to something unexpected is a deployment mistake,
@@ -24,6 +29,17 @@ function driverFrom<T extends string>(variable: string, allowed: readonly T[], f
   return match;
 }
 
+function addressesFrom(variable: string): string[] {
+  const raw = process.env[variable];
+  if (raw === undefined || raw.trim() === '') {
+    return [];
+  }
+  return raw
+    .split(',')
+    .map((address) => address.trim().toLowerCase())
+    .filter((address) => address.length > 0);
+}
+
 export function loadConfiguration(): Configuration {
   return {
     httpPort: Number(process.env.PORT ?? 3000),
@@ -31,6 +47,7 @@ export function loadConfiguration(): Configuration {
     storageDirectory: process.env.STORAGE_DIRECTORY ?? 'var/storage',
     settlementDriver: driverFrom('SETTLEMENT_DRIVER', ['ledger', 'chain'], 'ledger'),
     custodyDriver: driverFrom('CUSTODY_DRIVER', ['database', 'chain'], 'database'),
+    custodianWalletAddresses: addressesFrom('CUSTODIAN_WALLET_ADDRESSES'),
   };
 }
 

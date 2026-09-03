@@ -1,6 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Account } from '../../../domain/accounts/account';
+import type { Role } from '../../../domain/accounts/account';
 import { ACCOUNT_REPOSITORY } from '../../../domain/accounts/account-repository';
+import { CUSTODIAN_WALLET_ADDRESSES } from '../../../domain/accounts/custodian-addresses';
 import type { AccountRepository } from '../../../domain/accounts/account-repository';
 import { PASSWORD_HASHER } from '../../../domain/accounts/password-hasher';
 import type { PasswordHasher } from '../../../domain/accounts/password-hasher';
@@ -55,6 +57,7 @@ export class CompleteWalletSignInUseCase {
     @Inject(ID_GENERATOR) private readonly idGenerator: IdGenerator,
     @Inject(CLOCK_PORT) private readonly clock: ClockPort,
     @Inject(SESSION_LIFETIME_MS) private readonly sessionLifetimeMs: bigint,
+    @Inject(CUSTODIAN_WALLET_ADDRESSES) private readonly custodianAddresses: ReadonlySet<string>,
   ) {}
 
   async execute(
@@ -101,12 +104,18 @@ export class CompleteWalletSignInUseCase {
     if (existing !== null) {
       return existing;
     }
+    /* Vault staff for an authorised wallet, a member for any other. A custodian
+       is also a member so the same key can hold items and staff the vault. */
+    const roles: readonly Role[] = this.custodianAddresses.has(address)
+      ? ['MEMBER', 'VAULT_STAFF']
+      : ['MEMBER'];
     const account = Account.createForWallet({
       id: accountIdOf(this.idGenerator.generate()),
       address,
       // A real hash of a value nobody holds, so password login can never
       // match a wallet account.
       unusablePasswordHash: await this.passwordHasher.hash(this.idGenerator.generate()),
+      roles,
     });
     await this.accounts.save(account, context);
     return account;

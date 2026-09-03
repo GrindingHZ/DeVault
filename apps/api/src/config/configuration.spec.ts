@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { isChainDriverEnabled, loadConfiguration } from './configuration';
 
-const variables = ['SETTLEMENT_DRIVER', 'CUSTODY_DRIVER'] as const;
+const variables = ['SETTLEMENT_DRIVER', 'CUSTODY_DRIVER', 'CUSTODIAN_WALLET_ADDRESSES'] as const;
 const saved: Partial<Record<(typeof variables)[number], string | undefined>> = {};
 
 describe('loadConfiguration drivers', () => {
@@ -49,5 +49,14 @@ describe('loadConfiguration drivers', () => {
   it('refuses an unknown driver and names the variable', () => {
     process.env.SETTLEMENT_DRIVER = 'postgres';
     expect(() => loadConfiguration()).toThrow(/SETTLEMENT_DRIVER/);
+  });
+
+  it('has no authorised custodian wallets by default', () => {
+    expect(loadConfiguration().custodianWalletAddresses).toEqual([]);
+  });
+
+  it('reads custodian wallets as a lower-cased, trimmed list', () => {
+    process.env.CUSTODIAN_WALLET_ADDRESSES = ' 0xABC , 0xdef ,, ';
+    expect(loadConfiguration().custodianWalletAddresses).toEqual(['0xabc', '0xdef']);
   });
 });

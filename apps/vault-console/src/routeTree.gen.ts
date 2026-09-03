@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ExposureRouteImport } from './routes/exposure'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MintRouteImport } from './routes/mint'
 import { Route as IntakeIndexRouteImport } from './routes/intake.index'
 import { Route as IntakeIntakeIdRouteImport } from './routes/intake.$intakeId'
 import { Route as ReleasesIndexRouteImport } from './routes/releases.index'
@@ -36,6 +37,11 @@ const InventoryRoute = InventoryRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MintRoute = MintRouteImport.update({
+  id: '/mint',
+  path: '/mint',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IntakeIndexRoute = IntakeIndexRouteImport.update({
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/exposure': typeof ExposureRoute
   '/inventory': typeof InventoryRoute
   '/login': typeof LoginRoute
+  '/mint': typeof MintRoute
   '/intake/$intakeId': typeof IntakeIntakeIdRoute
   '/releases/$requestId': typeof ReleasesRequestIdRoute
   '/intake/': typeof IntakeIndexRoute
@@ -74,6 +81,7 @@ export interface FileRoutesByTo {
   '/exposure': typeof ExposureRoute
   '/inventory': typeof InventoryRoute
   '/login': typeof LoginRoute
+  '/mint': typeof MintRoute
   '/intake/$intakeId': typeof IntakeIntakeIdRoute
   '/releases/$requestId': typeof ReleasesRequestIdRoute
   '/intake': typeof IntakeIndexRoute
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   '/exposure': typeof ExposureRoute
   '/inventory': typeof InventoryRoute
   '/login': typeof LoginRoute
+  '/mint': typeof MintRoute
   '/intake/$intakeId': typeof IntakeIntakeIdRoute
   '/releases/$requestId': typeof ReleasesRequestIdRoute
   '/intake/': typeof IntakeIndexRoute
@@ -97,6 +106,7 @@ export interface FileRouteTypes {
     | '/exposure'
     | '/inventory'
     | '/login'
+    | '/mint'
     | '/intake/$intakeId'
     | '/releases/$requestId'
     | '/intake/'
@@ -107,6 +117,7 @@ export interface FileRouteTypes {
     | '/exposure'
     | '/inventory'
     | '/login'
+    | '/mint'
     | '/intake/$intakeId'
     | '/releases/$requestId'
     | '/intake'
@@ -117,6 +128,7 @@ export interface FileRouteTypes {
     | '/exposure'
     | '/inventory'
     | '/login'
+    | '/mint'
     | '/intake/$intakeId'
     | '/releases/$requestId'
     | '/intake/'
@@ -128,6 +140,7 @@ export interface RootRouteChildren {
   ExposureRoute: typeof ExposureRoute
   InventoryRoute: typeof InventoryRoute
   LoginRoute: typeof LoginRoute
+  MintRoute: typeof MintRoute
   IntakeIntakeIdRoute: typeof IntakeIntakeIdRoute
   ReleasesRequestIdRoute: typeof ReleasesRequestIdRoute
   IntakeIndexRoute: typeof IntakeIndexRoute
@@ -162,6 +175,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mint': {
+      id: '/mint'
+      path: '/mint'
+      fullPath: '/mint'
+      preLoaderRoute: typeof MintRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/intake/': {
@@ -200,6 +220,7 @@ const rootRouteChildren: RootRouteChildren = {
   ExposureRoute: ExposureRoute,
   InventoryRoute: InventoryRoute,
   LoginRoute: LoginRoute,
+  MintRoute: MintRoute,
   IntakeIntakeIdRoute: IntakeIntakeIdRoute,
   ReleasesRequestIdRoute: ReleasesRequestIdRoute,
   IntakeIndexRoute: IntakeIndexRoute,

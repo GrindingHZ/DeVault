@@ -45,6 +45,9 @@ export function ConsoleShell({ children }: { readonly children: ReactNode }): Re
           <Link to="/intake" className="font-body text-sm text-ink-secondary">
             Intake
           </Link>
+          <Link to="/mint" className="font-body text-sm text-ink-secondary">
+            Issue
+          </Link>
           <Link to="/inventory" className="font-body text-sm text-ink-secondary">
             Inventory
           </Link>

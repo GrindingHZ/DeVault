@@ -1,55 +1,15 @@
-import {
-  ApiError,
-  createListing,
-  fetchMyReceipts,
-  fetchMyListings,
-  fetchMyRedemptionRequests,
-  messageForError,
-  publishListing,
-  requestRedemption,
-} from '@depawn/contracts';
-import type {
-  MoneyDto,
-  MyListingResponse,
-  ReceiptResponse,
-  RedemptionRequestResponse,
-} from '@depawn/contracts';
-import {
-  Button,
-  Dialog,
-  EmptyState,
-  Field,
-  Money,
-  Page,
-  PageHeader,
-  PageSection,
-  Skeleton,
-  toMinorUnits,
-} from '@depawn/ui';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Navigate, createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
-import type { ReactElement, ReactNode } from 'react';
-import { z } from 'zod';
+import type { WalletResponse } from '@depawn/contracts';
+import { EmptyState, Page, PageHeader, Skeleton } from '@depawn/ui';
+import { Navigate, createFileRoute } from '@tanstack/react-router';
+import type { ReactElement } from 'react';
 import { useCurrentAccount } from '../current-account';
-import { HoldingDetail } from '../holdings/holding-detail';
-import { HoldingTile } from '../holdings/holding-tile';
-import { marketKeys } from '../market-keys';
 import { MarketShell } from '../market-shell';
-
-/* Which item the reader has opened, in the URL rather than in React state, so
-   the back button closes the record and a link opens on it. */
-const receiptsSearchSchema = z.object({ item: z.string().min(1).optional() });
+import { formatUsdc } from '../wallet/usdc';
+import { useWallet } from '../wallet/use-wallet';
 
 export const Route = createFileRoute('/borrow/receipts')({
-  validateSearch: (input: Record<string, unknown>) => {
-    const parsed = receiptsSearchSchema.safeParse(input);
-    return parsed.success ? parsed.data : {};
-  },
   component: BorrowReceiptsPage,
 });
-
-const receiptKeys = marketKeys;
 
 function BorrowReceiptsPage(): ReactElement | null {
   const currentAccount = useCurrentAccount();
@@ -70,7 +30,7 @@ function BorrowReceiptsPage(): ReactElement | null {
       <Page>
         <PageHeader
           title="My items"
-          description="What the vault is holding for you, and what you can do with each one."
+          description="The receipts the vault has issued to your wallet, read from the chain."
         />
         <Holdings />
       </Page>
@@ -78,376 +38,89 @@ function BorrowReceiptsPage(): ReactElement | null {
   );
 }
 
-function redemptionMessageFor(error: unknown): string {
-  if (error instanceof ApiError) {
-    if (error.code === 'RECEIPT_ENCUMBERED') {
-      return 'Repay the loan before asking for the item back.';
-    }
-    if (error.code === 'RECEIPT_ALREADY_BURNED') {
-      return 'This item has already been requested.';
-    }
-  }
-  return messageForError(error, 'The request could not be made.');
-}
-
-/* Money is minor units in a string, so the sum is bigint and never a float. */
-function totalOf(values: readonly MoneyDto[], currency: string): MoneyDto {
-  const minorUnits = values
-    .filter((value) => value.currency === currency)
-    .reduce((running, value) => running + BigInt(value.minorUnits), 0n);
-  return { minorUnits: minorUnits.toString(), currency };
-}
-
 function Holdings(): ReactElement {
-  const queryClient = useQueryClient();
-  const navigate = useNavigate({ from: Route.fullPath });
-  const search = Route.useSearch();
-  const receiptsQuery = useQuery({ queryKey: receiptKeys.myReceipts, queryFn: fetchMyReceipts });
-  const redemptionsQuery = useQuery({
-    queryKey: receiptKeys.myRedemptions,
-    queryFn: fetchMyRedemptionRequests,
-  });
-  /* Listing an item does not move it and does not touch its receipt, so the
-     receipt alone cannot say whether one already stands against it. Without
-     this the screen offered to list something already listed, and the server
-     refused it with `RECEIPT_ALREADY_LISTED` after the click. */
-  const listingsQuery = useQuery({ queryKey: receiptKeys.myListings, queryFn: fetchMyListings });
-  const [listingReceipt, setListingReceipt] = useState<ReceiptResponse | null>(null);
-  const [redemptionError, setRedemptionError] = useState<string | null>(null);
-  // Generated on mount and rotated per success (docs/05-frontend.md).
-  const [redemptionKey, setRedemptionKey] = useState(() => crypto.randomUUID());
+  const wallet = useWallet();
 
-  const redemptionMutation = useMutation({
-    mutationFn: (receiptId: string) =>
-      requestRedemption(receiptId, { idempotencyKey: redemptionKey }),
-    onSuccess: async () => {
-      setRedemptionKey(crypto.randomUUID());
-      setRedemptionError(null);
-      await queryClient.invalidateQueries({ queryKey: receiptKeys.myReceipts });
-      await queryClient.invalidateQueries({ queryKey: receiptKeys.myRedemptions });
-    },
-    onError: (error) => setRedemptionError(redemptionMessageFor(error)),
-  });
-
-  function openItem(receiptId: string | undefined): void {
-    void navigate({ search: () => (receiptId === undefined ? {} : { item: receiptId }) });
-  }
-
-  /* What a borrower can do with an item, and nothing they cannot.
-
-     An item already on the market is not listable again and the way to it is
-     the listing, not this screen. A draft goes to the portfolio instead: a
-     listing nobody can see is not on the browse rail to open. */
-  function actionsFor(receipt: ReceiptResponse): ReactNode {
-    if (receipt.status !== 'IN_VAULT') {
-      return undefined;
-    }
-    const listing = liveListingByReceipt.get(receipt.id);
-    if (listing?.status === 'ACTIVE') {
-      return (
-        <Button
-          variant="secondary"
-          className="whitespace-nowrap"
-          data-testid={`view-listing-${receipt.id}`}
-          onClick={() => void navigate({ to: '/listings', search: { listing: listing.id } })}
-        >
-          View listing
-        </Button>
-      );
-    }
-    if (listing?.status === 'DRAFT') {
-      return (
-        <Button
-          variant="secondary"
-          className="whitespace-nowrap"
-          data-testid={`finish-listing-${receipt.id}`}
-          onClick={() => void navigate({ to: '/portfolio', search: { side: 'borrowing' } })}
-        >
-          Finish listing
-        </Button>
-      );
-    }
-    return (
-      <>
-        <Button
-          variant="secondary"
-          data-testid={`list-${receipt.id}`}
-          onClick={() => setListingReceipt(receipt)}
-        >
-          List
-        </Button>
-        <Button
-          variant="secondary"
-          className="whitespace-nowrap"
-          data-testid={`redeem-${receipt.id}`}
-          onClick={() => redemptionMutation.mutate(receipt.id)}
-          disabled={redemptionMutation.isPending}
-        >
-          Ask for it back
-        </Button>
-      </>
-    );
-  }
-
-  if (receiptsQuery.isPending) {
-    /* A skeleton in the shape of the answer, never a spinner
-       (docs/DESIGN-BRIEF.md rule 5). */
+  if (wallet.isPending) {
     return (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {[0, 1, 2].map((slot) => (
-          <div key={slot} className="rounded-lg border border-edge bg-surface-raised p-3">
-            <div className="mb-3 h-36 rounded-md bg-surface-sunken" />
+          <div key={slot} className="rounded-lg border border-edge bg-surface-raised p-4">
             <Skeleton lineCount={3} />
           </div>
         ))}
       </div>
     );
   }
-  if (receiptsQuery.isError || receiptsQuery.data === undefined) {
+  if (wallet.isError || wallet.data === undefined) {
     return (
       <p role="alert" className="font-body text-sm text-status-danger">
-        Your items could not be loaded.
+        Your items could not be read from the chain.
       </p>
     );
   }
 
-  const receipts = receiptsQuery.data.items;
-  const redemptionByReceipt = new Map<string, RedemptionRequestResponse>(
-    (redemptionsQuery.data?.items ?? []).map((item) => [item.receiptId, item]),
-  );
-  /* Only a live one. A cancelled or expired listing leaves the item free to
-     list again, and a matched one belongs to a loan the receipt already
-     reports by being encumbered. */
-  const liveListingByReceipt = new Map<string, MyListingResponse>(
-    (listingsQuery.data?.items ?? [])
-      .filter((listing) => listing.status === 'DRAFT' || listing.status === 'ACTIVE')
-      .map((listing) => [listing.receiptId, listing]),
-  );
-  const opened = receipts.find((receipt) => receipt.id === search.item);
+  const money = wallet.data;
+  const items = money.items;
 
-  if (receipts.length === 0) {
+  if (items.length === 0) {
     return (
       <EmptyState
         title="Nothing in the vault yet"
-        description="Bring an item to a vault. Once staff have appraised it and taken custody, it appears here and you can borrow against it."
+        description="Bring an item to a vault. Once staff appraise it and take custody, its receipt is minted to your wallet and appears here."
       />
     );
   }
 
-  const currency = receipts[0]?.appraisedValue.currency ?? 'USD';
-  const inVault = receipts.filter((receipt) => receipt.status === 'IN_VAULT');
-  const securing = receipts.filter((receipt) => receipt.status === 'ENCUMBERED');
+  const appraised = items.reduce((total, item) => total + BigInt(item.appraisedValueBaseUnits), 0n);
 
   return (
     <>
-      <PageSection>
-        <dl className="flex flex-wrap gap-8 border-b border-edge pb-4">
-          <Total
-            label="Appraised"
-            hint={`Across ${String(receipts.length)} item${receipts.length === 1 ? '' : 's'}`}
-            value={totalOf(
-              receipts.map((receipt) => receipt.appraisedValue),
-              currency,
-            )}
-          />
-          <Total
-            label="Securing loans"
-            hint={securing.length === 0 ? 'Nothing pledged' : 'Pledged until settled'}
-            tone={securing.length === 0 ? 'default' : 'warning'}
-            value={totalOf(
-              securing.map((receipt) => receipt.appraisedValue),
-              currency,
-            )}
-          />
-          <Total
-            label="Free to borrow against"
-            hint={`${String(inVault.length)} item${inVault.length === 1 ? '' : 's'} in the vault`}
-            value={totalOf(
-              inVault.map((receipt) => receipt.appraisedValue),
-              currency,
-            )}
-          />
-        </dl>
-      </PageSection>
-
-      {redemptionError === null ? null : (
-        <p role="alert" className="font-body text-sm text-status-danger">
-          {redemptionError}
-        </p>
-      )}
+      <dl className="flex flex-wrap gap-8 border-b border-edge pb-4">
+        <div>
+          <dt className="font-body text-xs text-ink-secondary">Appraised</dt>
+          <dd className="mt-1 font-figure text-lg tabular-nums text-ink-primary">
+            {formatUsdc(appraised, money.decimals)}
+          </dd>
+          <dd className="mt-0.5 font-body text-xs text-ink-secondary">
+            Across {items.length} {items.length === 1 ? 'item' : 'items'}, free to borrow against
+          </dd>
+        </div>
+      </dl>
 
       <div
         data-testid="my-receipts"
-        className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
+        className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
       >
-        {receipts.map((receipt) => (
-          <HoldingTile
-            key={receipt.id}
-            receipt={receipt}
-            redemption={redemptionByReceipt.get(receipt.id)}
-            listingStatus={liveListingByReceipt.get(receipt.id)?.status ?? null}
-            onOpen={openItem}
-            actions={actionsFor(receipt)}
-          />
+        {items.map((item) => (
+          <ReceiptCard key={item.objectId} item={item} decimals={money.decimals} />
         ))}
       </div>
-
-      {opened === undefined ? null : (
-        <HoldingDetail
-          receipt={opened}
-          redemption={redemptionByReceipt.get(opened.id)}
-          listing={liveListingByReceipt.get(opened.id)}
-          onClose={() => openItem(undefined)}
-        />
-      )}
-
-      {listingReceipt === null ? null : (
-        <ListReceiptDialog receipt={listingReceipt} onClose={() => setListingReceipt(null)} />
-      )}
     </>
   );
 }
 
-function Total({
-  label,
-  hint,
-  value,
-  tone,
+function ReceiptCard({
+  item,
+  decimals,
 }: {
-  readonly label: string;
-  readonly hint: string;
-  readonly value: MoneyDto;
-  readonly tone?: 'default' | 'warning';
+  readonly item: WalletResponse['items'][number];
+  readonly decimals: number;
 }): ReactElement {
   return (
-    <div>
-      <dt className="font-body text-xs text-ink-secondary">{label}</dt>
-      <dd
-        className={`mt-1 font-figure text-lg tabular-nums ${
-          tone === 'warning' ? 'text-status-warning' : 'text-ink-primary'
-        }`}
+    <div className="flex flex-col gap-2 rounded-lg border border-edge bg-surface-raised p-4">
+      <span className="font-body text-sm font-semibold text-ink-primary">{item.itemCategory}</span>
+      <span className="font-figure text-lg tabular-nums text-ink-primary">
+        {formatUsdc(BigInt(item.appraisedValueBaseUnits), decimals)}
+      </span>
+      <a
+        href={`https://suiscan.xyz/testnet/object/${item.objectId}`}
+        target="_blank"
+        rel="noreferrer"
+        className="font-mono text-xs text-ink-secondary underline"
       >
-        <Money value={value} />
-      </dd>
-      <dd className="mt-0.5 font-body text-xs text-ink-secondary">{hint}</dd>
+        {item.objectId.slice(0, 10)}...{item.objectId.slice(-6)}
+      </a>
     </div>
-  );
-}
-
-/* How long the listing stays open for offers. Sent as a duration so the
-   server dates it from its own clock; a date computed here would be wrong
-   whenever the two clocks disagree. */
-const listingLifetimeMs = 7 * 24 * 60 * 60 * 1000;
-
-function listMessageFor(error: unknown): string {
-  if (error instanceof ApiError) {
-    if (error.code === 'LOAN_TO_VALUE_EXCEEDED') {
-      return 'The requested principal is above the lending ceiling for this item.';
-    }
-    if (error.code === 'RECEIPT_ALREADY_LISTED') {
-      return 'This receipt already has a live listing.';
-    }
-  }
-  return messageForError(error, 'The listing could not be created.');
-}
-
-function ListReceiptDialog({
-  receipt,
-  onClose,
-}: {
-  readonly receipt: ReceiptResponse;
-  readonly onClose: () => void;
-}): ReactElement {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [principalInput, setPrincipalInput] = useState('');
-  const [maxRateInput, setMaxRateInput] = useState('24.00');
-  const [durationDaysInput, setDurationDaysInput] = useState('30');
-  const [inputError, setInputError] = useState<string | null>(null);
-  // Both steps carry keys generated when the dialog mounts, so a double
-  // click or a retry after a network blip replays instead of duplicating
-  // (docs/05-frontend.md).
-  const [createKey] = useState(() => crypto.randomUUID());
-  const [publishKey] = useState(() => crypto.randomUUID());
-
-  const listMutation = useMutation({
-    mutationFn: async (input: {
-      minorUnits: string;
-      maxRateBasisPoints: number;
-      durationDays: number;
-    }) => {
-      const listing = await createListing(
-        {
-          receiptId: receipt.id,
-          requestedPrincipal: { minorUnits: input.minorUnits, currency: 'USD' },
-          maxAnnualPercentageRateBasisPoints: input.maxRateBasisPoints,
-          requestedDurationMs: input.durationDays * 24 * 60 * 60 * 1000,
-          requestedLifetimeMs: listingLifetimeMs,
-        },
-        { idempotencyKey: createKey },
-      );
-      return publishListing(listing.id, { idempotencyKey: publishKey });
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: marketKeys.myListings });
-      await queryClient.invalidateQueries({ queryKey: marketKeys.browse });
-      onClose();
-      await navigate({ to: '/portfolio', search: { side: 'borrowing' } });
-    },
-  });
-
-  return (
-    <Dialog title="List this receipt" isOpen onClose={onClose}>
-      <p className="mb-4 font-body text-sm text-ink-secondary">
-        {receipt.itemDescription}, appraised at <Money value={receipt.appraisedValue} />.
-      </p>
-      <form
-        className="flex flex-col gap-4"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const minorUnits = toMinorUnits(principalInput);
-          const rate = toMinorUnits(maxRateInput);
-          const durationDays = Number(durationDaysInput);
-          if (minorUnits === null || rate === null || !Number.isInteger(durationDays)) {
-            setInputError('Check the principal, rate, and duration.');
-            return;
-          }
-          setInputError(null);
-          listMutation.mutate({
-            minorUnits,
-            maxRateBasisPoints: Number(rate),
-            durationDays,
-          });
-        }}
-      >
-        <Field
-          label="Requested principal (USD)"
-          data-testid="list-principal"
-          value={principalInput}
-          onChange={(event) => setPrincipalInput(event.target.value)}
-          errorMessage={inputError ?? undefined}
-        />
-        <Field
-          label="Maximum rate (% per year)"
-          data-testid="list-max-rate"
-          value={maxRateInput}
-          onChange={(event) => setMaxRateInput(event.target.value)}
-        />
-        <Field
-          label="Duration (days)"
-          data-testid="list-duration"
-          value={durationDaysInput}
-          onChange={(event) => setDurationDaysInput(event.target.value)}
-        />
-        <Button data-testid="list-submit" type="submit" disabled={listMutation.isPending}>
-          List and publish
-        </Button>
-        {listMutation.isError ? (
-          <p role="alert" className="font-body text-sm text-status-danger">
-            {listMessageFor(listMutation.error)}
-          </p>
-        ) : null}
-      </form>
-    </Dialog>
   );
 }

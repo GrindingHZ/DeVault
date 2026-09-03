@@ -1,8 +1,11 @@
-import type { WalletResponse } from '@depawn/contracts';
-import { Card, Page, PageHeader, Skeleton } from '@depawn/ui';
-import { Navigate, createFileRoute } from '@tanstack/react-router';
+import { fetchMyListings, fetchMyReceipts } from '@depawn/contracts';
+import type { ReceiptResponse } from '@depawn/contracts';
+import { Card, Money, Page, PageHeader, Skeleton } from '@depawn/ui';
+import { useQuery } from '@tanstack/react-query';
+import { Link, Navigate, createFileRoute } from '@tanstack/react-router';
 import type { ReactElement } from 'react';
 import { useCurrentAccount } from '../current-account';
+import { marketKeys } from '../market-keys';
 import { MarketShell } from '../market-shell';
 import { ActivityLog } from '../wallet/activity-log';
 import { formatUsdc } from '../wallet/usdc';
@@ -125,7 +128,7 @@ function WalletBody(): ReactElement {
         </Card>
       ) : null}
 
-      <ItemsCard items={money.items} decimals={decimals} />
+      <ItemsCard />
       <Card title="On-chain activity">
         <p className="mb-3 font-body text-sm text-ink-secondary">
           Every move you have made on chain, newest first. Open a row for the transaction hash and
@@ -138,29 +141,58 @@ function WalletBody(): ReactElement {
   );
 }
 
-function ItemsCard({
-  items,
-  decimals,
-}: {
-  readonly items: WalletResponse['items'];
-  readonly decimals: number;
-}): ReactElement {
+/* The same receipts My items shows, so an item that is listed or on loan does
+   not vanish from here while it is plainly visible a click away. Each carries
+   the one word that says where it stands, and the page that acts on them is
+   linked rather than duplicated. */
+function ItemsCard(): ReactElement {
+  const receipts = useQuery({ queryKey: marketKeys.myReceipts, queryFn: fetchMyReceipts });
+  const listings = useQuery({ queryKey: marketKeys.myListings, queryFn: fetchMyListings });
+  const listedReceiptIds = new Set(
+    (listings.data?.items ?? [])
+      .filter((listing) => listing.status === 'ACTIVE')
+      .map((listing) => listing.receiptId),
+  );
+  const items = receipts.data?.items ?? [];
+
+  function standingOf(receipt: ReceiptResponse): string {
+    if (receipt.status === 'ENCUMBERED') {
+      return 'Securing a loan';
+    }
+    if (listedReceiptIds.has(receipt.id)) {
+      return 'Taking offers';
+    }
+    return 'In the vault';
+  }
+
   return (
     <Card title="Items">
-      {items.length === 0 ? (
+      {receipts.isPending ? (
+        <Skeleton lineCount={2} />
+      ) : items.length === 0 ? (
         <p className="font-body text-sm text-ink-secondary">No items in your name.</p>
       ) : (
         <ul className="flex flex-col gap-3" data-testid="wallet-items">
-          {items.map((item) => (
-            <li key={item.objectId} className="flex items-baseline justify-between gap-4">
-              <span className="font-body text-sm text-ink-primary">{item.itemCategory}</span>
-              <span className="font-figure text-sm tabular-nums text-ink-secondary">
-                {formatUsdc(BigInt(item.appraisedValueBaseUnits), decimals)}
+          {items.map((receipt) => (
+            <li key={receipt.id} className="flex items-baseline justify-between gap-4">
+              <span className="min-w-0 truncate font-body text-sm text-ink-primary">
+                {receipt.itemDescription}
+                <span className="ml-2 font-body text-xs text-ink-secondary">
+                  {standingOf(receipt)}
+                </span>
+              </span>
+              <span className="shrink-0 font-figure text-sm tabular-nums text-ink-secondary">
+                <Money value={receipt.appraisedValue} />
               </span>
             </li>
           ))}
         </ul>
       )}
+      <p className="mt-3 font-body text-xs text-ink-secondary">
+        <Link to="/borrow/receipts" className="text-status-active underline">
+          Manage them in My items
+        </Link>
+      </p>
     </Card>
   );
 }

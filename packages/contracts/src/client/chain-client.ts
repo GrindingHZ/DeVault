@@ -123,6 +123,9 @@ export function collectAction(body: PledgeAction): Promise<SponsoredTransactionR
 export function claimAction(body: PledgeAction): Promise<SponsoredTransactionResponse> {
   return buildSponsored('/chain/actions/claim', body);
 }
+export function cancelPledgeAction(body: PledgeAction): Promise<SponsoredTransactionResponse> {
+  return buildSponsored('/chain/actions/cancel-pledge', body);
+}
 export function redeemAction(body: RedeemAction): Promise<SponsoredTransactionResponse> {
   return buildSponsored('/chain/actions/redeem', body);
 }

@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { ReceiptResponse, RedemptionRequestResponse } from '@depawn/contracts';
+import { loanToValueBasisPointsFor } from '../../config/loan-to-value';
 import type { ChainClient } from '../../infrastructure/chain/chain-client';
 import { readDeployment } from '../../infrastructure/chain/chain-deployment.registry';
 import { PrismaService } from '../../infrastructure/persistence/prisma.service';
@@ -159,6 +160,7 @@ export class MemberReadService {
     status: ReceiptResponse['status'],
     encumberedByLoanId: string | null,
   ): ReceiptResponse {
+    const category = categoryOf(itemCategory);
     return {
       id,
       vaultId: '',
@@ -167,13 +169,14 @@ export class MemberReadService {
       intakeRecordHash: '',
       appraisedValue: toMoneyDto(appraisedValueBaseUnits, decimals),
       appraisedAt: isoOf(Date.now()),
-      itemCategory: categoryOf(itemCategory),
+      itemCategory: category,
       itemDescription: name ?? 'Vaulted item',
       serialNumbers: [],
       hasPhotograph,
       insurancePolicyReference: '',
       status,
       encumberedByLoanId,
+      categoryMaxLoanToValueBasisPoints: loanToValueBasisPointsFor(category),
     };
   }
 

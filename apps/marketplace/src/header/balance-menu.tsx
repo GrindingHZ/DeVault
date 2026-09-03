@@ -2,21 +2,20 @@ import { ChevronDownIcon, Popover, WalletIcon } from '@depawn/ui';
 import { useNavigate } from '@tanstack/react-router';
 import type { ReactElement } from 'react';
 import { formatUsdc } from '../wallet/usdc';
-import { useAvailableUsdc } from '../wallet/use-wallet-money';
+import { useWallet } from '../wallet/use-wallet';
 
 /* The one number a lender needs before deciding whether to offer: the USDC free
-   in their own wallet, read straight from the chain. There is no held figure
-   here any more, because held money now lives in the escrow objects the wallet
-   page reads, not in a platform ledger account. */
+   in their own wallet, computed by the api from the chain. Held money now lives
+   in the escrow objects the wallet page reads, not in a ledger account. */
 export function BalanceMenu(): ReactElement | null {
   const navigate = useNavigate();
-  const { isReady, availableBaseUnits, decimals } = useAvailableUsdc();
+  const wallet = useWallet();
 
-  if (!isReady) {
+  if (wallet.data === undefined) {
     return null;
   }
 
-  const available = formatUsdc(availableBaseUnits, decimals);
+  const available = formatUsdc(BigInt(wallet.data.availableBaseUnits), wallet.data.decimals);
 
   return (
     <Popover

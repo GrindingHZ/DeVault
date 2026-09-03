@@ -1,4 +1,5 @@
 import { requestTestnetUsdc } from '@depawn/contracts';
+import type { WalletResponse } from '@depawn/contracts';
 import { Button, Card, Page, PageHeader, Skeleton } from '@depawn/ui';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Navigate, createFileRoute } from '@tanstack/react-router';
@@ -6,8 +7,7 @@ import type { ReactElement } from 'react';
 import { useCurrentAccount } from '../current-account';
 import { MarketShell, useFeedback } from '../market-shell';
 import { formatUsdc } from '../wallet/usdc';
-import { useWalletMoney } from '../wallet/use-wallet-money';
-import type { ReceiptSummary } from '../wallet/chain-objects';
+import { useWallet } from '../wallet/use-wallet';
 
 export const Route = createFileRoute('/wallet')({
   component: WalletPage,
@@ -32,7 +32,7 @@ function WalletPage(): ReactElement | null {
       <Page>
         <PageHeader
           title="Wallet"
-          description="Your USDC and your positions, read straight from the chain."
+          description="Your USDC and your positions, read from the chain."
         />
         <WalletBody />
       </Page>
@@ -41,27 +41,16 @@ function WalletPage(): ReactElement | null {
 }
 
 function WalletBody(): ReactElement {
-  /* Testnet time is real time, so the chain clock and the browser agree; there
-     is no demo clock running ahead of the wall clock on a public network. */
-  const money = useWalletMoney(Date.now());
+  const wallet = useWallet();
 
-  if (!money.hasWallet) {
-    return (
-      <Card title="Balance">
-        <p className="font-body text-sm text-ink-secondary">
-          Sign in with a wallet to see your USDC and your positions.
-        </p>
-      </Card>
-    );
-  }
-  if (money.isLoading) {
+  if (wallet.isPending) {
     return (
       <Card title="Balance">
         <Skeleton lineCount={3} />
       </Card>
     );
   }
-  if (money.isError) {
+  if (wallet.isError || wallet.data === undefined) {
     return (
       <Card title="Balance">
         <p role="alert" className="font-body text-sm text-status-danger">
@@ -71,8 +60,10 @@ function WalletBody(): ReactElement {
     );
   }
 
+  const money = wallet.data;
   const decimals = money.decimals;
-  const owed = money.totals.owedNowBaseUnits;
+  const owed = BigInt(money.owedNowBaseUnits);
+  const reclaimable = BigInt(money.reclaimableBaseUnits);
 
   return (
     <>
@@ -83,23 +74,34 @@ function WalletBody(): ReactElement {
             data-testid="available-balance"
             className="font-figure text-2xl font-semibold tabular-nums text-ink-primary"
           >
-            {formatUsdc(money.availableBaseUnits, decimals)}
+            {formatUsdc(BigInt(money.availableBaseUnits), decimals)}
           </span>
         </div>
         <dl className="mt-5 flex flex-wrap gap-x-10 gap-y-4">
           <Figure
+            label="Committed to offers"
+            value={formatUsdc(BigInt(money.committedBaseUnits), decimals)}
+            note="Locked in offers you have standing. It comes back if an offer is not taken."
+          />
+          <Figure
+            label="Reclaimable"
+            value={formatUsdc(reclaimable, decimals)}
+            note="In offers that lost or expired. Reclaim it on the offer to return it here."
+            tone={reclaimable > 0n ? 'warning' : 'default'}
+          />
+          <Figure
             label="Ready to collect"
-            value={formatUsdc(money.totals.collectableBaseUnits, decimals)}
+            value={formatUsdc(BigInt(money.collectableBaseUnits), decimals)}
             note="Payoff on loans you funded that have been repaid. Collect it on the loan."
           />
           <Figure
             label="Lent out"
-            value={formatUsdc(money.totals.lentPrincipalBaseUnits, decimals)}
+            value={formatUsdc(BigInt(money.lentPrincipalBaseUnits), decimals)}
             note="Principal at work on your active loans."
           />
           <Figure
             label="Interest earned"
-            value={formatUsdc(money.totals.interestEarnedBaseUnits, decimals)}
+            value={formatUsdc(BigInt(money.interestEarnedBaseUnits), decimals)}
             note="Accrued so far on those loans, to this moment."
           />
         </dl>
@@ -116,17 +118,44 @@ function WalletBody(): ReactElement {
               {formatUsdc(owed, decimals)}
             </span>
             <span className="font-body text-xs text-ink-secondary">
-              Across {money.borrower.length} active{' '}
-              {money.borrower.length === 1 ? 'loan' : 'loans'}. Repay before the grace cliff to keep
-              your item.
+              Across {money.activeBorrowCount} active{' '}
+              {money.activeBorrowCount === 1 ? 'loan' : 'loans'}. Repay before the grace cliff to
+              keep your item.
             </span>
           </div>
         </Card>
       ) : null}
 
-      <ItemsCard receipts={money.receipts} decimals={decimals} />
+      <ItemsCard items={money.items} decimals={decimals} />
       <GetUsdcCard />
     </>
+  );
+}
+
+function ItemsCard({
+  items,
+  decimals,
+}: {
+  readonly items: WalletResponse['items'];
+  readonly decimals: number;
+}): ReactElement {
+  return (
+    <Card title="Items">
+      {items.length === 0 ? (
+        <p className="font-body text-sm text-ink-secondary">No items in your name.</p>
+      ) : (
+        <ul className="flex flex-col gap-3" data-testid="wallet-items">
+          {items.map((item) => (
+            <li key={item.objectId} className="flex items-baseline justify-between gap-4">
+              <span className="font-body text-sm text-ink-primary">{item.itemCategory}</span>
+              <span className="font-figure text-sm tabular-nums text-ink-secondary">
+                {formatUsdc(BigInt(item.appraisedValueBaseUnits), decimals)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
   );
 }
 
@@ -164,46 +193,27 @@ function GetUsdcCard(): ReactElement {
   );
 }
 
-function ItemsCard({
-  receipts,
-  decimals,
-}: {
-  readonly receipts: readonly ReceiptSummary[];
-  readonly decimals: number;
-}): ReactElement {
-  return (
-    <Card title="Items">
-      {receipts.length === 0 ? (
-        <p className="font-body text-sm text-ink-secondary">No items in your name.</p>
-      ) : (
-        <ul className="flex flex-col gap-3" data-testid="wallet-items">
-          {receipts.map((receipt) => (
-            <li key={receipt.objectId} className="flex items-baseline justify-between gap-4">
-              <span className="font-body text-sm text-ink-primary">{receipt.itemCategory}</span>
-              <span className="font-figure text-sm tabular-nums text-ink-secondary">
-                {formatUsdc(receipt.appraisedValueBaseUnits, decimals)}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Card>
-  );
-}
-
 function Figure({
   label,
   value,
   note,
+  tone = 'default',
 }: {
   readonly label: string;
   readonly value: string;
   readonly note: string;
+  readonly tone?: 'default' | 'warning';
 }): ReactElement {
   return (
     <div className="flex max-w-xs flex-col gap-1">
       <dt className="font-body text-sm text-ink-secondary">{label}</dt>
-      <dd className="font-figure text-lg font-semibold tabular-nums text-ink-primary">{value}</dd>
+      <dd
+        className={`font-figure text-lg font-semibold tabular-nums ${
+          tone === 'warning' ? 'text-status-warning' : 'text-ink-primary'
+        }`}
+      >
+        {value}
+      </dd>
       <dd className="font-body text-xs leading-relaxed text-ink-secondary">{note}</dd>
     </div>
   );

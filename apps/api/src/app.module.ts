@@ -16,7 +16,6 @@ import { SystemStateModule } from './infrastructure/system-state/system-state.mo
 import { AccountsModule } from './modules/accounts/accounts.module';
 import { CustodyApiModule } from './modules/custody/custody-api.module';
 import { HealthModule } from './modules/health/health.module';
-import { LedgerModule } from './modules/ledger/ledger.module';
 import { LendingApiModule } from './modules/lending/lending-api.module';
 import { MarketplaceApiModule } from './modules/marketplace/marketplace-api.module';
 import { SharedHttpModule } from './modules/shared/shared-http.module';
@@ -52,7 +51,6 @@ export class AppModule implements NestModule {
         ProtocolParametersModule,
         SharedHttpModule,
         AccountsModule,
-        LedgerModule,
         CustodyApiModule,
         MarketplaceApiModule,
         LendingApiModule,

@@ -14,7 +14,7 @@ import {
   OutboxDrainWorker,
 } from './events/outbox-drain.worker';
 import { UlidIdGeneratorAdapter } from './id/ulid-id-generator.adapter';
-import { FilesystemObjectStorageAdapter } from './storage/filesystem-object-storage.adapter';
+import { createObjectStorage } from './storage/create-object-storage';
 
 @Global()
 @Module({
@@ -31,7 +31,7 @@ import { FilesystemObjectStorageAdapter } from './storage/filesystem-object-stor
         isChainDriverEnabled(loadConfiguration()) && sui !== undefined ? sui : outbox,
       inject: [OutboxDomainEventPublisher, { token: SuiDomainEventPublisher, optional: true }],
     },
-    { provide: OBJECT_STORAGE_PORT, useClass: FilesystemObjectStorageAdapter },
+    { provide: OBJECT_STORAGE_PORT, useFactory: () => createObjectStorage(loadConfiguration()) },
     { provide: OUTBOX_HANDLER, useClass: LoggingOutboxHandler },
     OutboxDrainWorker,
   ],

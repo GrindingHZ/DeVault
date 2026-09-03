@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { isChainDriverEnabled, loadConfiguration } from './configuration';
 
-const variables = ['SETTLEMENT_DRIVER', 'CUSTODY_DRIVER', 'CUSTODIAN_WALLET_ADDRESSES'] as const;
+const variables = [
+  'SETTLEMENT_DRIVER',
+  'CUSTODY_DRIVER',
+  'CUSTODIAN_WALLET_ADDRESSES',
+  'STORAGE_DRIVER',
+] as const;
 const saved: Partial<Record<(typeof variables)[number], string | undefined>> = {};
 
 describe('loadConfiguration drivers', () => {
@@ -49,6 +54,20 @@ describe('loadConfiguration drivers', () => {
   it('refuses an unknown driver and names the variable', () => {
     process.env.SETTLEMENT_DRIVER = 'postgres';
     expect(() => loadConfiguration()).toThrow(/SETTLEMENT_DRIVER/);
+  });
+
+  it('defaults storage to the local filesystem, so a developer needs no bucket', () => {
+    expect(loadConfiguration().storageDriver).toBe('filesystem');
+  });
+
+  it('reads the bucket driver from its own variable', () => {
+    process.env.STORAGE_DRIVER = 'supabase';
+    expect(loadConfiguration().storageDriver).toBe('supabase');
+  });
+
+  it('refuses an unknown storage driver and names the variable', () => {
+    process.env.STORAGE_DRIVER = 's3';
+    expect(() => loadConfiguration()).toThrow(/STORAGE_DRIVER/);
   });
 
   it('has no authorised custodian wallets by default', () => {

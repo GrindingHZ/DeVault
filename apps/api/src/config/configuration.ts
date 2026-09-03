@@ -1,10 +1,14 @@
 export type SettlementDriver = 'ledger' | 'chain';
 export type CustodyDriver = 'database' | 'chain';
+export type StorageDriver = 'filesystem' | 'supabase';
 
 export interface Configuration {
   readonly httpPort: number;
   readonly databaseUrl: string;
   readonly storageDirectory: string;
+  /* Where item photographs live. A host with an ephemeral disk loses them on
+     every deploy, so anything but a developer's machine wants the bucket. */
+  readonly storageDriver: StorageDriver;
   readonly settlementDriver: SettlementDriver;
   readonly custodyDriver: CustodyDriver;
   /* The wallet addresses the platform has authorised as vault staff. A wallet
@@ -47,6 +51,7 @@ export function loadConfiguration(): Configuration {
     storageDirectory: process.env.STORAGE_DIRECTORY ?? 'var/storage',
     settlementDriver: driverFrom('SETTLEMENT_DRIVER', ['ledger', 'chain'], 'ledger'),
     custodyDriver: driverFrom('CUSTODY_DRIVER', ['database', 'chain'], 'database'),
+    storageDriver: driverFrom('STORAGE_DRIVER', ['filesystem', 'supabase'], 'filesystem'),
     custodianWalletAddresses: addressesFrom('CUSTODIAN_WALLET_ADDRESSES'),
   };
 }

@@ -16,7 +16,10 @@ export class FilesystemObjectStorageAdapter implements ObjectStoragePort {
 
   async get(key: string): Promise<Uint8Array | null> {
     try {
-      return await readFile(this.resolve(key));
+      /* readFile hands back a Buffer, which serialises as {"type":"Buffer"}
+         where the bucket adapter's Uint8Array serialises as bytes. Narrowing it
+         here is what lets one adapter stand in for the other. */
+      return new Uint8Array(await readFile(this.resolve(key)));
     } catch (error) {
       if (isFileMissing(error)) {
         return null;

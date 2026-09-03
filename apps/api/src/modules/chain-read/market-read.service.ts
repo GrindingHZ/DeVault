@@ -142,7 +142,13 @@ export class MarketReadService {
   ): Promise<ListingSummary> {
     const item = await this.itemOf(listing);
     const category = categoryOf(listing.itemCategory);
-    const loanToValueBasisPoints = loanToValueBasisPointsFor(category);
+    /* This listing's own loan-to-value: the principal the borrower asked for as
+       a share of the appraisal, not the category ceiling. The ceiling is a
+       separate figure the ui draws as the cap the bar fills toward. */
+    const loanToValueBasisPoints =
+      listing.appraisedValueBaseUnits > 0n
+        ? Number((listing.requestedPrincipalBaseUnits * 10_000n) / listing.appraisedValueBaseUnits)
+        : 0;
     return {
       id: listing.pledgeId,
       borrowerAccountId: listing.borrower,
@@ -160,7 +166,7 @@ export class MarketReadService {
       /* The rate to beat: the lowest any standing offer has undercut to, or
          none yet if nobody has offered. */
       bestOfferRateBasisPoints: bestRateOf(offers),
-      categoryMaxLoanToValueBasisPoints: loanToValueBasisPoints,
+      categoryMaxLoanToValueBasisPoints: loanToValueBasisPointsFor(category),
     };
   }
 

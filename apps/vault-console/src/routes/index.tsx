@@ -24,7 +24,7 @@ function HomeContent(): ReactElement {
     <div data-testid="authenticated-home">
       <ConsoleShell>
         <p data-testid="account-email" className="mb-4 font-body text-sm text-ink-secondary">
-          {currentAccount.data?.email}
+          {currentAccount.data?.email ?? currentAccount.data?.walletAddress}
         </p>
         <EmptyState
           title="Start with an intake"

@@ -1,6 +1,3 @@
-import { ReceiptNotEncumbered } from '../../domain/custody/receipt-not-encumbered';
-import { ReceiptNotInVault } from '../../domain/custody/receipt-not-in-vault';
-import { InsufficientFunds } from '../../domain/ledger/insufficient-funds';
 import type { DomainError } from '../../domain/shared/domain-error';
 import { SystemPaused } from '../../domain/shared/system-paused';
 import type { MoveAbortDetail } from './chain-execution';
@@ -9,40 +6,30 @@ import type { MoveAbortDetail } from './chain-execution';
    packages/move. A unit test reads the sources and refuses a drift. */
 export const moveAbortCodes = {
   config: { EBadParameters: 0n, EPaused: 1n },
-  custody: { ENotInVault: 0n, ENotEncumbered: 1n, EEmptyKey: 2n, EZeroValue: 3n },
+  custody: { EEmptyKey: 0n, EZeroValue: 1n },
   escrow: {
-    EInsufficientFunds: 0n,
-    EWrongOwner: 1n,
-    EPayoutNotEmpty: 2n,
-    EZeroAmount: 3n,
-    EEmptyKey: 4n,
+    EEmptyKey: 0n,
+    EZeroAmount: 1n,
+    EOfferTooShort: 2n,
+    ENotExpired: 3n,
+    EStillOpen: 4n,
+    EWon: 5n,
+    EZeroRate: 6n,
   },
   attestation: { EEmptyEventType: 0n },
 } as const;
 
-/* The aborts a domain error already names. The adapters pre check their
-   projections so these are backstops; anything else is a fault. A receipt
-   the chain no longer has is the burned one, which is why the custody
-   codes read as they do. */
+/* The aborts a domain error already names. In self-custody the api pre checks
+   every input the escrow and custody modules guard, so those aborts should not
+   reach a member and carry no domain meaning worth surfacing; a pause is the
+   one condition the api cannot pre check, because it can change between the
+   build and the signed execution. Anything else is a fault. */
 export function domainErrorForAbort(abort: MoveAbortDetail): DomainError | null {
   if (abort.module === null || abort.abortCode === null) {
     return null;
   }
-  const code = abort.abortCode;
-  switch (abort.module) {
-    case 'escrow':
-      return code === moveAbortCodes.escrow.EInsufficientFunds ? new InsufficientFunds() : null;
-    case 'config':
-      return code === moveAbortCodes.config.EPaused ? new SystemPaused() : null;
-    case 'custody':
-      if (code === moveAbortCodes.custody.ENotInVault) {
-        return new ReceiptNotInVault();
-      }
-      if (code === moveAbortCodes.custody.ENotEncumbered) {
-        return new ReceiptNotEncumbered();
-      }
-      return null;
-    default:
-      return null;
+  if (abort.module === 'config' && abort.abortCode === moveAbortCodes.config.EPaused) {
+    return new SystemPaused();
   }
+  return null;
 }

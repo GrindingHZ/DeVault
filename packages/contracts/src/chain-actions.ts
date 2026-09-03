@@ -67,7 +67,7 @@ export const walletResponseSchema = z.object({
   lender: z.array(
     z.object({
       pledgeId: z.string(),
-      status: z.enum(['open', 'active', 'repaid', 'defaulted']),
+      status: z.enum(['open', 'active', 'repaid', 'defaulted', 'cancelled', 'closed']),
       principalBaseUnits: baseUnits,
       earnedSoFarBaseUnits: baseUnits,
       valueAtMaturityBaseUnits: baseUnits,
@@ -79,7 +79,7 @@ export const walletResponseSchema = z.object({
   borrower: z.array(
     z.object({
       pledgeId: z.string(),
-      status: z.enum(['open', 'active', 'repaid', 'defaulted']),
+      status: z.enum(['open', 'active', 'repaid', 'defaulted', 'cancelled', 'closed']),
       owedNowBaseUnits: baseUnits,
       owedAtMaturityBaseUnits: baseUnits,
       graceEndsAtMs: z.number().int().nonnegative(),

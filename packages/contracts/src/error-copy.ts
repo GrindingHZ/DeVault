@@ -63,6 +63,7 @@ const copy: Record<ErrorCode, string> = {
   NOTE_ALREADY_LISTED: 'This position is already listed for sale.',
   ASK_EXCEEDS_CURRENT_VALUE: 'The ask cannot be more than the position is worth today.',
   CANNOT_BUY_OWN_POSITION: 'You already hold a side of this loan.',
+  CANNOT_OFFER_ON_OWN_LISTING: 'You cannot lend against your own item.',
   SYSTEM_PAUSED: 'Trading is paused. Repayments and collections are unaffected.',
 };
 

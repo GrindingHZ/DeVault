@@ -4,6 +4,7 @@ import { Navigate, createFileRoute } from '@tanstack/react-router';
 import type { ReactElement } from 'react';
 import { useCurrentAccount } from '../current-account';
 import { MarketShell } from '../market-shell';
+import { ActivityLog } from '../wallet/activity-log';
 import { formatUsdc } from '../wallet/usdc';
 import { useWallet } from '../wallet/use-wallet';
 
@@ -125,6 +126,13 @@ function WalletBody(): ReactElement {
       ) : null}
 
       <ItemsCard items={money.items} decimals={decimals} />
+      <Card title="On-chain activity">
+        <p className="mb-3 font-body text-sm text-ink-secondary">
+          Every move you have made on chain, newest first. Open a row for the transaction hash and
+          every object it touched, each a link to the Sui explorer.
+        </p>
+        <ActivityLog />
+      </Card>
       <GetUsdcCard />
     </>
   );

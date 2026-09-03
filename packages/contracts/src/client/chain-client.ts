@@ -1,5 +1,9 @@
-import { chainDeploymentResponseSchema, usdcFaucetResponseSchema } from '../chain-actions';
-import type { ChainDeploymentResponse, UsdcFaucetResponse } from '../chain-actions';
+import {
+  chainDeploymentResponseSchema,
+  usdcFaucetResponseSchema,
+  walletResponseSchema,
+} from '../chain-actions';
+import type { ChainDeploymentResponse, UsdcFaucetResponse, WalletResponse } from '../chain-actions';
 import { requestJson } from './http';
 
 const basePath = '/api/v1';
@@ -21,5 +25,14 @@ export function requestTestnetUsdc(): Promise<UsdcFaucetResponse> {
     method: 'POST',
     path: `${basePath}/chain/faucet`,
     responseSchema: usdcFaucetResponseSchema,
+  });
+}
+
+/* The signed-in member's money, computed by the api from the chain. */
+export function fetchWallet(): Promise<WalletResponse> {
+  return requestJson({
+    method: 'GET',
+    path: `${basePath}/chain/wallet`,
+    responseSchema: walletResponseSchema,
   });
 }

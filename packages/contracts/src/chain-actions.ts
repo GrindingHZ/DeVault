@@ -44,6 +44,31 @@ export type ChainDeploymentResponse = z.infer<typeof chainDeploymentResponseSche
 export const usdcFaucetResponseSchema = z.object({ digest: z.string() });
 export type UsdcFaucetResponse = z.infer<typeof usdcFaucetResponseSchema>;
 
+/* The member's whole money position, computed by the api from the chain over
+   gRPC because a full node no longer answers a browser. Every amount is in the
+   settlement coin's base units, so the client formats it with the coin's
+   decimals rather than as cents. */
+export const walletResponseSchema = z.object({
+  decimals: z.number().int().nonnegative(),
+  availableBaseUnits: baseUnits,
+  lentPrincipalBaseUnits: baseUnits,
+  interestEarnedBaseUnits: baseUnits,
+  collectableBaseUnits: baseUnits,
+  owedNowBaseUnits: baseUnits,
+  committedBaseUnits: baseUnits,
+  reclaimableBaseUnits: baseUnits,
+  cashControlledBaseUnits: baseUnits,
+  activeBorrowCount: z.number().int().nonnegative(),
+  items: z.array(
+    z.object({
+      objectId: z.string(),
+      appraisedValueBaseUnits: baseUnits,
+      itemCategory: z.string(),
+    }),
+  ),
+});
+export type WalletResponse = z.infer<typeof walletResponseSchema>;
+
 export const buildOpenPledgeRequestSchema = z.object({
   receiptObjectId: objectId,
   requestedAprBps: z.number().int().nonnegative().max(65_535),

@@ -64,6 +64,23 @@ export const walletResponseSchema = z.object({
 });
 export type WalletResponse = z.infer<typeof walletResponseSchema>;
 
+/* The release queue the vault counter works from, read straight from the chain.
+   A member burns their receipt with custody::redeem, which emits
+   RedemptionRequested; staff read the queue, check identity in person, and hand
+   the item over. There is no on-chain release step to record, because burning
+   the receipt already gave up the claim. */
+export const releaseQueueResponseSchema = z.object({
+  items: z.array(
+    z.object({
+      digest: z.string(),
+      receiptId: z.string(),
+      receiptKey: z.string(),
+      holder: z.string(),
+    }),
+  ),
+});
+export type ReleaseQueueResponse = z.infer<typeof releaseQueueResponseSchema>;
+
 export const buildOpenPledgeRequestSchema = z.object({
   receiptObjectId: objectId,
   requestedAprBps: z.number().int().nonnegative().max(65_535),

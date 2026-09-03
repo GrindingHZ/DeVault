@@ -1,12 +1,14 @@
 import {
   chainDeploymentResponseSchema,
   issueVaultReceiptResponseSchema,
+  releaseQueueResponseSchema,
   walletResponseSchema,
 } from '../chain-actions';
 import type {
   ChainDeploymentResponse,
   IssueVaultReceiptRequest,
   IssueVaultReceiptResponse,
+  ReleaseQueueResponse,
   WalletResponse,
 } from '../chain-actions';
 import { requestJson } from './http';
@@ -30,6 +32,16 @@ export function fetchWallet(): Promise<WalletResponse> {
     method: 'GET',
     path: `${basePath}/chain/wallet`,
     responseSchema: walletResponseSchema,
+  });
+}
+
+/* Vault staff read the release queue from the chain: members who burned their
+   receipt with redeem and are waiting to collect the item at the counter. */
+export function fetchReleaseQueue(): Promise<ReleaseQueueResponse> {
+  return requestJson({
+    method: 'GET',
+    path: `${basePath}/chain/releases`,
+    responseSchema: releaseQueueResponseSchema,
   });
 }
 

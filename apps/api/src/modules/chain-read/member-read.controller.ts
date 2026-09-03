@@ -1,5 +1,6 @@
 import { Controller, Get, NotFoundException } from '@nestjs/common';
 import type {
+  ChainActivityResponse,
   MarketTapeResponse,
   MyBidsResponse,
   ReceiptListResponse,
@@ -9,6 +10,7 @@ import type { Account } from '../../domain/accounts/account';
 import { WalletNotLinked } from '../chain/wallet-not-linked.error';
 import { CurrentAccount } from '../shared/http/current-account.decorator';
 import { DomainErrorHttpException } from '../shared/http/domain-error-http.exception';
+import { ActivityReadService } from './activity-read.service';
 import { MemberReadService } from './member-read.service';
 import { TapeReadService } from './tape-read.service';
 import { DeploymentNotFound } from './wallet-read.service';
@@ -22,7 +24,18 @@ export class MemberReadController {
   constructor(
     private readonly member: MemberReadService,
     private readonly tapeReader: TapeReadService,
+    private readonly activity: ActivityReadService,
   ) {}
+
+  @Get('me/activity')
+  async chainActivity(@CurrentAccount() account: Account): Promise<ChainActivityResponse> {
+    const address = this.addressOf(account);
+    try {
+      return { items: await this.activity.read(address) };
+    } catch (error) {
+      throw this.mapped(error);
+    }
+  }
 
   @Get('me/receipts')
   async receipts(@CurrentAccount() account: Account): Promise<ReceiptListResponse> {

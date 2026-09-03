@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { readNetworkEndpoints } from '../../config/chain-configuration';
 import { createReadOnlyChainClient } from '../../infrastructure/chain/chain-client';
 import { ReceiptMetadataModule } from '../receipt-metadata/receipt-metadata.module';
+import { ActivityReadService } from './activity-read.service';
 import { ChainDeploymentController } from './chain-deployment.controller';
 import { WALLET_READ_CLIENT } from './chain-read.tokens';
 import { ListingsReadController } from './listings-read.controller';
@@ -42,6 +43,7 @@ import { WalletReadService } from './wallet-read.service';
     PayoffReadController,
   ],
   providers: [
+    ActivityReadService,
     WalletReadService,
     ReleaseReadService,
     ListingsReadService,

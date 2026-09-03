@@ -38,6 +38,19 @@ export function appendIssueReceipt(
   });
 }
 
+/* The holder burns their own receipt to give up the claim; staff read the
+   event and release the item at the counter. Signed by the holder alone. */
+export function appendRedeem(
+  transaction: Transaction,
+  deployment: ChainDeployment,
+  input: { readonly receiptObjectId: string },
+): void {
+  transaction.moveCall({
+    target: target(deployment, 'redeem'),
+    arguments: [transaction.object(input.receiptObjectId)],
+  });
+}
+
 export function appendTransferHolder(
   transaction: Transaction,
   deployment: ChainDeployment,

@@ -1,4 +1,5 @@
 import {
+  cancelPledgeAction,
   fetchMyListings,
   fetchMyReceipts,
   fetchMyRedemptionRequests,
@@ -109,6 +110,22 @@ function Holdings(): ReactElement {
     onError: () => feedback.reportFailure('The request could not be made. Nothing has changed.'),
   });
 
+  /* Taking a listing down unwraps the receipt back to the wallet, so the item
+     returns here free to redeem or list again. The contract refuses it once an
+     offer has been accepted, which is why an item securing a loan offers no such
+     action. */
+  const cancelMutation = useMutation({
+    mutationFn: (pledgeId: string) => sign(() => cancelPledgeAction({ pledgeId })),
+    onSuccess: async () => {
+      feedback.reportSuccess('The listing is off the market. The item is back in your vault.');
+      await queryClient.invalidateQueries({ queryKey: marketKeys.myReceipts });
+      await queryClient.invalidateQueries({ queryKey: marketKeys.myListings });
+      await queryClient.invalidateQueries({ queryKey: marketKeys.browse });
+    },
+    onError: () =>
+      feedback.reportFailure('The listing could not be taken down. Nothing has changed.'),
+  });
+
   function openItem(receiptId: string | undefined): void {
     void navigate({ search: () => (receiptId === undefined ? {} : { item: receiptId }) });
   }
@@ -130,14 +147,25 @@ function Holdings(): ReactElement {
     const listing = liveListingByReceipt.get(receipt.id);
     if (listing !== undefined) {
       return (
-        <Button
-          variant="secondary"
-          className="whitespace-nowrap"
-          data-testid={`view-listing-${receipt.id}`}
-          onClick={() => void navigate({ to: '/listings', search: { listing: listing.id } })}
-        >
-          View listing
-        </Button>
+        <>
+          <Button
+            variant="secondary"
+            className="whitespace-nowrap"
+            data-testid={`view-listing-${receipt.id}`}
+            onClick={() => void navigate({ to: '/listings', search: { listing: listing.id } })}
+          >
+            View listing
+          </Button>
+          <Button
+            variant="secondary"
+            className="whitespace-nowrap"
+            data-testid={`cancel-listing-${receipt.id}`}
+            onClick={() => cancelMutation.mutate(listing.id)}
+            disabled={cancelMutation.isPending}
+          >
+            Take it off the market
+          </Button>
+        </>
       );
     }
     return (

@@ -253,6 +253,14 @@ export interface WalletItem {
   readonly appraisedValueBaseUnits: bigint;
   readonly itemCategory: string;
   readonly receiptKey: string;
+  /* The custody record the receipt carries on chain: the vault it sits in, the
+     hash of its intake, the policy insuring it, and when it was appraised and
+     issued. Empty strings and zero when the shape did not carry them. */
+  readonly vault: string;
+  readonly intakeHash: string;
+  readonly insuranceReference: string;
+  readonly appraisedAtMs: number;
+  readonly issuedAtMs: number;
 }
 
 /* The receipt_key is the api's own key for the receipt, stored on chain as the
@@ -290,5 +298,10 @@ export function itemFromJson(objectId: string, json: Json | null): WalletItem | 
     appraisedValueBaseUnits: readU64(json.appraised_value),
     itemCategory: categoryNameOf(json.item_category),
     receiptKey: decodeReceiptKey(json.receipt_key),
+    vault: decodeReceiptKey(json.vault),
+    intakeHash: decodeReceiptKey(json.intake_hash),
+    insuranceReference: decodeReceiptKey(json.insurance_reference),
+    appraisedAtMs: Number(readU64(json.appraised_at_ms)),
+    issuedAtMs: Number(readU64(json.issued_at_ms)),
   };
 }

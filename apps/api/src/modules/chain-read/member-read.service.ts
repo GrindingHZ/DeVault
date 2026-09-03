@@ -10,6 +10,7 @@ import { decodeBytes, isoOf, objectEntry, toMoneyDto } from './chain-read-shapes
 import type { Json } from './chain-read-shapes';
 import { listingSeeds } from './listings-figures';
 import { itemFromJson } from './wallet-figures';
+import type { WalletItem } from './wallet-figures';
 import { DeploymentNotFound } from './wallet-read.service';
 
 const PLEDGE_OPEN = 0;
@@ -66,8 +67,7 @@ export class MemberReadService {
       const receipt = this.receiptOf(
         item.receiptKey === '' ? item.objectId : item.receiptKey,
         owner,
-        item.appraisedValueBaseUnits,
-        item.itemCategory,
+        item,
         meta?.name ?? null,
         meta !== null,
         decimals,
@@ -136,8 +136,7 @@ export class MemberReadService {
         this.receiptOf(
           receiptKey === '' ? entry.objectId : receiptKey,
           owner,
-          item.appraisedValueBaseUnits,
-          item.itemCategory,
+          item,
           meta?.name ?? null,
           meta !== null,
           decimals,
@@ -149,31 +148,36 @@ export class MemberReadService {
     return receipts;
   }
 
+  /* The custody record comes from the receipt object itself: the vault, the
+     intake hash, the policy and the appraisal date are all written on chain at
+     issue, so the screen quotes the real record rather than a blank. A receipt
+     minted before a field existed reads it as empty, and the appraisal date
+     falls back to the issue date, then to now. */
   private receiptOf(
     id: string,
     owner: string,
-    appraisedValueBaseUnits: bigint,
-    itemCategory: string,
+    item: WalletItem,
     name: string | null,
     hasPhotograph: boolean,
     decimals: number,
     status: ReceiptResponse['status'],
     encumberedByLoanId: string | null,
   ): ReceiptResponse {
-    const category = categoryOf(itemCategory);
+    const category = categoryOf(item.itemCategory);
+    const appraisedAtMs = item.appraisedAtMs > 0 ? item.appraisedAtMs : item.issuedAtMs;
     return {
       id,
-      vaultId: '',
+      vaultId: item.vault,
       holderAccountId: owner,
       holderLabel: null,
-      intakeRecordHash: '',
-      appraisedValue: toMoneyDto(appraisedValueBaseUnits, decimals),
-      appraisedAt: isoOf(Date.now()),
+      intakeRecordHash: item.intakeHash,
+      appraisedValue: toMoneyDto(item.appraisedValueBaseUnits, decimals),
+      appraisedAt: isoOf(appraisedAtMs > 0 ? appraisedAtMs : Date.now()),
       itemCategory: category,
       itemDescription: name ?? 'Vaulted item',
       serialNumbers: [],
       hasPhotograph,
-      insurancePolicyReference: '',
+      insurancePolicyReference: item.insuranceReference,
       status,
       encumberedByLoanId,
       categoryMaxLoanToValueBasisPoints: loanToValueBasisPointsFor(category),

@@ -178,12 +178,22 @@ describe('gRPC json parsers', () => {
         appraised_value: '800000000',
         item_category: 'BULLION',
         receipt_key: receiptKey,
+        vault: Buffer.from('VAULT-1', 'utf8').toString('base64'),
+        intake_hash: Buffer.from('sha256:abc', 'utf8').toString('base64'),
+        insurance_reference: Buffer.from('POL-1', 'utf8').toString('base64'),
+        appraised_at_ms: '1700000000000',
+        issued_at_ms: '1700000001000',
       }),
     ).toEqual({
       objectId: '0xr',
       appraisedValueBaseUnits: 800_000_000n,
       itemCategory: 'BULLION',
       receiptKey: 'receipt-7',
+      vault: 'VAULT-1',
+      intakeHash: 'sha256:abc',
+      insuranceReference: 'POL-1',
+      appraisedAtMs: 1_700_000_000_000,
+      issuedAtMs: 1_700_000_001_000,
     });
     /* On chain the category is the u8 code, not the name. */
     expect(itemFromJson('0xr', { appraised_value: '1', item_category: 1 })?.itemCategory).toBe(

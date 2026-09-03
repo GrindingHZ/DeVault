@@ -52,16 +52,14 @@ public(package) fun mint_borrower_note(
     BorrowerNote { id: object::new(ctx), pledge_id, principal, original_borrower: borrower }
 }
 
-public(package) fun burn_lender_note(note: LenderNote): ID {
-    let LenderNote { id, pledge_id, .. } = note;
+public(package) fun burn_lender_note(note: LenderNote) {
+    let LenderNote { id, .. } = note;
     id.delete();
-    pledge_id
 }
 
-public(package) fun burn_borrower_note(note: BorrowerNote): ID {
-    let BorrowerNote { id, pledge_id, .. } = note;
+public(package) fun burn_borrower_note(note: BorrowerNote) {
+    let BorrowerNote { id, .. } = note;
     id.delete();
-    pledge_id
 }
 
 public fun lender_note_id(note: &LenderNote): ID { object::id(note) }

@@ -4,6 +4,7 @@ module depawn::pledge_tests;
 use depawn::config::{Self, Config, CustodianCap};
 use depawn::custody::{Self, VaultReceipt};
 use depawn::escrow::{Self, FundsHold};
+use depawn::interest;
 use depawn::notes::{LenderNote, BorrowerNote};
 use depawn::pledge::{Self, Pledge};
 use depawn::usdc::USDC;
@@ -14,10 +15,12 @@ use sui::test_scenario::{Self, Scenario};
 const CUSTODIAN: address = @0xC0;
 const BORROWER: address = @0xB0;
 const LENDER: address = @0x1E;
+const SECOND_LENDER: address = @0x2E;
 const STRANGER: address = @0x5A;
 
 const NOW: u64 = 1_000_000;
 const TERM_MS: u64 = 2_592_000_000;
+const GRACE_MS: u64 = 604_800_000;
 const PRINCIPAL: u64 = 400_000;
 
 fun mint_receipt_to(scenario: &mut Scenario, holder: address) {
@@ -72,6 +75,30 @@ fun accept_current(scenario: &mut Scenario) {
     clock.destroy_for_testing();
     test_scenario::return_shared(config);
     test_scenario::return_shared(pledge);
+}
+
+fun begin_with_active_loan(): Scenario {
+    let mut scenario = begin_with_open_pledge(3600);
+    let pledge_id = current_pledge_id(&scenario);
+    make_offer_on(&mut scenario, pledge_id, b"HOLD-1");
+    accept_current(&mut scenario);
+    scenario
+}
+
+fun repay_at(scenario: &mut Scenario, payer: address, at_ms: u64) {
+    scenario.next_tx(payer);
+    let mut pledge = scenario.take_shared<Pledge<USDC>>();
+    let note = scenario.take_from_sender<BorrowerNote>();
+    let mut clock = clock::create_for_testing(scenario.ctx());
+    clock.set_for_testing(at_ms);
+    let payment = coin::mint_for_testing<USDC>(PRINCIPAL * 2, scenario.ctx());
+    pledge::repay(&mut pledge, note, payment, &clock, scenario.ctx());
+    clock.destroy_for_testing();
+    test_scenario::return_shared(pledge);
+}
+
+fun payoff_at(at_ms: u64): u64 {
+    interest::amount_due(PRINCIPAL, 3600, NOW, NOW + TERM_MS, at_ms)
 }
 
 #[test]
@@ -148,5 +175,81 @@ fun accept_rejects_a_hold_for_another_pledge() {
     let mut scenario = begin_with_open_pledge(3600);
     make_offer_on(&mut scenario, object::id_from_address(@0xDEAD), b"HOLD-1");
     accept_current(&mut scenario);
+    scenario.end();
+}
+
+#[test]
+fun repay_before_the_cliff_returns_the_receipt_and_parks_the_payoff() {
+    let mut scenario = begin_with_active_loan();
+    let at = NOW + 1_000;
+    repay_at(&mut scenario, BORROWER, at);
+    scenario.next_tx(BORROWER);
+    assert!(test_scenario::has_most_recent_for_address<VaultReceipt>(BORROWER));
+    let pledge = scenario.take_shared<Pledge<USDC>>();
+    assert!(pledge.is_repaid());
+    test_scenario::return_shared(pledge);
+    scenario.end();
+}
+
+#[test]
+fun collect_pays_the_current_note_holder() {
+    let mut scenario = begin_with_active_loan();
+    // The lender sells the position to a second lender before repayment.
+    scenario.next_tx(LENDER);
+    let note = scenario.take_from_sender<LenderNote>();
+    transfer::public_transfer(note, SECOND_LENDER);
+
+    let at = NOW + 1_000;
+    repay_at(&mut scenario, BORROWER, at);
+
+    scenario.next_tx(SECOND_LENDER);
+    let pledge = scenario.take_shared<Pledge<USDC>>();
+    let note = scenario.take_from_sender<LenderNote>();
+    pledge::collect(pledge, note, scenario.ctx());
+
+    scenario.next_tx(SECOND_LENDER);
+    let payout = scenario.take_from_sender<Coin<USDC>>();
+    assert!(payout.value() == payoff_at(at));
+    scenario.return_to_sender(payout);
+    // The original lender was paid nothing, because the note moved.
+    assert!(!test_scenario::has_most_recent_for_address<Coin<USDC>>(LENDER));
+    scenario.end();
+}
+
+#[test, expected_failure(abort_code = pledge::EPastGrace)]
+fun repay_after_the_cliff_aborts() {
+    let mut scenario = begin_with_active_loan();
+    repay_at(&mut scenario, BORROWER, NOW + TERM_MS + GRACE_MS + 1);
+    scenario.end();
+}
+
+#[test]
+fun claim_after_the_cliff_hands_the_receipt_to_the_note_holder() {
+    let mut scenario = begin_with_active_loan();
+    scenario.next_tx(LENDER);
+    let mut pledge = scenario.take_shared<Pledge<USDC>>();
+    let note = scenario.take_from_sender<LenderNote>();
+    let mut clock = clock::create_for_testing(scenario.ctx());
+    clock.set_for_testing(NOW + TERM_MS + GRACE_MS);
+    pledge::claim_default(&mut pledge, note, &clock, scenario.ctx());
+    assert!(pledge.is_defaulted());
+    clock.destroy_for_testing();
+    test_scenario::return_shared(pledge);
+    scenario.next_tx(LENDER);
+    assert!(test_scenario::has_most_recent_for_address<VaultReceipt>(LENDER));
+    scenario.end();
+}
+
+#[test, expected_failure(abort_code = pledge::EBeforeGrace)]
+fun claim_before_the_cliff_aborts() {
+    let mut scenario = begin_with_active_loan();
+    scenario.next_tx(LENDER);
+    let mut pledge = scenario.take_shared<Pledge<USDC>>();
+    let note = scenario.take_from_sender<LenderNote>();
+    let mut clock = clock::create_for_testing(scenario.ctx());
+    clock.set_for_testing(NOW + TERM_MS);
+    pledge::claim_default(&mut pledge, note, &clock, scenario.ctx());
+    clock.destroy_for_testing();
+    test_scenario::return_shared(pledge);
     scenario.end();
 }

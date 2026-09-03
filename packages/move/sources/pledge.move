@@ -10,14 +10,17 @@ module depawn::pledge;
 use depawn::config::Config;
 use depawn::custody::VaultReceipt;
 use depawn::escrow::{Self, FundsHold};
-use depawn::notes;
+use depawn::interest;
+use depawn::notes::{Self, LenderNote, BorrowerNote};
 use sui::balance::{Self, Balance};
 use sui::clock::Clock;
-use sui::coin;
+use sui::coin::{Self, Coin};
 use sui::event;
 
 const OPEN: u8 = 0;
 const ACTIVE: u8 = 1;
+const REPAID: u8 = 2;
+const DEFAULTED: u8 = 3;
 
 const BASIS_POINTS_IN_WHOLE: u128 = 10_000;
 
@@ -25,6 +28,11 @@ const ENotBorrower: u64 = 0;
 const ENotOpen: u64 = 1;
 const EWrongPledge: u64 = 2;
 const ERateTooHigh: u64 = 3;
+const EPastGrace: u64 = 4;
+const EBeforeGrace: u64 = 5;
+const ENotRepaid: u64 = 6;
+const EInsufficientPayment: u64 = 7;
+const EWrongNote: u64 = 8;
 
 /// `receipt` is an `Option` so a later transition can take the item out
 /// without leaving a sentinel behind. `parked` is empty until a repayment
@@ -63,6 +71,21 @@ public struct LoanOriginated has copy, drop {
     lender: address,
     principal: u64,
     matures_at_ms: u64,
+}
+
+public struct LoanRepaid has copy, drop {
+    pledge_id: ID,
+    amount: u64,
+}
+
+public struct LoanSettled has copy, drop {
+    pledge_id: ID,
+    amount: u64,
+}
+
+public struct CollateralClaimed has copy, drop {
+    pledge_id: ID,
+    claimant: address,
 }
 
 public fun open<T>(receipt: VaultReceipt, requested_apr_bps: u16, ctx: &mut TxContext) {
@@ -163,7 +186,80 @@ public fun accept<T>(
     transfer::public_transfer(borrower_note, pledge.borrower);
 }
 
+/// Signed by whoever holds the borrower note, before the grace cliff. The
+/// payoff parks in the pledge for the lender to pull, the receipt returns to
+/// the payer, and the note burns. Overpayment is refunded rather than parked.
+public fun repay<T>(
+    pledge: &mut Pledge<T>,
+    note: BorrowerNote,
+    payment: Coin<T>,
+    clock: &Clock,
+    ctx: &mut TxContext,
+) {
+    assert!(pledge.status == ACTIVE, ENotOpen);
+    assert!(note.borrower_note_pledge() == object::id(pledge), EWrongNote);
+    let now = clock.timestamp_ms();
+    assert!(now < pledge.matures_at_ms + pledge.grace_period_ms, EPastGrace);
+    let due = interest::amount_due(
+        pledge.principal, pledge.apr_bps as u64, pledge.started_at_ms, pledge.matures_at_ms, now,
+    );
+
+    let mut proceeds = payment;
+    assert!(proceeds.value() >= due, EInsufficientPayment);
+    pledge.parked.join(proceeds.split(due, ctx).into_balance());
+    if (proceeds.value() > 0) {
+        transfer::public_transfer(proceeds, ctx.sender());
+    } else {
+        proceeds.destroy_zero();
+    };
+
+    note.burn_borrower_note();
+    pledge.status = REPAID;
+    let item = pledge.receipt.extract();
+    event::emit(LoanRepaid { pledge_id: object::id(pledge), amount: due });
+    transfer::public_transfer(item, ctx.sender());
+}
+
+/// Signed by whoever holds the lender note, after repayment. Pulls the parked
+/// payoff and closes the pledge. The payee is the note holder, so a note sold
+/// on the secondary market pays its buyer, not the original lender.
+public fun collect<T>(pledge: Pledge<T>, note: LenderNote, ctx: &mut TxContext) {
+    assert!(pledge.status == REPAID, ENotRepaid);
+    assert!(note.lender_note_pledge() == object::id(&pledge), EWrongNote);
+    note.burn_lender_note();
+    let Pledge { id, receipt, parked, .. } = pledge;
+    receipt.destroy_none();
+    let amount = parked.value();
+    event::emit(LoanSettled { pledge_id: id.to_inner(), amount });
+    id.delete();
+    transfer::public_transfer(coin::from_balance(parked, ctx), ctx.sender());
+}
+
+/// Signed by whoever holds the lender note, after the grace cliff. The
+/// borrower can no longer repay, so the collateral goes to the note holder
+/// with no permission from the borrower. The defaulted pledge stays as the
+/// record of what happened.
+public fun claim_default<T>(
+    pledge: &mut Pledge<T>,
+    note: LenderNote,
+    clock: &Clock,
+    ctx: &mut TxContext,
+) {
+    assert!(pledge.status == ACTIVE, ENotOpen);
+    assert!(note.lender_note_pledge() == object::id(pledge), EWrongNote);
+    assert!(clock.timestamp_ms() >= pledge.matures_at_ms + pledge.grace_period_ms, EBeforeGrace);
+    note.burn_lender_note();
+    pledge.status = DEFAULTED;
+    let item = pledge.receipt.extract();
+    event::emit(CollateralClaimed { pledge_id: object::id(pledge), claimant: ctx.sender() });
+    transfer::public_transfer(item, ctx.sender());
+}
+
 public fun borrower<T>(pledge: &Pledge<T>): address { pledge.borrower }
+
+public fun is_repaid<T>(pledge: &Pledge<T>): bool { pledge.status == REPAID }
+
+public fun is_defaulted<T>(pledge: &Pledge<T>): bool { pledge.status == DEFAULTED }
 
 public fun principal<T>(pledge: &Pledge<T>): u64 { pledge.principal }
 

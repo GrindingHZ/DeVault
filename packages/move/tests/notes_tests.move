@@ -18,7 +18,7 @@ fun a_lender_note_carries_its_terms_and_burns_to_its_pledge() {
     assert!(note.lender_note_started_at() == 10);
     assert!(note.lender_note_matures_at() == 110);
     assert!(note.lender_note_original_lender() == LENDER);
-    assert!(notes::burn_lender_note(note) == pledge_id);
+    notes::burn_lender_note(note);
     scenario.end();
 }
 
@@ -30,6 +30,6 @@ fun a_borrower_note_carries_its_terms_and_burns_to_its_pledge() {
     assert!(note.borrower_note_pledge() == pledge_id);
     assert!(note.borrower_note_principal() == 400_000);
     assert!(note.borrower_note_original_borrower() == BORROWER);
-    assert!(notes::burn_borrower_note(note) == pledge_id);
+    notes::burn_borrower_note(note);
     scenario.end();
 }

@@ -138,16 +138,22 @@ Do this twice, once per app. Everything is identical except the three values in 
 
 3. Set **Framework Preset** to **Other**.
 
-4. Open **Build and Output Settings**. Each field here has its own **Override** toggle beside it.
-   Typing a value is not enough. Flip the toggle on for all three, or the preset default stays in
-   force and the field you filled in is ignored.
+4. Open **Build and Output Settings** and override the install and build commands. Each field has
+   its own **Override** toggle beside it, and typing a value without flipping the toggle does
+   nothing.
 
 | Setting | marketplace | vault console |
 |---|---|---|
 | Project name | anything you like | anything you like |
 | Install Command | `pnpm install --frozen-lockfile --filter @depawn/marketplace...` | `pnpm install --frozen-lockfile --filter @depawn/vault-console...` |
-| Build Command | `pnpm --filter @depawn/marketplace run build` | `pnpm --filter @depawn/vault-console run build` |
-| Output Directory | `apps/marketplace/dist` | `apps/vault-console/dist` |
+| Build Command | `pnpm --filter @depawn/marketplace run build && cp -r apps/marketplace/dist dist` | `pnpm --filter @depawn/vault-console run build && cp -r apps/vault-console/dist dist` |
+| Output Directory | leave it alone | leave it alone |
+
+**Leave Output Directory at its default.** Setting it to `apps/<app>/dist` is the obvious move and
+it does not survive: the preset keeps winning and the deploy fails with `No Output Directory named
+"dist" found`, after a build that plainly succeeded. Vercel wants a `dist` beside the root
+directory, so the build command copies one there rather than arguing with the setting. A root
+`dist/` is already gitignored.
 
 The trailing `...` on the install filter is significant. It means the package plus its workspace
 dependencies, which resolves to the app, `@depawn/contracts` and `@depawn/ui`. Without it the build

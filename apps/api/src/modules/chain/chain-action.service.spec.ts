@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DomainErrorHttpException } from '../shared/http/domain-error-http.exception';
 import { ChainActionService } from './chain-action.service';
 import type { ChainObjectResolver, HoldState, PledgeState } from './chain-object-resolver.service';
@@ -22,6 +22,9 @@ function pledge(overrides: Partial<PledgeState> = {}): PledgeState {
     requestedPrincipalBaseUnits: 400_000n,
     requestedAprBps: 3600,
     acceptedHoldKey: '',
+    principalBaseUnits: 400_000n,
+    aprBps: 3600,
+    startedAtMs: 0n,
     maturesAtMs: 0n,
     gracePeriodMs: 0n,
     ...overrides,
@@ -52,7 +55,10 @@ class FakeResolver {
     return Promise.resolve(this.hold);
   }
 
-  coinForAmount(): Promise<string> {
+  coinAskedForBaseUnits: bigint | null = null;
+
+  coinForAmount(_owner: string, amountBaseUnits: bigint): Promise<string> {
+    this.coinAskedForBaseUnits = amountBaseUnits;
     return Promise.resolve(coinId);
   }
 
@@ -112,6 +118,10 @@ describe('ChainActionService', () => {
       resolver as unknown as ChainObjectResolver,
       transactions as unknown as ChainTransactionService,
     );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   const offer = (aprBps = 3000, amountBaseUnits = '400000') =>
@@ -280,6 +290,31 @@ describe('ChainActionService', () => {
       });
       await service.repay(borrower, { pledgeId });
       expect(transactions.built?.method).toBe('repay');
+    });
+
+    it('splits the coin to the payoff as it will stand when the quote lapses', async () => {
+      const now = 1_700_000_000_000;
+      vi.useFakeTimers();
+      vi.setSystemTime(now);
+      resolver.pledge = pledge({
+        status: 1,
+        principalBaseUnits: 1_000_000_000n,
+        aprBps: 3600,
+        startedAtMs: BigInt(now - 10 * day),
+        maturesAtMs: BigInt(now + 20 * day),
+        gracePeriodMs: BigInt(day),
+      });
+      await service.repay(borrower, { pledgeId });
+      const yearMs = 365n * 24n * 60n * 60n * 1000n;
+      const cover =
+        1_000_000_000n + (1_000_000_000n * 3600n * BigInt(10 * day + 60_000)) / (10_000n * yearMs);
+      expect(resolver.coinAskedForBaseUnits).toBe(cover);
+      expect(transactions.built?.request).toMatchObject({
+        pledgeObjectId: pledgeId,
+        borrowerNoteObjectId: noteId,
+        coinObjectId: coinId,
+        amountBaseUnits: cover.toString(),
+      });
     });
 
     it('collects only a repaid loan', async () => {

@@ -24,6 +24,8 @@ import { RateAboveMaximum } from '../../domain/marketplace/rate-above-maximum';
 import type { DomainError } from '../../domain/shared/domain-error';
 import { Instant } from '../../domain/shared/instant';
 import type { SponsoredTransaction } from '../../infrastructure/chain/sponsored-transaction';
+import { payoffCoverBaseUnits } from '../chain-read/wallet-figures';
+import type { InterestTerms } from '../chain-read/wallet-figures';
 import { DomainErrorHttpException } from '../shared/http/domain-error-http.exception';
 import { domainErrorStatusFor } from '../shared/http/domain-error-status';
 import { ChainObjectResolver, pledgeStatuses } from './chain-object-resolver.service';
@@ -32,6 +34,17 @@ import { ChainTransactionService } from './chain-transaction.service';
 
 function refuse(error: DomainError): never {
   throw new DomainErrorHttpException(error, domainErrorStatusFor(error.code));
+}
+
+/* The interest arithmetic is shared with the chain reads, which keep a
+   timestamp as a number; the resolver keeps a u64 as a bigint. */
+function loanTermsOf(pledge: PledgeState): InterestTerms {
+  return {
+    principalBaseUnits: pledge.principalBaseUnits,
+    aprBps: pledge.aprBps,
+    startedAtMs: Number(pledge.startedAtMs),
+    maturesAtMs: Number(pledge.maturesAtMs),
+  };
 }
 
 /* The member's actions, spelled in what they can see. Each resolves the object
@@ -113,13 +126,17 @@ export class ChainActionService {
       refuse(new LoanNotActive());
     }
     const borrowerNoteObjectId = await this.resolver.borrowerNoteForPledge(member, action.pledgeId);
-    /* Repay hands the whole coin in and takes back the change, so the largest
-       coin is chosen rather than one split to the payoff. */
-    const coinObjectId = await this.resolver.coinForAmount(member, 0n);
+    /* The contract reprices the payoff at execution and returns what the coin
+       carries beyond it, so the coin is split to cover the payoff for as long
+       as a quote holds. Handing the whole coin in would settle the same way,
+       but a wallet would preview the member's whole balance leaving. */
+    const coverBaseUnits = payoffCoverBaseUnits(loanTermsOf(pledge), Date.now());
+    const coinObjectId = await this.resolver.coinForAmount(member, coverBaseUnits);
     return this.transactions.repay(member, {
       pledgeObjectId: action.pledgeId,
       borrowerNoteObjectId,
       coinObjectId,
+      amountBaseUnits: coverBaseUnits.toString(),
     });
   }
 

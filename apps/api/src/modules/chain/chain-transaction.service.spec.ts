@@ -72,7 +72,7 @@ describe('ChainTransactionService', () => {
     service = new ChainTransactionService(registry, gateway);
   });
 
-  it('builds open, cancel, accept, repay, collect and claim against the member', async () => {
+  it('builds open, cancel, accept, collect and claim against the member', async () => {
     await service.openPledge(member, {
       receiptObjectId: object('r'),
       requestedPrincipalBaseUnits: '400000',
@@ -88,13 +88,6 @@ describe('ChainTransactionService', () => {
     });
     expect(stepsOf(gateway.transaction as Transaction)).toEqual(['pledge::accept']);
 
-    await service.repay(member, {
-      pledgeObjectId: object('p'),
-      borrowerNoteObjectId: object('b'),
-      coinObjectId: object('9'),
-    });
-    expect(stepsOf(gateway.transaction as Transaction)).toEqual(['pledge::repay']);
-
     await service.collect(member, { pledgeObjectId: object('p'), lenderNoteObjectId: object('l') });
     expect(stepsOf(gateway.transaction as Transaction)).toEqual(['pledge::collect']);
 
@@ -105,7 +98,7 @@ describe('ChainTransactionService', () => {
     expect(stepsOf(gateway.transaction as Transaction)).toEqual(['pledge::claim_default']);
   });
 
-  it('splits the coin before an offer and a purchase', async () => {
+  it('splits the coin before an offer, a repayment and a purchase', async () => {
     await service.makeOffer(member, {
       pledgeObjectId: object('p'),
       holdKey: 'HOLD-1',
@@ -115,6 +108,14 @@ describe('ChainTransactionService', () => {
       expiresAtMs: 1_800_000_000_000,
     });
     expect(stepsOf(gateway.transaction as Transaction)).toEqual(['split', 'pledge::offer']);
+
+    await service.repay(member, {
+      pledgeObjectId: object('p'),
+      borrowerNoteObjectId: object('b'),
+      coinObjectId: object('9'),
+      amountBaseUnits: '406000',
+    });
+    expect(stepsOf(gateway.transaction as Transaction)).toEqual(['split', 'pledge::repay']);
 
     await service.buyPosition(member, {
       listingObjectId: object('7'),

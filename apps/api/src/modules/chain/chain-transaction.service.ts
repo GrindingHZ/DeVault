@@ -42,8 +42,9 @@ import type {
 /* Turns a member's request into a transaction they will sign. Each method is
    one programmable transaction: it appends the builder's commands against the
    active deployment, and the gateway sets the member as sender and the
-   platform as gas owner. A coin an offer or a purchase locks is split to the
-   exact amount here, so the member keeps the remainder of the coin. */
+   platform as gas owner. A coin an offer, a repayment or a purchase moves is
+   split to the exact amount here, so the member keeps the remainder of the
+   coin and a wallet previews only what leaves. */
 @Injectable()
 export class ChainTransactionService {
   constructor(
@@ -97,13 +98,14 @@ export class ChainTransactionService {
 
   repay(member: string, request: BuildRepayRequest): Promise<SponsoredTransaction> {
     const deployment = this.deployments.current();
-    return this.gateway.build(member, (transaction) =>
+    return this.gateway.build(member, (transaction) => {
+      const payment = splitExact(transaction, request.coinObjectId, request.amountBaseUnits);
       appendRepay(transaction, deployment, {
         pledgeObjectId: request.pledgeObjectId,
         borrowerNoteObjectId: request.borrowerNoteObjectId,
-        payment: transaction.object(request.coinObjectId),
-      }),
-    );
+        payment,
+      });
+    });
   }
 
   collect(member: string, request: BuildSettlePledgeRequest): Promise<SponsoredTransaction> {

@@ -196,6 +196,10 @@ export const buildRepayRequestSchema = z.object({
   pledgeObjectId: objectId,
   borrowerNoteObjectId: objectId,
   coinObjectId: objectId,
+  /* What the coin is split to before the call: the payoff as it will stand
+     when the quote lapses. The contract keeps what is due and returns the
+     rest, so a wallet previews the payoff rather than the whole coin. */
+  amountBaseUnits: baseUnits,
 });
 export type BuildRepayRequest = z.infer<typeof buildRepayRequestSchema>;
 

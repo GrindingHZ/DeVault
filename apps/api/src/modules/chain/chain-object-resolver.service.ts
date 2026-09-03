@@ -70,6 +70,11 @@ export interface PledgeState {
   readonly requestedPrincipalBaseUnits: bigint;
   readonly requestedAprBps: number;
   readonly acceptedHoldKey: string;
+  /* The loan's terms once an offer is accepted, what repaying it costs; zero
+     while the pledge is still taking offers. */
+  readonly principalBaseUnits: bigint;
+  readonly aprBps: number;
+  readonly startedAtMs: bigint;
   readonly maturesAtMs: bigint;
   readonly gracePeriodMs: bigint;
 }
@@ -168,6 +173,9 @@ export class ChainObjectResolver {
       requestedPrincipalBaseUnits: readU64(entry.json.requested_principal),
       requestedAprBps: Number(entry.json.requested_apr_bps ?? 0),
       acceptedHoldKey: decodeBytes(entry.json.accepted_hold_key),
+      principalBaseUnits: readU64(entry.json.principal),
+      aprBps: Number(entry.json.apr_bps ?? 0),
+      startedAtMs: readU64(entry.json.started_at_ms),
       maturesAtMs: readU64(entry.json.matures_at_ms),
       gracePeriodMs: readU64(entry.json.grace_period_ms),
     };

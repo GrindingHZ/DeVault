@@ -33,8 +33,11 @@ services:
     environment:
       DATABASE_URL: postgresql://depawn:depawn@postgres:5432/depawn
       PORT: '3000'
-      # The clock control on the admin screen.
+      # The advanceable clock the demo runs on.
       DEMO_MODE: 'true'
+      # Wallets the platform has authorised as vault staff. Signing in with one
+      # reaches the custodian console; every other wallet is a member.
+      CUSTODIAN_WALLET_ADDRESSES: '0x3bad6e8f3f075f973629eef0fa730976314f525d5024995a38fec1a178b816da'
       STORAGE_DIRECTORY: /var/depawn/storage
     volumes:
       # Photographs live on disk beside the database rows that reference them,

@@ -61,6 +61,39 @@ export const walletResponseSchema = z.object({
       itemCategory: z.string(),
     }),
   ),
+  /* The member's loans as a lender: one row per pledge a note of theirs
+     funds, with what it has earned and what is theirs to collect once repaid. */
+  lender: z.array(
+    z.object({
+      pledgeId: z.string(),
+      status: z.enum(['open', 'active', 'repaid', 'defaulted']),
+      principalBaseUnits: baseUnits,
+      earnedSoFarBaseUnits: baseUnits,
+      valueAtMaturityBaseUnits: baseUnits,
+      collectableBaseUnits: baseUnits,
+    }),
+  ),
+  /* The member's loans as a borrower: what each owes now and at maturity, and
+     when the grace period runs out. */
+  borrower: z.array(
+    z.object({
+      pledgeId: z.string(),
+      status: z.enum(['open', 'active', 'repaid', 'defaulted']),
+      owedNowBaseUnits: baseUnits,
+      owedAtMaturityBaseUnits: baseUnits,
+      graceEndsAtMs: z.number().int().nonnegative(),
+    }),
+  ),
+  /* The member's open offers: the hold that backs each and whether it is still
+     committed or now free to reclaim. */
+  offers: z.array(
+    z.object({
+      holdObjectId: z.string(),
+      pledgeId: z.string(),
+      amountBaseUnits: baseUnits,
+      status: z.enum(['committed', 'reclaimable', 'consumed']),
+    }),
+  ),
 });
 export type WalletResponse = z.infer<typeof walletResponseSchema>;
 

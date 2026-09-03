@@ -15,7 +15,10 @@ import {
   summarizeFigures,
 } from './wallet-figures';
 import type {
+  BorrowerStanding,
+  LenderStanding,
   OfferEvent,
+  OfferStanding,
   PledgeTerms,
   WalletFigures,
   WalletItem,
@@ -25,6 +28,9 @@ export interface WalletReadResult {
   readonly decimals: number;
   readonly figures: WalletFigures;
   readonly items: readonly WalletItem[];
+  readonly lender: readonly LenderStanding[];
+  readonly borrower: readonly BorrowerStanding[];
+  readonly offers: readonly OfferStanding[];
 }
 
 export class DeploymentNotFound extends Error {
@@ -129,6 +135,9 @@ export class WalletReadService {
       decimals: deployment.settlementCoinDecimals,
       figures: summarizeFigures({ availableBaseUnits, lender, borrower, offers }),
       items,
+      lender,
+      borrower,
+      offers,
     };
   }
 

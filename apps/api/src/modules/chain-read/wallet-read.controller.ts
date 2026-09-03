@@ -35,6 +35,27 @@ export class WalletReadController {
         appraisedValueBaseUnits: item.appraisedValueBaseUnits.toString(),
         itemCategory: item.itemCategory,
       })),
+      lender: result.lender.map((standing) => ({
+        pledgeId: standing.pledgeId,
+        status: standing.status,
+        principalBaseUnits: standing.principalBaseUnits.toString(),
+        earnedSoFarBaseUnits: standing.earnedSoFarBaseUnits.toString(),
+        valueAtMaturityBaseUnits: standing.valueAtMaturityBaseUnits.toString(),
+        collectableBaseUnits: standing.collectableBaseUnits.toString(),
+      })),
+      borrower: result.borrower.map((standing) => ({
+        pledgeId: standing.pledgeId,
+        status: standing.status,
+        owedNowBaseUnits: standing.owedNowBaseUnits.toString(),
+        owedAtMaturityBaseUnits: standing.owedAtMaturityBaseUnits.toString(),
+        graceEndsAtMs: standing.graceEndsAtMs,
+      })),
+      offers: result.offers.map((standing) => ({
+        holdObjectId: standing.holdObjectId,
+        pledgeId: standing.pledgeId,
+        amountBaseUnits: standing.amountBaseUnits.toString(),
+        status: standing.status,
+      })),
     };
   }
 

@@ -2,6 +2,8 @@ import { createHmac } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import type { ChainConfiguration } from '../../config/chain-configuration';
+import { ACCOUNT_REPOSITORY } from '../../domain/accounts/account-repository';
+import type { AccountRepository } from '../../domain/accounts/account-repository';
 import { platformPurposeOf } from '../../domain/ledger/platform-accounts';
 import type { UnitOfWorkContext } from '../../domain/ports/unit-of-work';
 import { accountIdOf } from '../../domain/shared/identifiers';
@@ -27,6 +29,7 @@ export class AccountAddressDirectory {
   constructor(
     @Inject(CHAIN_CONFIGURATION) private readonly configuration: ChainConfiguration,
     private readonly signer: OperatorSigner,
+    @Inject(ACCOUNT_REPOSITORY) private readonly accounts: AccountRepository,
   ) {}
 
   async resolve(accountId: AccountId, context: UnitOfWorkContext): Promise<string> {
@@ -38,11 +41,16 @@ export class AccountAddressDirectory {
     if (existing !== null) {
       return existing.address;
     }
-    const address = deriveAccountAddress(this.configuration.accountSeed, accountId);
-    // Two first uses in flight resolve to the same derived address, so the
-    // loser of the insert race is harmless.
+    // An account that signed in with a wallet owns the address it signed
+    // with, so its on-chain wallet is that wallet; only an account that never
+    // did gets a derived address.
+    const account = await this.accounts.findById(accountId, context);
+    const linked = account?.walletAddress ?? null;
+    const address = linked ?? deriveAccountAddress(this.configuration.accountSeed, accountId);
+    // Two first uses in flight resolve to the same address, so the loser of
+    // the insert race is harmless.
     await transaction.chainAccountAddress.createMany({
-      data: [{ accountId, address, source: 'DERIVED' }],
+      data: [{ accountId, address, source: linked === null ? 'DERIVED' : 'WALLET' }],
       skipDuplicates: true,
     });
     return address;

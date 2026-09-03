@@ -7,6 +7,8 @@ import { SuiProtocolParametersAdapter } from '../parameters/sui-protocol-paramet
 import { SuiSystemStateAdapter } from '../system-state/sui-system-state.adapter';
 import { PersistenceModule } from '../persistence/persistence.module';
 import { SuiSettlementAdapter } from '../settlement/sui-settlement.adapter';
+import { ACCOUNT_REPOSITORY } from '../../domain/accounts/account-repository';
+import { PrismaAccountRepository } from '../persistence/repositories/prisma-account.repository';
 import { AccountAddressDirectory } from './account-address.directory';
 import { createChainClient } from './chain-client';
 import type { ChainClient } from './chain-client';
@@ -43,6 +45,8 @@ import { WalletDirectory } from './wallet.directory';
       inject: [CHAIN_CLIENT, OperatorSigner],
     },
     ChainDeploymentRegistry,
+    PrismaAccountRepository,
+    { provide: ACCOUNT_REPOSITORY, useClass: PrismaAccountRepository },
     AccountAddressDirectory,
     WalletDirectory,
     SuiUnitOfWork,

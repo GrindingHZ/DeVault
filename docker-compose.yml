@@ -33,8 +33,15 @@ services:
     environment:
       DATABASE_URL: postgresql://depawn:depawn@postgres:5432/depawn
       PORT: '3000'
-      # The advanceable clock the demo runs on.
-      DEMO_MODE: 'true'
+      # Demo by default. A .env that sets the chain drivers and the operator key
+      # switches the whole api to chain mode, which is what mounts the custodian
+      # issue endpoint (see .env.example).
+      DEMO_MODE: ${DEMO_MODE:-true}
+      SETTLEMENT_DRIVER: ${SETTLEMENT_DRIVER:-ledger}
+      CUSTODY_DRIVER: ${CUSTODY_DRIVER:-database}
+      SUI_NETWORK: ${SUI_NETWORK:-testnet}
+      SUI_OPERATOR_SECRET_KEY: ${SUI_OPERATOR_SECRET_KEY:-}
+      SUI_ACCOUNT_SEED: ${SUI_ACCOUNT_SEED:-0000000000000000000000000000000000000000000000000000000000000001}
       # Wallets the platform has authorised as vault staff. Signing in with one
       # reaches the custodian console; every other wallet is a member.
       CUSTODIAN_WALLET_ADDRESSES: '0xbd4a8cdf1888857901777a8479da729cf1854819146dbc1bc3870fa8596c3461'

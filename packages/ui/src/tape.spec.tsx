@@ -5,17 +5,17 @@ import type { TapeItem } from './tape';
 
 const items: TapeItem[] = [
   {
-    at: '2026-08-19T11:59:59.000Z',
-    kind: 'OFFER_PLACED',
     listingId: 'L1',
+    itemCategory: 'WATCH',
+    categoryLabel: 'Watch',
     itemDescription: 'Rolex Submariner 116610LN',
     rateBasisPoints: 1120,
     amount: { minorUnits: '800000', currency: 'USD' },
   },
   {
-    at: '2026-08-19T11:51:03.000Z',
-    kind: 'LOAN_ORIGINATED',
     listingId: 'L2',
+    itemCategory: 'BULLION',
+    categoryLabel: 'Bullion',
     itemDescription: 'Gold bar, 100g, PAMP Suisse',
     rateBasisPoints: 840,
     amount: { minorUnits: '550000', currency: 'USD' },
@@ -29,17 +29,18 @@ describe('Tape', () => {
     expect(screen.queryByText('L1')).toBeNull();
   });
 
-  it('keeps the order it was given, which is newest first', () => {
+  it('keeps the order it was given', () => {
     const { container } = render(<Tape items={items} />);
     const rows = [...container.querySelectorAll('[role="log"] button')];
     expect(rows[0]?.textContent).toContain('Rolex');
     expect(rows[1]?.textContent).toContain('Gold bar');
   });
 
-  it('says what happened in words, not with a colour', () => {
+  it('shows the category and the keenest rate for each listing', () => {
     render(<Tape items={items} />);
-    expect(screen.getAllByText('offered').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('funded').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Watch').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Bullion').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('11.20%').length).toBeGreaterThan(0);
   });
 
   it('selects the listing behind a line', () => {
@@ -47,11 +48,6 @@ describe('Tape', () => {
     render(<Tape items={items} onSelectListing={onSelectListing} />);
     fireEvent.click(screen.getAllByText('Rolex Submariner 116610LN')[0] as HTMLElement);
     expect(onSelectListing).toHaveBeenCalledWith('L1');
-  });
-
-  it('survives a timestamp it cannot read', () => {
-    render(<Tape items={[{ ...items[0], at: 'not a date' } as TapeItem]} />);
-    expect(screen.getAllByText('Rolex Submariner 116610LN').length).toBeGreaterThan(0);
   });
 
   /* Announcing every offer would talk over a screen reader user who is

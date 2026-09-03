@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import type { ReactElement } from 'react';
+import { CategoryIcon } from './category-icon';
 import { PauseIcon, PlayIcon } from './icons';
 import { formatMoney } from './money';
 import type { MoneyValue } from './money';
 import { formatRate } from './rate';
 
-export type TapeEventKind = 'OFFER_PLACED' | 'LOAN_ORIGINATED';
-
+/* One open listing on the browse ticker: its category (the raw code drives the
+   icon, the label is the words the caller already has), its name, the keenest
+   rate a lender is offering on it right now, and the principal the borrower
+   asked for. */
 export interface TapeItem {
-  readonly at: string;
-  readonly kind: TapeEventKind;
   readonly listingId: string;
+  readonly itemCategory: string;
+  readonly categoryLabel: string;
   readonly itemDescription: string;
   readonly rateBasisPoints: number;
   readonly amount: MoneyValue;
@@ -22,30 +25,9 @@ export interface TapeProps {
   readonly onSelectListing?: (listingId: string) => void;
 }
 
-const verbs: Record<TapeEventKind, string> = {
-  OFFER_PLACED: 'offered',
-  LOAN_ORIGINATED: 'funded',
-};
-
-/* Clock time, not a relative phrase. A tape is read by glancing at it, and
-   "3 minutes ago" forces the reader to work out when that was against a
-   clock that has already moved on. */
-function timeOf(iso: string): string {
-  const parsed = Date.parse(iso);
-  if (!Number.isFinite(parsed)) {
-    return '';
-  }
-  return new Date(parsed).toLocaleTimeString(undefined, {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  });
-}
-
-/* Everything happening across every listing, running left. Like the index
-   strip it is decoration with a job: it renders nothing when empty and takes
-   no action away from the workspace when its query fails.
+/* The listings a lender can act on, running left. Like the index strip it is
+   decoration with a job: it renders nothing when empty and takes no action away
+   from the workspace when its data is missing.
 
    Three things stop the movement, and all three matter. WCAG 2.2.2 asks for a
    mechanism to pause anything that moves for more than five seconds, which is
@@ -65,13 +47,13 @@ export function Tape({
   }
 
   /* Rendered twice so the loop has no seam. The second copy is hidden from
-     assistive technology: it is the same events again, and a screen reader
+     assistive technology: it is the same listings again, and a screen reader
      reading the whole tape twice would be worse than not reading it. */
   const track = (ariaHidden: boolean): ReactElement => (
     <div aria-hidden={ariaHidden ? true : undefined} className="flex shrink-0 items-center gap-4">
       {items.map((item, index) => (
         <button
-          key={`${item.listingId}-${item.at}-${String(index)}`}
+          key={`${item.listingId}-${String(index)}`}
           type="button"
           tabIndex={ariaHidden ? -1 : undefined}
           onClick={() => onSelectListing?.(item.listingId)}
@@ -79,13 +61,19 @@ export function Tape({
             selectedListingId === item.listingId ? 'bg-surface-raised' : ''
           }`}
         >
-          <span className="font-figure tabular-nums text-ink-secondary">{timeOf(item.at)}</span>
-          <span className="max-w-48 truncate text-ink-primary">{item.itemDescription}</span>
-          <span className="text-ink-secondary">{verbs[item.kind]}</span>
-          <span className="font-figure font-semibold tabular-nums text-ink-primary">
+          <span className="flex items-center gap-1 text-ink-secondary">
+            <CategoryIcon category={item.itemCategory} className="h-3.5 w-3.5 shrink-0" />
+            {item.categoryLabel}
+          </span>
+          <span className="max-w-48 truncate font-medium text-ink-primary">
+            {item.itemDescription}
+          </span>
+          <span className="font-figure font-semibold tabular-nums text-accent">
             {formatRate(item.rateBasisPoints).replace(' p.a.', '')}
           </span>
-          <span className="text-ink-secondary">{formatMoney(item.amount)}</span>
+          <span className="font-figure tabular-nums text-ink-secondary">
+            {formatMoney(item.amount)}
+          </span>
         </button>
       ))}
     </div>
@@ -105,7 +93,7 @@ export function Tape({
 
       <div
         role="log"
-        aria-label="Recent market activity"
+        aria-label="Open listings on the market"
         aria-live="off"
         className="group flex min-w-0 flex-1 overflow-hidden py-1"
       >

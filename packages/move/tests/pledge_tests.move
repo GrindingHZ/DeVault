@@ -28,7 +28,7 @@ fun mint_receipt_to(scenario: &mut Scenario, holder: address) {
     let cap = scenario.take_from_sender<CustodianCap>();
     let mut clock = clock::create_for_testing(scenario.ctx());
     clock.set_for_testing(NOW);
-    custody::issue(&cap, b"01RECEIPT", b"VAULT-1", holder, b"h", 500_000, 0, 0, b"P", &clock, scenario.ctx());
+    custody::issue(&cap, b"01RECEIPT", b"VAULT-1", holder, b"h", 1_000_000, 0, 0, b"P", &clock, scenario.ctx());
     clock.destroy_for_testing();
     scenario.return_to_sender(cap);
 }
@@ -39,7 +39,9 @@ fun begin_with_open_pledge(apr_bps: u16): Scenario {
     mint_receipt_to(&mut scenario, BORROWER);
     scenario.next_tx(BORROWER);
     let receipt = scenario.take_from_sender<VaultReceipt>();
-    pledge::open<USDC>(receipt, apr_bps, scenario.ctx());
+    let config = scenario.take_shared<Config>();
+    pledge::open<USDC>(&config, receipt, PRINCIPAL, apr_bps, scenario.ctx());
+    test_scenario::return_shared(config);
     scenario.next_tx(BORROWER);
     scenario
 }
@@ -51,14 +53,14 @@ fun current_pledge_id(scenario: &Scenario): ID {
     id
 }
 
-fun make_offer_on(scenario: &mut Scenario, pledge_id: ID, hold_key: vector<u8>) {
+fun make_offer_on(scenario: &mut Scenario, pledge_id: ID, hold_key: vector<u8>, offer_apr_bps: u16) {
     scenario.next_tx(LENDER);
     let config = scenario.take_shared<Config>();
     let mut clock = clock::create_for_testing(scenario.ctx());
     clock.set_for_testing(NOW);
     let minimum = config.parameters().minimum_offer_lifetime_ms();
     let payment = coin::mint_for_testing<USDC>(PRINCIPAL, scenario.ctx());
-    escrow::make_offer(&config, pledge_id, hold_key, payment, NOW + minimum, &clock, scenario.ctx());
+    escrow::make_offer(&config, pledge_id, hold_key, payment, offer_apr_bps, NOW + minimum, &clock, scenario.ctx());
     clock.destroy_for_testing();
     test_scenario::return_shared(config);
     scenario.next_tx(BORROWER);
@@ -80,7 +82,7 @@ fun accept_current(scenario: &mut Scenario) {
 fun begin_with_active_loan(): Scenario {
     let mut scenario = begin_with_open_pledge(3600);
     let pledge_id = current_pledge_id(&scenario);
-    make_offer_on(&mut scenario, pledge_id, b"HOLD-1");
+    make_offer_on(&mut scenario, pledge_id, b"HOLD-1", 3600);
     accept_current(&mut scenario);
     scenario
 }
@@ -135,7 +137,7 @@ fun cancel_rejects_a_stranger() {
 fun accept_disburses_principal_net_of_fee_and_mints_both_notes() {
     let mut scenario = begin_with_open_pledge(3600);
     let pledge_id = current_pledge_id(&scenario);
-    make_offer_on(&mut scenario, pledge_id, b"HOLD-1");
+    make_offer_on(&mut scenario, pledge_id, b"HOLD-1", 3600);
     accept_current(&mut scenario);
 
     // Fee is 200 bps of the principal; the borrower receives the rest.
@@ -165,7 +167,7 @@ fun accept_disburses_principal_net_of_fee_and_mints_both_notes() {
 fun accept_rejects_an_apr_over_the_cap() {
     let mut scenario = begin_with_open_pledge(5000);
     let pledge_id = current_pledge_id(&scenario);
-    make_offer_on(&mut scenario, pledge_id, b"HOLD-1");
+    make_offer_on(&mut scenario, pledge_id, b"HOLD-1", 3600);
     accept_current(&mut scenario);
     scenario.end();
 }
@@ -173,7 +175,31 @@ fun accept_rejects_an_apr_over_the_cap() {
 #[test, expected_failure(abort_code = pledge::EWrongPledge)]
 fun accept_rejects_a_hold_for_another_pledge() {
     let mut scenario = begin_with_open_pledge(3600);
-    make_offer_on(&mut scenario, object::id_from_address(@0xDEAD), b"HOLD-1");
+    make_offer_on(&mut scenario, object::id_from_address(@0xDEAD), b"HOLD-1", 3600);
+    accept_current(&mut scenario);
+    scenario.end();
+}
+
+#[test]
+fun an_undercutting_offer_sets_the_loan_rate() {
+    let mut scenario = begin_with_open_pledge(3600);
+    let pledge_id = current_pledge_id(&scenario);
+    make_offer_on(&mut scenario, pledge_id, b"HOLD-1", 3000);
+    accept_current(&mut scenario);
+
+    // The loan is charged the offered rate, below the borrower's asked maximum.
+    scenario.next_tx(LENDER);
+    let lender_note = scenario.take_from_sender<LenderNote>();
+    assert!(lender_note.lender_note_apr_bps() == 3000);
+    scenario.return_to_sender(lender_note);
+    scenario.end();
+}
+
+#[test, expected_failure(abort_code = pledge::ERateTooHigh)]
+fun accept_rejects_an_offer_above_the_asked_rate() {
+    let mut scenario = begin_with_open_pledge(3600);
+    let pledge_id = current_pledge_id(&scenario);
+    make_offer_on(&mut scenario, pledge_id, b"HOLD-1", 4000);
     accept_current(&mut scenario);
     scenario.end();
 }

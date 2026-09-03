@@ -29,7 +29,7 @@ fun offer(scenario: &mut Scenario, amount: u64) {
     clock.set_for_testing(NOW);
     let minimum = config.parameters().minimum_offer_lifetime_ms();
     let payment = coin::mint_for_testing<USDC>(amount, scenario.ctx());
-    escrow::make_offer(&config, a_pledge_id(), b"HOLD-1", payment, NOW + minimum, &clock, scenario.ctx());
+    escrow::make_offer(&config, a_pledge_id(), b"HOLD-1", payment, 1800, NOW + minimum, &clock, scenario.ctx());
     clock.destroy_for_testing();
     test_scenario::return_shared(config);
     scenario.next_tx(LENDER);
@@ -104,7 +104,7 @@ fun make_offer_rejects_a_short_expiry() {
     let mut clock = clock::create_for_testing(scenario.ctx());
     clock.set_for_testing(NOW);
     let payment = coin::mint_for_testing<USDC>(400_000, scenario.ctx());
-    escrow::make_offer(&config, a_pledge_id(), b"HOLD-1", payment, NOW, &clock, scenario.ctx());
+    escrow::make_offer(&config, a_pledge_id(), b"HOLD-1", payment, 1800, NOW, &clock, scenario.ctx());
     clock.destroy_for_testing();
     test_scenario::return_shared(config);
     scenario.end();
@@ -118,7 +118,7 @@ fun make_offer_rejects_a_zero_coin() {
     clock.set_for_testing(NOW);
     let minimum = config.parameters().minimum_offer_lifetime_ms();
     let payment = coin::mint_for_testing<USDC>(0, scenario.ctx());
-    escrow::make_offer(&config, a_pledge_id(), b"HOLD-1", payment, NOW + minimum, &clock, scenario.ctx());
+    escrow::make_offer(&config, a_pledge_id(), b"HOLD-1", payment, 1800, NOW + minimum, &clock, scenario.ctx());
     clock.destroy_for_testing();
     test_scenario::return_shared(config);
     scenario.end();
@@ -132,7 +132,7 @@ fun make_offer_rejects_an_empty_key() {
     clock.set_for_testing(NOW);
     let minimum = config.parameters().minimum_offer_lifetime_ms();
     let payment = coin::mint_for_testing<USDC>(400_000, scenario.ctx());
-    escrow::make_offer(&config, a_pledge_id(), b"", payment, NOW + minimum, &clock, scenario.ctx());
+    escrow::make_offer(&config, a_pledge_id(), b"", payment, 1800, NOW + minimum, &clock, scenario.ctx());
     clock.destroy_for_testing();
     test_scenario::return_shared(config);
     scenario.end();

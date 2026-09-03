@@ -19,15 +19,19 @@ const EOfferTooShort: u64 = 2;
 const ENotExpired: u64 = 3;
 const EStillOpen: u64 = 4;
 const EWon: u64 = 5;
+const EZeroRate: u64 = 6;
 
 /// `hold_key` is the api's funds hold id, `pledge_id` the pledge this offer
-/// funds, `expires_at` the instant past which it can only be refunded.
+/// funds, `apr_bps` the annual rate the lender is offering to lend it at (they
+/// compete by undercutting the borrower's asked maximum), `expires_at` the
+/// instant past which it can only be refunded.
 public struct FundsHold<phantom T> has key {
     id: UID,
     hold_key: vector<u8>,
     owner: address,
     funds: Balance<T>,
     pledge_id: ID,
+    apr_bps: u16,
     expires_at: u64,
 }
 
@@ -36,6 +40,7 @@ public struct OfferMade has copy, drop {
     hold_key: vector<u8>,
     owner: address,
     amount: u64,
+    apr_bps: u16,
     pledge_id: ID,
 }
 
@@ -62,6 +67,7 @@ public fun make_offer<T>(
     pledge_id: ID,
     hold_key: vector<u8>,
     payment: Coin<T>,
+    apr_bps: u16,
     expires_at: u64,
     clock: &Clock,
     ctx: &mut TxContext,
@@ -70,6 +76,7 @@ public fun make_offer<T>(
     assert!(!hold_key.is_empty(), EEmptyKey);
     let amount = payment.value();
     assert!(amount > 0, EZeroAmount);
+    assert!(apr_bps > 0, EZeroRate);
     let minimum = config.parameters().minimum_offer_lifetime_ms();
     assert!(expires_at >= clock.timestamp_ms() + minimum, EOfferTooShort);
     let hold = FundsHold<T> {
@@ -78,6 +85,7 @@ public fun make_offer<T>(
         owner: ctx.sender(),
         funds: payment.into_balance(),
         pledge_id,
+        apr_bps,
         expires_at,
     };
     event::emit(OfferMade {
@@ -85,6 +93,7 @@ public fun make_offer<T>(
         hold_key: hold.hold_key,
         owner: hold.owner,
         amount,
+        apr_bps,
         pledge_id,
     });
     transfer::share_object(hold);
@@ -113,8 +122,8 @@ public fun refund_losing<T>(
 
 /// Consumes the winning hold into its principal, for the pledge module to
 /// disburse. Announces the acceptance so the indexer can mark the offer won.
-public(package) fun into_principal<T>(hold: FundsHold<T>): (Balance<T>, vector<u8>, address) {
-    let FundsHold { id, hold_key, owner, funds, pledge_id, expires_at: _ } = hold;
+public(package) fun into_principal<T>(hold: FundsHold<T>): (Balance<T>, vector<u8>, address, u16) {
+    let FundsHold { id, hold_key, owner, funds, pledge_id, apr_bps, expires_at: _ } = hold;
     event::emit(OfferAccepted {
         hold_id: id.to_inner(),
         hold_key,
@@ -123,7 +132,7 @@ public(package) fun into_principal<T>(hold: FundsHold<T>): (Balance<T>, vector<u
         pledge_id,
     });
     id.delete();
-    (funds, hold_key, owner)
+    (funds, hold_key, owner, apr_bps)
 }
 
 public fun hold_key<T>(hold: &FundsHold<T>): &vector<u8> { &hold.hold_key }
@@ -137,7 +146,7 @@ public fun hold_pledge_id<T>(hold: &FundsHold<T>): ID { hold.pledge_id }
 public fun hold_expires_at<T>(hold: &FundsHold<T>): u64 { hold.expires_at }
 
 fun refund<T>(hold: FundsHold<T>, ctx: &mut TxContext) {
-    let FundsHold { id, hold_key, owner, funds, pledge_id: _, expires_at: _ } = hold;
+    let FundsHold { id, hold_key, owner, funds, pledge_id: _, apr_bps: _, expires_at: _ } = hold;
     let amount = funds.value();
     event::emit(OfferRefunded {
         hold_id: id.to_inner(),

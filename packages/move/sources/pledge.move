@@ -33,6 +33,9 @@ const EBeforeGrace: u64 = 5;
 const ENotRepaid: u64 = 6;
 const EInsufficientPayment: u64 = 7;
 const EWrongNote: u64 = 8;
+const EZeroPrincipal: u64 = 9;
+const EPrincipalTooHigh: u64 = 10;
+const EBadCategory: u64 = 11;
 
 /// `receipt` is an `Option` so a later transition can take the item out
 /// without leaving a sentinel behind. `parked` is empty until a repayment
@@ -40,6 +43,7 @@ const EWrongNote: u64 = 8;
 public struct Pledge<phantom T> has key {
     id: UID,
     borrower: address,
+    requested_principal: u64,
     requested_apr_bps: u16,
     receipt: Option<VaultReceipt>,
     status: u8,
@@ -88,10 +92,31 @@ public struct CollateralClaimed has copy, drop {
     claimant: address,
 }
 
-public fun open<T>(receipt: VaultReceipt, requested_apr_bps: u16, ctx: &mut TxContext) {
+/// The borrower names the principal they want and the highest rate they will
+/// pay for it; lenders then compete by offering a lower rate. The principal is
+/// held to the item's ceiling here (its appraised value scaled by the category
+/// loan-to-value), and the rate to the protocol maximum, so an offer can never
+/// be accepted above either.
+public fun open<T>(
+    config: &Config,
+    receipt: VaultReceipt,
+    requested_principal: u64,
+    requested_apr_bps: u16,
+    ctx: &mut TxContext,
+) {
+    let params = config.parameters();
+    assert!(requested_apr_bps <= params.max_annual_percentage_rate_bps(), ERateTooHigh);
+    assert!(requested_principal > 0, EZeroPrincipal);
+    let caps = params.max_loan_to_value_bps();
+    let category = receipt.item_category() as u64;
+    assert!(category < caps.length(), EBadCategory);
+    let cap_bps = *caps.borrow(category) as u128;
+    let ceiling = (receipt.appraised_value() as u128 * cap_bps / BASIS_POINTS_IN_WHOLE) as u64;
+    assert!(requested_principal <= ceiling, EPrincipalTooHigh);
     let pledge = Pledge<T> {
         id: object::new(ctx),
         borrower: ctx.sender(),
+        requested_principal,
         requested_apr_bps,
         receipt: option::some(receipt),
         status: OPEN,
@@ -148,7 +173,10 @@ public fun accept<T>(
     let params = config.parameters();
     assert!(pledge.requested_apr_bps <= params.max_annual_percentage_rate_bps(), ERateTooHigh);
 
-    let (funds, hold_key, lender) = escrow::into_principal(hold);
+    let (funds, hold_key, lender, offered_apr_bps) = escrow::into_principal(hold);
+    /* The offer competes by undercutting: it may lend at the borrower's asked
+       rate or below it, never above. */
+    assert!(offered_apr_bps <= pledge.requested_apr_bps, ERateTooHigh);
     let principal = funds.value();
     let now = clock.timestamp_ms();
     let matures_at = now + term_ms;
@@ -161,7 +189,7 @@ public fun accept<T>(
     transfer::public_transfer(proceeds, pledge.borrower);
 
     let lender_note = notes::mint_lender_note(
-        object::id(pledge), principal, pledge.requested_apr_bps, now, matures_at, lender, ctx,
+        object::id(pledge), principal, offered_apr_bps, now, matures_at, lender, ctx,
     );
     let borrower_note = notes::mint_borrower_note(object::id(pledge), principal, pledge.borrower, ctx);
 
@@ -170,7 +198,7 @@ public fun accept<T>(
     pledge.status = ACTIVE;
     pledge.accepted_hold_key = hold_key;
     pledge.principal = principal;
-    pledge.apr_bps = pledge.requested_apr_bps;
+    pledge.apr_bps = offered_apr_bps;
     pledge.started_at_ms = now;
     pledge.matures_at_ms = matures_at;
     pledge.grace_period_ms = params.grace_period_ms();

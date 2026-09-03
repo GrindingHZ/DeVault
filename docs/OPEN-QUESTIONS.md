@@ -378,3 +378,66 @@ carries its vault id as a field; the custodian of record is the operator
 **Needs:** operations policy
 **Notes:** A capability per vault is a mint and a transfer, and a `vault` field on the
 capability the custody functions assert against.
+
+## Q-035: read-your-writes across the indexer gap
+**Blocks:** every self-custody write screen (p12g)
+**Currently implemented:** nothing yet. In the self-custody design the member's wallet submits the
+transaction and the indexer projects the result, so a member who just signed sees stale read models
+until the next poll.
+**Needs:** whoever owns docs/05 and docs/08
+**Notes:** The frontend holds the transaction digest and the created object ids the wallet returns,
+and can show an optimistic pending state keyed on them until the indexer confirms. The alternative
+is a read-through that fetches the object directly on the affected screen. Touches every write.
+
+## Q-036: member-paid gas versus sponsored transactions
+**Blocks:** nothing today; the design assumes the acting member pays their own gas
+**Currently implemented:** the member who signs a market action pays its gas
+**Needs:** founder, then whoever owns docs/08
+**Notes:** Sponsored transactions let the platform pay gas for a member's action to smooth the
+experience, at the cost of a sponsoring service and its own signing key. Not built now.
+
+## Q-037: the transferable LenderNote as a bearer instrument
+**Blocks:** whether the secondary market ships enabled (sharpens Q-002)
+**Currently implemented:** notes are `key, store` and transferable, and the market module swaps
+them atomically; the demo parameter keeps `notes_transferable` on
+**Needs:** securities counsel
+**Notes:** A bearer, yield-bearing claim on a loan that the escrow pays to whoever presents it is
+closer still to a security than the Postgres note record was. Q-002 is the same question; this
+phase raises the stakes because the instrument is now genuinely bearer.
+
+## Q-038: KYC and who may hold a transferable BorrowerNote
+**Blocks:** nothing today; the BorrowerNote is transferable by the same switch as the LenderNote
+**Currently implemented:** both notes transfer; a BorrowerNote sale is the right to redeem a
+pledged item by paying off its loan
+**Needs:** founder, then compliance
+**Notes:** For a KYC'd pawnbroker the redemption right arguably belongs to the person who pawned
+the item. Disabling BorrowerNote transfer while keeping LenderNote transfer is a policy switch, not
+new mechanism.
+
+## Q-039: a lost note key is a lost claim
+**Blocks:** nothing today; it is the accepted cost of self-custody
+**Currently implemented:** no recovery. The platform holds no capability that can reissue or
+reassign a note, which is the property that makes it self-custodial
+**Needs:** founder
+**Notes:** A social-recovery or long-timeout escape hatch would reintroduce a platform power over a
+member's claim and weaken the guarantee. The narrowest reading accepts the loss and states it
+plainly to members.
+
+## Q-040: do platform accounts keep an operator wallet
+**Blocks:** the fee split in `pledge::accept` (p12d)
+**Currently implemented:** the design sends the origination fee to the platform's address; whether
+that is a shared operator `Wallet` or a plain address that receives a USDC coin is open
+**Needs:** whoever owns docs/03
+**Notes:** Members no longer have a shared `Wallet`, but platform fee revenue still has to land
+somewhere countable. A plain address receiving coins is simplest; a retained operator wallet keeps
+the reconciliation basis the custodial build used.
+
+## Q-041: atomic swap object versus a Kiosk for the secondary market
+**Blocks:** the market module (p12f)
+**Currently implemented:** the design uses a bespoke `PositionListing` shared object and a
+`buy_position` that swaps the note for USDC atomically
+**Needs:** whoever owns docs/08
+**Notes:** Sui's Kiosk standard offers a transfer policy and a shared marketplace primitive that
+could carry the note sale instead, with royalty and rule support the bespoke object lacks. The
+bespoke object is smaller and matches the primary market's shape; the Kiosk is more standard and
+more work.

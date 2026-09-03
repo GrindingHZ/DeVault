@@ -96,7 +96,11 @@ export function borrowerStanding(terms: PledgeTerms, nowMs: number): BorrowerSta
 export type HoldStatus = 'committed' | 'reclaimable' | 'consumed';
 
 export function holdStatusOf(
-  input: { readonly exists: boolean; readonly pledgeStatus: PledgeStatus | null; readonly expiresAtMs: number },
+  input: {
+    readonly exists: boolean;
+    readonly pledgeStatus: PledgeStatus | null;
+    readonly expiresAtMs: number;
+  },
   nowMs: number,
 ): HoldStatus {
   if (!input.exists) {
@@ -161,10 +165,14 @@ export function summarizeFigures(input: {
 }): WalletFigures {
   const collectable = sum(input.lender.map((standing) => standing.collectableBaseUnits));
   const committed = sum(
-    input.offers.filter((offer) => offer.status === 'committed').map((offer) => offer.amountBaseUnits),
+    input.offers
+      .filter((offer) => offer.status === 'committed')
+      .map((offer) => offer.amountBaseUnits),
   );
   const reclaimable = sum(
-    input.offers.filter((offer) => offer.status === 'reclaimable').map((offer) => offer.amountBaseUnits),
+    input.offers
+      .filter((offer) => offer.status === 'reclaimable')
+      .map((offer) => offer.amountBaseUnits),
   );
   return {
     availableBaseUnits: input.availableBaseUnits,

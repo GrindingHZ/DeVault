@@ -16,7 +16,8 @@ type ItemCategory = (typeof categories)[number];
 
 function categoryOf(json: Json | null): ItemCategory {
   const receipt = json?.receipt;
-  const value = receipt !== null && typeof receipt === 'object' ? (receipt as Json).item_category : undefined;
+  const value =
+    receipt !== null && typeof receipt === 'object' ? (receipt as Json).item_category : undefined;
   const names: readonly string[] = categories;
   if (typeof value === 'number' && value >= 0 && value < names.length) {
     return categories[value] ?? 'COLLECTIBLE';
@@ -72,7 +73,10 @@ export class NoteSalesReadService {
       return { decimals, items: [] };
     }
 
-    const listingObjects = await this.client.core.getObjects({ objectIds: listingIds, include: { json: true } });
+    const listingObjects = await this.client.core.getObjects({
+      objectIds: listingIds,
+      include: { json: true },
+    });
     const listings: Listing[] = [];
     for (const object of listingObjects.objects) {
       const entry = objectEntry(object);
@@ -99,8 +103,14 @@ export class NoteSalesReadService {
     }
 
     const pledgeIds = [...new Set(listings.map((one) => one.pledgeId))];
-    const pledges = await this.client.core.getObjects({ objectIds: pledgeIds, include: { json: true } });
-    const termsById = new Map<string, { terms: PledgeTerms; receiptKey: string; category: ItemCategory }>();
+    const pledges = await this.client.core.getObjects({
+      objectIds: pledgeIds,
+      include: { json: true },
+    });
+    const termsById = new Map<
+      string,
+      { terms: PledgeTerms; receiptKey: string; category: ItemCategory }
+    >();
     for (const object of pledges.objects) {
       const entry = objectEntry(object);
       const terms = entry === null ? null : pledgeTermsFromJson(entry.objectId, entry.json);

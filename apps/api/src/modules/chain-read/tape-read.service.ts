@@ -15,7 +15,8 @@ type ItemCategory = (typeof categories)[number];
 
 function categoryOf(pledgeJson: Json | null): ItemCategory {
   const receipt = pledgeJson?.receipt;
-  const value = receipt !== null && typeof receipt === 'object' ? (receipt as Json).item_category : undefined;
+  const value =
+    receipt !== null && typeof receipt === 'object' ? (receipt as Json).item_category : undefined;
   return typeof value === 'number' && value >= 0 && value < categories.length
     ? (categories[value] ?? 'COLLECTIBLE')
     : 'COLLECTIBLE';
@@ -72,7 +73,11 @@ export class TapeReadService {
     for (const event of loans.events) {
       const json = event.json as { pledge_id?: unknown; principal?: unknown } | null;
       if (typeof json?.pledge_id === 'string') {
-        raw.push({ kind: 'LOAN_ORIGINATED', pledgeId: json.pledge_id, amount: readU64(json.principal) });
+        raw.push({
+          kind: 'LOAN_ORIGINATED',
+          pledgeId: json.pledge_id,
+          amount: readU64(json.principal),
+        });
       }
     }
     const trimmed = raw.slice(0, Math.max(0, limit));
@@ -81,8 +86,14 @@ export class TapeReadService {
     }
 
     const pledgeIds = [...new Set(trimmed.map((one) => one.pledgeId))];
-    const pledges = await this.client.core.getObjects({ objectIds: pledgeIds, include: { json: true } });
-    const byPledge = new Map<string, { aprBps: number; category: ItemCategory; receiptKey: string }>();
+    const pledges = await this.client.core.getObjects({
+      objectIds: pledgeIds,
+      include: { json: true },
+    });
+    const byPledge = new Map<
+      string,
+      { aprBps: number; category: ItemCategory; receiptKey: string }
+    >();
     for (const object of pledges.objects) {
       const entry = objectEntry(object);
       const terms = entry === null ? null : pledgeTermsFromJson(entry.objectId, entry.json);
@@ -98,7 +109,8 @@ export class TapeReadService {
     const events: TapeEvent[] = [];
     for (const one of trimmed) {
       const pledge = byPledge.get(one.pledgeId);
-      const meta = pledge && pledge.receiptKey !== '' ? await this.metadata.read(pledge.receiptKey) : null;
+      const meta =
+        pledge && pledge.receiptKey !== '' ? await this.metadata.read(pledge.receiptKey) : null;
       events.push({
         at: isoOf(nowMs),
         kind: one.kind,

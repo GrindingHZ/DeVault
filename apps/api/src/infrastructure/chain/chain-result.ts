@@ -48,7 +48,10 @@ export function failureOf(status: SuiClientTypes.ExecutionStatus): Error | Domai
       return domainError;
     }
   }
-  return new ChainExecutionFailed(`The chain refused the transaction: ${status.error.message}`, abort);
+  return new ChainExecutionFailed(
+    `The chain refused the transaction: ${status.error.message}`,
+    abort,
+  );
 }
 
 function moveAbortOf(error: SuiClientTypes.ExecutionError): MoveAbortDetail | null {

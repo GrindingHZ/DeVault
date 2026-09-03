@@ -42,7 +42,9 @@ export class CustodianReceiptService {
     private readonly metadata: ReceiptMetadataStore,
   ) {}
 
-  async issue(command: IssueReceiptCommand): Promise<{ receiptObjectId: string; receiptKey: string; digest: string }> {
+  async issue(
+    command: IssueReceiptCommand,
+  ): Promise<{ receiptObjectId: string; receiptKey: string; digest: string }> {
     const deployment = this.deployments.current();
     /* The name and photographs are stored off chain first; the receipt then
        carries the key that finds them and the hash that commits to them. */

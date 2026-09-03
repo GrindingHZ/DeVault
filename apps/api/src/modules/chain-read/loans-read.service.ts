@@ -63,7 +63,11 @@ export class LoansReadService {
     const decimals = deployment.settlementCoinDecimals;
     const noteType = `${packageId}::notes::${role === 'lender' ? 'LenderNote' : 'BorrowerNote'}`;
 
-    const notes = await this.client.core.listOwnedObjects({ owner, type: noteType, include: { json: true } });
+    const notes = await this.client.core.listOwnedObjects({
+      owner,
+      type: noteType,
+      include: { json: true },
+    });
     const held = notes.objects
       .map((object) => objectEntry(object))
       .filter((entry): entry is { objectId: string; json: Json | null } => entry !== null)
@@ -74,7 +78,10 @@ export class LoansReadService {
     }
 
     const pledgeIds = [...new Set(held.map((one) => one.pledgeId))];
-    const pledges = await this.client.core.getObjects({ objectIds: pledgeIds, include: { json: true } });
+    const pledges = await this.client.core.getObjects({
+      objectIds: pledgeIds,
+      include: { json: true },
+    });
     const pledgeJsonById = new Map<string, Json | null>();
     const termsById = new Map<string, PledgeTerms>();
     for (const object of pledges.objects) {
@@ -133,7 +140,10 @@ export class LoansReadService {
       throw new DeploymentNotFound();
     }
     const decimals = deployment.settlementCoinDecimals;
-    const objects = await this.client.core.getObjects({ objectIds: [pledgeId], include: { json: true } });
+    const objects = await this.client.core.getObjects({
+      objectIds: [pledgeId],
+      include: { json: true },
+    });
     const entry = objectEntry(objects.objects[0]);
     const terms = entry === null ? null : pledgeTermsFromJson(entry.objectId, entry.json);
     if (terms === null) {

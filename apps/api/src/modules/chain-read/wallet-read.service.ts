@@ -45,12 +45,17 @@ export class DeploymentNotFound extends Error {
    deleted id). A deleted object still carries its id, so the `code` is what
    separates a live object from a hold the accept consumed or a pledge that
    settled; without this check a deleted hold would read as a standing one. */
-function objectEntry(entry: unknown): { objectId: string; json: Record<string, unknown> | null } | null {
+function objectEntry(
+  entry: unknown,
+): { objectId: string; json: Record<string, unknown> | null } | null {
   if (entry !== null && typeof entry === 'object' && !(entry instanceof Error)) {
     const record = entry as { objectId?: unknown; json?: unknown; code?: unknown };
     if (typeof record.objectId === 'string' && record.code === undefined) {
       const json = record.json;
-      return { objectId: record.objectId, json: json === null || json === undefined ? null : (json as Record<string, unknown>) };
+      return {
+        objectId: record.objectId,
+        json: json === null || json === undefined ? null : (json as Record<string, unknown>),
+      };
     }
   }
   return null;
@@ -79,9 +84,21 @@ export class WalletReadService {
 
     const [balance, lenderNotes, borrowerNotes, receiptObjects, events] = await Promise.all([
       this.client.core.getBalance({ owner, coinType: deployment.settlementCoinType }),
-      this.client.core.listOwnedObjects({ owner, type: `${packageId}::notes::LenderNote`, include: { json: true } }),
-      this.client.core.listOwnedObjects({ owner, type: `${packageId}::notes::BorrowerNote`, include: { json: true } }),
-      this.client.core.listOwnedObjects({ owner, type: `${packageId}::custody::VaultReceipt`, include: { json: true } }),
+      this.client.core.listOwnedObjects({
+        owner,
+        type: `${packageId}::notes::LenderNote`,
+        include: { json: true },
+      }),
+      this.client.core.listOwnedObjects({
+        owner,
+        type: `${packageId}::notes::BorrowerNote`,
+        include: { json: true },
+      }),
+      this.client.core.listOwnedObjects({
+        owner,
+        type: `${packageId}::custody::VaultReceipt`,
+        include: { json: true },
+      }),
       this.client.core.listEvents({ filter: { sender: owner }, limit: 50, order: 'descending' }),
     ]);
 
@@ -98,7 +115,11 @@ export class WalletReadService {
       .filter((offer): offer is OfferEvent => offer !== null);
 
     const pledgeIds = [
-      ...new Set([...lenderPledgeIds, ...borrowerPledgeIds, ...offerEvents.map((offer) => offer.pledgeId)]),
+      ...new Set([
+        ...lenderPledgeIds,
+        ...borrowerPledgeIds,
+        ...offerEvents.map((offer) => offer.pledgeId),
+      ]),
     ];
     const termsById = await this.pledgeTerms(pledgeIds);
     const liveHolds = await this.liveHolds(offerEvents.map((offer) => offer.holdObjectId));
@@ -146,7 +167,10 @@ export class WalletReadService {
     if (pledgeIds.length === 0) {
       return terms;
     }
-    const result = await this.client.core.getObjects({ objectIds: [...pledgeIds], include: { json: true } });
+    const result = await this.client.core.getObjects({
+      objectIds: [...pledgeIds],
+      include: { json: true },
+    });
     for (const object of result.objects) {
       const entry = objectEntry(object);
       const parsed = entry === null ? null : pledgeTermsFromJson(entry.objectId, entry.json);
@@ -164,7 +188,10 @@ export class WalletReadService {
     if (holdIds.length === 0) {
       return holds;
     }
-    const result = await this.client.core.getObjects({ objectIds: [...holdIds], include: { json: true } });
+    const result = await this.client.core.getObjects({
+      objectIds: [...holdIds],
+      include: { json: true },
+    });
     for (const object of result.objects) {
       const entry = objectEntry(object);
       if (entry !== null) {

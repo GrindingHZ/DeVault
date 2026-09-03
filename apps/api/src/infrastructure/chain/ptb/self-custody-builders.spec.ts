@@ -93,8 +93,15 @@ describe('pledge builders', () => {
       payment: coinArgument(transaction),
     });
     appendCollect(transaction, deployment, { pledgeObjectId: pledge, lenderNoteObjectId: note });
-    appendClaimDefault(transaction, deployment, { pledgeObjectId: pledge, lenderNoteObjectId: note });
-    expect(callsOf(transaction).map((call) => call.function)).toEqual(['repay', 'collect', 'claim_default']);
+    appendClaimDefault(transaction, deployment, {
+      pledgeObjectId: pledge,
+      lenderNoteObjectId: note,
+    });
+    expect(callsOf(transaction).map((call) => call.function)).toEqual([
+      'repay',
+      'collect',
+      'claim_default',
+    ]);
   });
 });
 
@@ -124,7 +131,10 @@ describe('offer builders', () => {
 describe('market and redemption builders', () => {
   it('lists, buys, and delists a position', () => {
     const transaction = new Transaction();
-    appendListPosition(transaction, deployment, { lenderNoteObjectId: note, askBaseUnits: 4_100_000n });
+    appendListPosition(transaction, deployment, {
+      lenderNoteObjectId: note,
+      askBaseUnits: 4_100_000n,
+    });
     appendBuyPosition(transaction, deployment, {
       listingObjectId: listing,
       payment: coinArgument(transaction),

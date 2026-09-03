@@ -77,10 +77,18 @@ describe('borrowerStanding', () => {
 describe('holdStatusOf', () => {
   const now = started + 5 * day;
   it('reads committed, reclaimable and consumed', () => {
-    expect(holdStatusOf({ exists: true, pledgeStatus: 'open', expiresAtMs: now + day }, now)).toBe('committed');
-    expect(holdStatusOf({ exists: true, pledgeStatus: 'active', expiresAtMs: now + day }, now)).toBe('reclaimable');
-    expect(holdStatusOf({ exists: true, pledgeStatus: 'open', expiresAtMs: now - day }, now)).toBe('reclaimable');
-    expect(holdStatusOf({ exists: false, pledgeStatus: 'open', expiresAtMs: now + day }, now)).toBe('consumed');
+    expect(holdStatusOf({ exists: true, pledgeStatus: 'open', expiresAtMs: now + day }, now)).toBe(
+      'committed',
+    );
+    expect(
+      holdStatusOf({ exists: true, pledgeStatus: 'active', expiresAtMs: now + day }, now),
+    ).toBe('reclaimable');
+    expect(holdStatusOf({ exists: true, pledgeStatus: 'open', expiresAtMs: now - day }, now)).toBe(
+      'reclaimable',
+    );
+    expect(holdStatusOf({ exists: false, pledgeStatus: 'open', expiresAtMs: now + day }, now)).toBe(
+      'consumed',
+    );
   });
 });
 
@@ -95,9 +103,39 @@ describe('summarizeFigures', () => {
       ],
       borrower: [borrowerStanding(terms({ pledgeId: '0xc' }), now)],
       offers: [
-        offerStanding({ holdObjectId: '0xs', pledgeId: '0xd', amountBaseUnits: 400n, exists: true, pledgeStatus: 'open', expiresAtMs: now + day }, now),
-        offerStanding({ holdObjectId: '0xl', pledgeId: '0xe', amountBaseUnits: 300n, exists: true, pledgeStatus: 'active', expiresAtMs: now + day }, now),
-        offerStanding({ holdObjectId: '0xg', pledgeId: '0xf', amountBaseUnits: 999n, exists: false, pledgeStatus: 'open', expiresAtMs: now + day }, now),
+        offerStanding(
+          {
+            holdObjectId: '0xs',
+            pledgeId: '0xd',
+            amountBaseUnits: 400n,
+            exists: true,
+            pledgeStatus: 'open',
+            expiresAtMs: now + day,
+          },
+          now,
+        ),
+        offerStanding(
+          {
+            holdObjectId: '0xl',
+            pledgeId: '0xe',
+            amountBaseUnits: 300n,
+            exists: true,
+            pledgeStatus: 'active',
+            expiresAtMs: now + day,
+          },
+          now,
+        ),
+        offerStanding(
+          {
+            holdObjectId: '0xg',
+            pledgeId: '0xf',
+            amountBaseUnits: 999n,
+            exists: false,
+            pledgeStatus: 'open',
+            expiresAtMs: now + day,
+          },
+          now,
+        ),
       ],
     });
     expect(figures.collectableBaseUnits).toBe(200n);
@@ -130,7 +168,11 @@ describe('gRPC json parsers', () => {
     ).toEqual({ holdObjectId: '0xh', pledgeId: '0xpl', amountBaseUnits: 400_000n });
     const receiptKey = Buffer.from('receipt-7', 'utf8').toString('base64');
     expect(
-      itemFromJson('0xr', { appraised_value: '800000000', item_category: 'BULLION', receipt_key: receiptKey }),
+      itemFromJson('0xr', {
+        appraised_value: '800000000',
+        item_category: 'BULLION',
+        receipt_key: receiptKey,
+      }),
     ).toEqual({
       objectId: '0xr',
       appraisedValueBaseUnits: 800_000_000n,
@@ -138,6 +180,8 @@ describe('gRPC json parsers', () => {
       receiptKey: 'receipt-7',
     });
     /* On chain the category is the u8 code, not the name. */
-    expect(itemFromJson('0xr', { appraised_value: '1', item_category: 1 })?.itemCategory).toBe('WATCH');
+    expect(itemFromJson('0xr', { appraised_value: '1', item_category: 1 })?.itemCategory).toBe(
+      'WATCH',
+    );
   });
 });

@@ -20,10 +20,14 @@ async function main(): Promise<void> {
     create: { id: ulid(), email: email.toLowerCase(), passwordHash, roles: ['VAULT_STAFF'] },
   });
   await prisma.$disconnect();
-  process.stdout.write(`staff account ${account.email} ready with roles ${account.roles.join(', ')}\n`);
+  process.stdout.write(
+    `staff account ${account.email} ready with roles ${account.roles.join(', ')}\n`,
+  );
 }
 
 main().catch((error: unknown) => {
-  process.stderr.write(`${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`);
+  process.stderr.write(
+    `${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`,
+  );
   process.exitCode = 1;
 });

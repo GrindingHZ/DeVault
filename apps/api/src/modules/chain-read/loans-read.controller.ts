@@ -15,7 +15,10 @@ export class LoansReadController {
   constructor(private readonly loans: LoansReadService) {}
 
   @Get('loans')
-  async read(@CurrentAccount() account: Account, @Query('role') role: string): Promise<MyLoansResponse> {
+  async read(
+    @CurrentAccount() account: Account,
+    @Query('role') role: string,
+  ): Promise<MyLoansResponse> {
     if (account.walletAddress === null) {
       throw new DomainErrorHttpException(new WalletNotLinked(), 409);
     }

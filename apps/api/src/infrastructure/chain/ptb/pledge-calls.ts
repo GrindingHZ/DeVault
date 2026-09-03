@@ -38,7 +38,11 @@ export function appendCancelPledge(
 export function appendAcceptOffer(
   transaction: Transaction,
   deployment: ChainDeployment,
-  input: { readonly pledgeObjectId: string; readonly holdObjectId: string; readonly termMs: bigint },
+  input: {
+    readonly pledgeObjectId: string;
+    readonly holdObjectId: string;
+    readonly termMs: bigint;
+  },
 ): void {
   transaction.moveCall({
     target: target(deployment, 'accept'),

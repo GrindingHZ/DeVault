@@ -79,7 +79,10 @@ export class ChainActionService {
 
   async collect(member: string, action: PledgeAction): Promise<SponsoredTransaction> {
     const lenderNoteObjectId = await this.resolver.lenderNoteForPledge(member, action.pledgeId);
-    return this.transactions.collect(member, { pledgeObjectId: action.pledgeId, lenderNoteObjectId });
+    return this.transactions.collect(member, {
+      pledgeObjectId: action.pledgeId,
+      lenderNoteObjectId,
+    });
   }
 
   async claim(member: string, action: PledgeAction): Promise<SponsoredTransaction> {

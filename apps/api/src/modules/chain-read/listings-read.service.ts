@@ -56,14 +56,20 @@ export class ListingsReadService {
     const offerCountByPledge = new Map<string, number>();
     const offersByPledge = new Map<string, PledgeOffer[]>();
     for (const event of offerEvents.events) {
-      const json = event.json as { pledge_id?: unknown; hold_id?: unknown; amount?: unknown; owner?: unknown } | null;
+      const json = event.json as {
+        pledge_id?: unknown;
+        hold_id?: unknown;
+        amount?: unknown;
+        owner?: unknown;
+      } | null;
       const pledgeId = json?.pledge_id;
       const holdId = json?.hold_id;
       if (typeof pledgeId !== 'string' || typeof holdId !== 'string') {
         continue;
       }
       offerCountByPledge.set(pledgeId, (offerCountByPledge.get(pledgeId) ?? 0) + 1);
-      const amount = typeof json?.amount === 'string' && /^\d+$/.test(json.amount) ? BigInt(json.amount) : 0n;
+      const amount =
+        typeof json?.amount === 'string' && /^\d+$/.test(json.amount) ? BigInt(json.amount) : 0n;
       const lender = typeof json?.owner === 'string' ? json.owner : event.sender;
       const list = offersByPledge.get(pledgeId) ?? [];
       list.push({ holdObjectId: holdId, amountBaseUnits: amount, lender });
@@ -84,8 +90,15 @@ export class ListingsReadService {
       if (typeof record.objectId !== 'string' || record.code !== undefined) {
         continue;
       }
-      const json = record.json === null || record.json === undefined ? null : (record.json as Record<string, unknown>);
-      const listing = openListingFromJson(record.objectId, receiptKeys.get(record.objectId) ?? '', json);
+      const json =
+        record.json === null || record.json === undefined
+          ? null
+          : (record.json as Record<string, unknown>);
+      const listing = openListingFromJson(
+        record.objectId,
+        receiptKeys.get(record.objectId) ?? '',
+        json,
+      );
       if (listing !== null) {
         listings.push(listing);
       }

@@ -24,7 +24,9 @@ export const DEFAULT_MAX_LOAN_TO_VALUE_BASIS_POINTS = 3000;
 export const MAX_ANNUAL_PERCENTAGE_RATE_BASIS_POINTS = 4800;
 
 export function loanToValueBasisPointsFor(category: string): number {
-  return MAX_LOAN_TO_VALUE_BASIS_POINTS_BY_CATEGORY[category] ?? DEFAULT_MAX_LOAN_TO_VALUE_BASIS_POINTS;
+  return (
+    MAX_LOAN_TO_VALUE_BASIS_POINTS_BY_CATEGORY[category] ?? DEFAULT_MAX_LOAN_TO_VALUE_BASIS_POINTS
+  );
 }
 
 /* The most a lender may lend against an item: its appraised value scaled by the

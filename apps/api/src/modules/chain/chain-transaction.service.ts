@@ -152,7 +152,10 @@ export class ChainTransactionService {
     });
   }
 
-  delistPosition(member: string, request: BuildDelistPositionRequest): Promise<SponsoredTransaction> {
+  delistPosition(
+    member: string,
+    request: BuildDelistPositionRequest,
+  ): Promise<SponsoredTransaction> {
     const deployment = this.deployments.current();
     return this.gateway.build(member, (transaction) =>
       appendDelistPosition(transaction, deployment, { listingObjectId: request.listingObjectId }),
@@ -190,6 +193,8 @@ function splitExact(
   coinObjectId: string,
   amountBaseUnits: string,
 ): TransactionObjectArgument {
-  const [coin] = transaction.splitCoins(transaction.object(coinObjectId), [BigInt(amountBaseUnits)]);
+  const [coin] = transaction.splitCoins(transaction.object(coinObjectId), [
+    BigInt(amountBaseUnits),
+  ]);
   return coin;
 }

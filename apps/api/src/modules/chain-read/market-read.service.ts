@@ -24,7 +24,9 @@ const categories = ['BULLION', 'WATCH', 'JEWELLERY', 'COLLECTIBLE', 'ART'] as co
 type ItemCategory = (typeof categories)[number];
 
 function categoryOf(value: string): ItemCategory {
-  return (categories as readonly string[]).includes(value) ? (value as ItemCategory) : 'COLLECTIBLE';
+  return (categories as readonly string[]).includes(value)
+    ? (value as ItemCategory)
+    : 'COLLECTIBLE';
 }
 
 /* The name and whether a photograph exists, read from the metadata store by the

@@ -134,7 +134,11 @@ export class OffersReadService {
         durationMs: 0,
         expiresAt: new Date(expiresAtMs ?? nowMs).toISOString(),
         createdAt: new Date(nowMs).toISOString(),
-        status: offerStatusOf(status, pledge?.terms?.status ?? null, fundedPledgeIds.has(offer.pledgeId)),
+        status: offerStatusOf(
+          status,
+          pledge?.terms?.status ?? null,
+          fundedPledgeIds.has(offer.pledgeId),
+        ),
         itemDescription: meta?.name ?? 'Vaulted item',
         receiptId: receiptKey === '' ? offer.pledgeId : receiptKey,
         hasPhotograph: meta !== null,

@@ -1,6 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 import { loadConfiguration } from '../src/config/configuration';
-import { readDeployment, recordDeployment } from '../src/infrastructure/chain/chain-deployment.registry';
+import {
+  readDeployment,
+  recordDeployment,
+} from '../src/infrastructure/chain/chain-deployment.registry';
 
 /* Empties every table, then puts the chain deployment back. The loan book lives
    on chain, so accounts, listings and the rest are demo residue and go; the
@@ -21,13 +24,17 @@ async function main(): Promise<void> {
     if (deployment !== null) {
       await recordDeployment(prisma, deployment);
     }
-    process.stdout.write(`database cleared; deployment ${deployment === null ? 'was absent' : 'kept'}\n`);
+    process.stdout.write(
+      `database cleared; deployment ${deployment === null ? 'was absent' : 'kept'}\n`,
+    );
   } finally {
     await prisma.$disconnect();
   }
 }
 
 main().catch((error: unknown) => {
-  process.stderr.write(`${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`);
+  process.stderr.write(
+    `${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`,
+  );
   process.exitCode = 1;
 });

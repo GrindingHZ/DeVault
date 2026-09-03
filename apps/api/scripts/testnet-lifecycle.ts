@@ -13,7 +13,12 @@ import { GrpcSponsoredTransactionGateway } from '../src/infrastructure/chain/grp
 import { OperatorSigner } from '../src/infrastructure/chain/operator-signer';
 import { appendIssueReceipt } from '../src/infrastructure/chain/ptb/custody-calls';
 import { appendMakeOffer } from '../src/infrastructure/chain/ptb/offer-calls';
-import { appendAcceptOffer, appendCollect, appendOpenPledge, appendRepay } from '../src/infrastructure/chain/ptb/pledge-calls';
+import {
+  appendAcceptOffer,
+  appendCollect,
+  appendOpenPledge,
+  appendRepay,
+} from '../src/infrastructure/chain/ptb/pledge-calls';
 
 /* The whole money path on live testnet: mint USDC, open a pledge, make an
    offer, accept it, repay, and collect. It proves the fee split, the note
@@ -61,7 +66,8 @@ async function main(): Promise<void> {
     append: (tx: Transaction) => void,
   ): Promise<ChainExecution> {
     const sponsored = await gateway.build(member.toSuiAddress(), append);
-    const signature = (await member.signTransaction(fromBase64(sponsored.transactionBytes))).signature;
+    const signature = (await member.signTransaction(fromBase64(sponsored.transactionBytes)))
+      .signature;
     const execution = await gateway.execute(sponsored.transactionBytes, signature);
     await client.waitForTransaction({ digest: execution.digest });
     return execution;
@@ -70,11 +76,14 @@ async function main(): Promise<void> {
   const createdOfType = (execution: ChainExecution, test: (type: string) => boolean): string => {
     const entry = Object.entries(execution.objectTypes).find(([, type]) => test(type));
     if (entry === undefined) {
-      throw new Error(`no created object of the wanted type in ${JSON.stringify(execution.objectTypes)}`);
+      throw new Error(
+        `no created object of the wanted type in ${JSON.stringify(execution.objectTypes)}`,
+      );
     }
     return entry[0];
   };
-  const coinTest = (type: string): boolean => type.includes('::coin::Coin<') && type.includes(coinType);
+  const coinTest = (type: string): boolean =>
+    type.includes('::coin::Coin<') && type.includes(coinType);
 
   async function mintUsdc(to: string, amount: bigint): Promise<string> {
     const execution = await operatorExecute((tx) => {
@@ -130,7 +139,11 @@ async function main(): Promise<void> {
 
   // 5. Borrower accepts the offer (sponsored). Principal minus fee lands on the borrower.
   const accepted = await sponsoredExecute(borrower, (tx) => {
-    appendAcceptOffer(tx, deployment, { pledgeObjectId: pledge, holdObjectId: hold, termMs: 2_592_000_000n });
+    appendAcceptOffer(tx, deployment, {
+      pledgeObjectId: pledge,
+      holdObjectId: hold,
+      termMs: 2_592_000_000n,
+    });
   });
   log(`accepted, events ${accepted.events.map((e) => e.name).join(',')}`);
   const borrowerNote = createdOfType(accepted, (type) => type.includes('::notes::BorrowerNote'));
@@ -161,6 +174,8 @@ function log(message: string): void {
 }
 
 main().catch((error: unknown) => {
-  process.stderr.write(`${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`);
+  process.stderr.write(
+    `${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`,
+  );
   process.exitCode = 1;
 });

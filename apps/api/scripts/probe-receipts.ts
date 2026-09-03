@@ -39,7 +39,11 @@ async function main(): Promise<void> {
     log(`  ${object.type}`);
   }
 
-  const filtered = await client.core.listOwnedObjects({ owner: holder, type: receiptType, include: { json: true } });
+  const filtered = await client.core.listOwnedObjects({
+    owner: holder,
+    type: receiptType,
+    include: { json: true },
+  });
   log(`\nfilter "${receiptType}" -> ${filtered.objects.length} objects`);
 }
 
@@ -48,6 +52,8 @@ function log(message: string): void {
 }
 
 main().catch((error: unknown) => {
-  process.stderr.write(`${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`);
+  process.stderr.write(
+    `${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`,
+  );
   process.exitCode = 1;
 });

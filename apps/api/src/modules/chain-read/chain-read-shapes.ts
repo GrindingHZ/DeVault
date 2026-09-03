@@ -13,7 +13,10 @@ export function objectEntry(entry: unknown): { objectId: string; json: Json | nu
     const record = entry as { objectId?: unknown; json?: unknown; code?: unknown };
     if (typeof record.objectId === 'string' && record.code === undefined) {
       const json = record.json;
-      return { objectId: record.objectId, json: json === null || json === undefined ? null : (json as Json) };
+      return {
+        objectId: record.objectId,
+        json: json === null || json === undefined ? null : (json as Json),
+      };
     }
   }
   return null;
@@ -22,7 +25,10 @@ export function objectEntry(entry: unknown): { objectId: string; json: Json | nu
 /* Base units to the money dto's cents. The settlement coin carries its own
    decimals; the dto's minor units are hundredths, so the tail decimals are
    dropped. Currency is the single supported one. */
-export function toMoneyDto(baseUnits: bigint, decimals: number): { minorUnits: string; currency: string } {
+export function toMoneyDto(
+  baseUnits: bigint,
+  decimals: number,
+): { minorUnits: string; currency: string } {
   const scale = 10n ** BigInt(Math.max(0, decimals - 2));
   return { minorUnits: (baseUnits / scale).toString(), currency: 'USD' };
 }
@@ -44,6 +50,7 @@ export function decodeBytes(value: unknown): string {
 /* The receipt key of the receipt a pledge wraps, when it still holds one. */
 export function receiptKeyOf(pledgeJson: Json | null): string {
   const receipt = pledgeJson?.receipt;
-  const key = receipt !== null && typeof receipt === 'object' ? (receipt as Json).receipt_key : undefined;
+  const key =
+    receipt !== null && typeof receipt === 'object' ? (receipt as Json).receipt_key : undefined;
   return decodeBytes(key);
 }

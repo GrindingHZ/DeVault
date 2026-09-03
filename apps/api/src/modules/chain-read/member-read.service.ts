@@ -18,7 +18,9 @@ const categories = ['BULLION', 'WATCH', 'JEWELLERY', 'COLLECTIBLE', 'ART'] as co
 type ItemCategory = (typeof categories)[number];
 
 function categoryOf(value: string): ItemCategory {
-  return (categories as readonly string[]).includes(value) ? (value as ItemCategory) : 'COLLECTIBLE';
+  return (categories as readonly string[]).includes(value)
+    ? (value as ItemCategory)
+    : 'COLLECTIBLE';
 }
 
 /* The member's own items and their redemptions, read from the chain into the
@@ -126,7 +128,8 @@ export class MemberReadService {
       if (item === null) {
         continue;
       }
-      const receiptKey = item.receiptKey === '' ? receiptKeyByPledge.get(entry.objectId) ?? '' : item.receiptKey;
+      const receiptKey =
+        item.receiptKey === '' ? (receiptKeyByPledge.get(entry.objectId) ?? '') : item.receiptKey;
       const meta = receiptKey === '' ? null : await this.metadata.read(receiptKey);
       receipts.push(
         this.receiptOf(

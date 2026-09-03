@@ -31,9 +31,13 @@ const executed = {
 };
 
 function issueSteps(transaction: Transaction): string[] {
-  return transaction.getData().commands.flatMap((command) =>
-    command.MoveCall === undefined ? [] : [`${command.MoveCall.module}::${command.MoveCall.function}`],
-  );
+  return transaction
+    .getData()
+    .commands.flatMap((command) =>
+      command.MoveCall === undefined
+        ? []
+        : [`${command.MoveCall.module}::${command.MoveCall.function}`],
+    );
 }
 
 describe('CustodianReceiptService', () => {
@@ -66,7 +70,11 @@ describe('CustodianReceiptService', () => {
       secondaryImages: [],
     });
 
-    expect(result).toEqual({ receiptObjectId: receiptId, receiptKey: 'receipt-1', digest: 'DIGEST' });
+    expect(result).toEqual({
+      receiptObjectId: receiptId,
+      receiptKey: 'receipt-1',
+      digest: 'DIGEST',
+    });
     expect(issueSteps(captured as unknown as Transaction)).toEqual(['custody::issue']);
   });
 });

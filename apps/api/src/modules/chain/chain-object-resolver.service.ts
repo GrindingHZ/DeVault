@@ -12,7 +12,10 @@ function entryOf(object: unknown): { objectId: string; json: Json | null } | nul
     const record = object as { objectId?: unknown; json?: unknown; code?: unknown };
     if (typeof record.objectId === 'string' && record.code === undefined) {
       const json = record.json;
-      return { objectId: record.objectId, json: json === null || json === undefined ? null : (json as Json) };
+      return {
+        objectId: record.objectId,
+        json: json === null || json === undefined ? null : (json as Json),
+      };
     }
   }
   return null;
@@ -82,7 +85,9 @@ export class ChainObjectResolver {
       }
     }
     if (best === null || best.balance < amountBaseUnits) {
-      throw new NotFoundException('No single coin holds enough to fund this. Top up from the faucet.');
+      throw new NotFoundException(
+        'No single coin holds enough to fund this. Top up from the faucet.',
+      );
     }
     return best.objectId;
   }
@@ -115,7 +120,10 @@ export class ChainObjectResolver {
      lender reclaims by proving the pledge matched a hold that is not theirs, so
      the caller reads that here rather than the escrow depending on the pledge. */
   async pledgeAcceptance(pledgeId: string): Promise<{ matched: boolean; acceptedHoldKey: string }> {
-    const objects = await this.client.core.getObjects({ objectIds: [pledgeId], include: { json: true } });
+    const objects = await this.client.core.getObjects({
+      objectIds: [pledgeId],
+      include: { json: true },
+    });
     const entry = entryOf(objects.objects[0]);
     const status = Number(entry?.json?.status ?? 0);
     return { matched: status !== 0, acceptedHoldKey: decodeBytes(entry?.json?.accepted_hold_key) };
@@ -128,14 +136,17 @@ export class ChainObjectResolver {
   async pledgeAppraisal(
     pledgeId: string,
   ): Promise<{ appraisedValueBaseUnits: bigint; category: string }> {
-    const objects = await this.client.core.getObjects({ objectIds: [pledgeId], include: { json: true } });
+    const objects = await this.client.core.getObjects({
+      objectIds: [pledgeId],
+      include: { json: true },
+    });
     const entry = entryOf(objects.objects[0]);
     const receipt = entry?.json?.receipt;
     const receiptJson = receipt !== null && typeof receipt === 'object' ? (receipt as Json) : null;
     const categoryCode = Number(receiptJson?.item_category ?? -1);
     const category =
       categoryCode >= 0 && categoryCode < itemCategoryNames.length
-        ? itemCategoryNames[categoryCode] ?? ''
+        ? (itemCategoryNames[categoryCode] ?? '')
         : '';
     return { appraisedValueBaseUnits: readU64(receiptJson?.appraised_value), category };
   }

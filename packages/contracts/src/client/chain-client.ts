@@ -27,6 +27,7 @@ import type {
   MakeOfferAction,
   OpenPledgeAction,
   PledgeAction,
+  ReclaimHoldAction,
   RedeemAction,
   ChainExecutionResponse,
   ExecuteChainActionRequest,
@@ -119,6 +120,9 @@ export function buyPositionAction(body: BuyPositionAction): Promise<SponsoredTra
 }
 export function delistPositionAction(body: DelistPositionAction): Promise<SponsoredTransactionResponse> {
   return buildSponsored('/chain/actions/delist-position', body);
+}
+export function reclaimHoldAction(body: ReclaimHoldAction): Promise<SponsoredTransactionResponse> {
+  return buildSponsored('/chain/actions/reclaim-hold', body);
 }
 
 /* The member posts the signed transaction bytes back; the api sponsor-signs and

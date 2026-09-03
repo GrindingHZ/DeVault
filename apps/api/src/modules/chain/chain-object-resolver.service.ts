@@ -97,6 +97,16 @@ export class ChainObjectResolver {
     throw new NotFoundException('You do not hold the note for this loan');
   }
 
+  /* Whether a pledge has matched an offer, and which hold key won. A losing
+     lender reclaims by proving the pledge matched a hold that is not theirs, so
+     the caller reads that here rather than the escrow depending on the pledge. */
+  async pledgeAcceptance(pledgeId: string): Promise<{ matched: boolean; acceptedHoldKey: string }> {
+    const objects = await this.client.core.getObjects({ objectIds: [pledgeId], include: { json: true } });
+    const entry = entryOf(objects.objects[0]);
+    const status = Number(entry?.json?.status ?? 0);
+    return { matched: status !== 0, acceptedHoldKey: decodeBytes(entry?.json?.accepted_hold_key) };
+  }
+
   async receiptForKey(owner: string, receiptKey: string): Promise<string> {
     const deployment = this.deployments.current();
     const receipts = await this.client.core.listOwnedObjects({

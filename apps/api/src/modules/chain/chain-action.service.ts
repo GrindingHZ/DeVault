@@ -8,6 +8,7 @@ import type {
   MakeOfferAction,
   OpenPledgeAction,
   PledgeAction,
+  ReclaimHoldAction,
   RedeemAction,
 } from '@depawn/contracts';
 import type { SponsoredTransaction } from '../../infrastructure/chain/sponsored-transaction';
@@ -101,5 +102,17 @@ export class ChainActionService {
 
   delistPosition(member: string, action: DelistPositionAction): Promise<SponsoredTransaction> {
     return this.transactions.delistPosition(member, { listingObjectId: action.listingObjectId });
+  }
+
+  async reclaimHold(member: string, action: ReclaimHoldAction): Promise<SponsoredTransaction> {
+    const acceptance = await this.resolver.pledgeAcceptance(action.pledgeId);
+    /* A beaten offer reclaims by proving the pledge matched another hold; an
+       offer whose own date passed reclaims on the clock alone. */
+    return acceptance.matched
+      ? this.transactions.reclaimLosing(member, {
+          holdObjectId: action.holdObjectId,
+          acceptedHoldKey: acceptance.acceptedHoldKey,
+        })
+      : this.transactions.reclaimExpired(member, { holdObjectId: action.holdObjectId });
   }
 }

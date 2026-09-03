@@ -229,6 +229,11 @@ export type BuyPositionAction = z.infer<typeof buyPositionActionSchema>;
 export const delistPositionActionSchema = z.object({ listingObjectId: objectId });
 export type DelistPositionAction = z.infer<typeof delistPositionActionSchema>;
 
+/* Reclaim the hold behind an offer the market left behind. The api reads the
+   pledge to tell an expired offer from a beaten one and refunds accordingly. */
+export const reclaimHoldActionSchema = z.object({ holdObjectId: objectId, pledgeId: objectId });
+export type ReclaimHoldAction = z.infer<typeof reclaimHoldActionSchema>;
+
 /* The custodian issues a receipt on chain to a member's wallet. This is the one
    custodial step: a person confirms a physical item exists, appraises it, and
    takes custody, which no on-chain code can attest. Operator-signed, because

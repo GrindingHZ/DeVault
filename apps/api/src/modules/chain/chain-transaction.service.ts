@@ -20,7 +20,11 @@ import {
   appendDelistPosition,
   appendListPosition,
 } from '../../infrastructure/chain/ptb/market-calls';
-import { appendMakeOffer } from '../../infrastructure/chain/ptb/offer-calls';
+import {
+  appendMakeOffer,
+  appendRefundExpired,
+  appendRefundLosing,
+} from '../../infrastructure/chain/ptb/offer-calls';
 import {
   appendAcceptOffer,
   appendCancelPledge,
@@ -152,6 +156,27 @@ export class ChainTransactionService {
     const deployment = this.deployments.current();
     return this.gateway.build(member, (transaction) =>
       appendDelistPosition(transaction, deployment, { listingObjectId: request.listingObjectId }),
+    );
+  }
+
+  reclaimExpired(member: string, request: { holdObjectId: string }): Promise<SponsoredTransaction> {
+    const deployment = this.deployments.current();
+    return this.gateway.build(member, (transaction) =>
+      appendRefundExpired(transaction, deployment, { holdObjectId: request.holdObjectId }),
+    );
+  }
+
+  reclaimLosing(
+    member: string,
+    request: { holdObjectId: string; acceptedHoldKey: string },
+  ): Promise<SponsoredTransaction> {
+    const deployment = this.deployments.current();
+    return this.gateway.build(member, (transaction) =>
+      appendRefundLosing(transaction, deployment, {
+        holdObjectId: request.holdObjectId,
+        pledgeMatched: true,
+        acceptedHoldKey: request.acceptedHoldKey,
+      }),
     );
   }
 

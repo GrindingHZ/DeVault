@@ -7,6 +7,7 @@ import {
   makeOfferActionSchema,
   openPledgeActionSchema,
   pledgeActionSchema,
+  reclaimHoldActionSchema,
   redeemActionSchema,
 } from '@depawn/contracts';
 import type {
@@ -17,6 +18,7 @@ import type {
   MakeOfferAction,
   OpenPledgeAction,
   PledgeAction,
+  ReclaimHoldAction,
   RedeemAction,
   SponsoredTransactionResponse,
 } from '@depawn/contracts';
@@ -120,5 +122,13 @@ export class ChainActionController {
     @Body(new ZodValidationPipe(delistPositionActionSchema)) body: DelistPositionAction,
   ): Promise<SponsoredTransactionResponse> {
     return this.actions.delistPosition(walletOf(account), body);
+  }
+
+  @Post('reclaim-hold')
+  reclaimHold(
+    @CurrentAccount() account: Account,
+    @Body(new ZodValidationPipe(reclaimHoldActionSchema)) body: ReclaimHoldAction,
+  ): Promise<SponsoredTransactionResponse> {
+    return this.actions.reclaimHold(walletOf(account), body);
   }
 }

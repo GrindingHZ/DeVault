@@ -448,9 +448,14 @@ export function positionOfOffer(offer: MyOfferResponse, asOf: number): Position 
       ...base,
       ...staged('Standing', 'lending'),
       term: closesIn(offer.expiresAt, asOf),
-      caption: 'Your money is held against this',
+      /* A standing offer cannot be pulled back. The escrow refunds a hold only
+         once it has lost or its own date has passed (escrow.move has no cancel),
+         so there is no action while it stands: the money is freed by the offer
+         being beaten or running out, when it turns reclaimable below. Offering a
+         Withdraw button here was offering one that always failed. */
+      caption: 'Held until this offer is beaten or runs out',
       figure: { label: 'Your rate', value: rateOf(offer.annualPercentageRateBasisPoints) },
-      action: { label: 'Withdraw', kind: 'withdraw' },
+      action: null,
       needsAttention: false,
     };
   }

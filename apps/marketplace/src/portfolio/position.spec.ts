@@ -152,10 +152,10 @@ describe('a listing as a position', () => {
 });
 
 describe('an offer as a position', () => {
-  it('lets a standing offer be withdrawn', () => {
+  it('holds a standing offer with no way to pull it back', () => {
     const position = offerPosition(offer());
     expect(position.stage).toBe('Standing');
-    expect(position.action?.kind).toBe('withdraw');
+    expect(position.action).toBeNull();
     expect(position.needsAttention).toBe(false);
   });
 

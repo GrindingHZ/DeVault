@@ -76,6 +76,14 @@ is allowed because an `.svg` asset has no token to reach for.
 **The wordmark is live text**, not paths, so it stays selectable, searchable and translatable and
 inherits the type scale rather than fighting it.
 
+## The USDC mark
+
+Circle's mark stands in front of every figure in the settlement coin, drawn by `CurrencyMark` in
+`packages/ui/src/currency-mark.tsx` and sized to the text beside it. It is an svg asset rather than
+an inline path because its colours are Circle's and not ours: the same exemption the favicon has,
+since an asset has no token to reach for. Any other currency is still spelled as its code, so a
+reader is never left guessing which dollar they are looking at.
+
 ## Typefaces, amended P8g
 
 Two families, four roles. The amendment permitting the change, the rejected candidates and the

@@ -79,6 +79,12 @@ Two primitives, used everywhere, never bypassed.
 `Money` takes the `{ minorUnits: string, currency }` shape straight from the API and does its own
 `Intl.NumberFormat`. There is no place in the app where an amount is a JavaScript `number`.
 
+`Money` leads with the currency: Circle's mark for USDC and the code for anything else, through
+`CurrencyMark`. The mark is an svg asset in `packages/ui/src`, carrying Circle's colours under the
+same exemption the favicon has, and it sizes to the text beside it. `formatMoney` keeps the code in
+the string for an aria label or a toast. A screen that sets its own figure, such as the wallet or
+the header pill, puts `CurrencyMark` in front of the bare amount rather than spelling the coin.
+
 ## Marketplace app routes
 
 ```
@@ -107,6 +113,12 @@ Screens that need care:
 borrower cost, and the LTV cap as a hard ceiling on the offer form. The form must show the borrower's
 requested principal as the default and make the rate the thing the lender competes on. Disable submit
 above the cap client-side and let the server reject it too.
+
+Under the best rate sits what the chain holds for the listing, each record named and linked to the
+explorer: the pledge, the vault receipt wrapped inside it, and the borrower's address. The offer
+book carries a column for each offer's hold, so the money behind a rate can be seen locked rather
+than taken on the book's word. The rate slider moves in half percent notches; the box beside it
+takes any rate the contract accepts.
 
 **Payoff and repay.** Fetch the quote, show a countdown to `validUntil`, refetch on expiry. Submitting
 sends `quotedAt`. If the server returns `PAYOFF_QUOTE_STALE`, refetch and show the new figure rather

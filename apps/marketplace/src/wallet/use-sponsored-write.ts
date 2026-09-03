@@ -2,6 +2,8 @@ import { useSignTransaction } from '@mysten/dapp-kit';
 import { fromBase64 } from '@mysten/sui/utils';
 import type { ChainExecutionResponse, SponsoredTransactionResponse } from '@depawn/contracts';
 import { executeChainAction } from '@depawn/contracts';
+import { useQueryClient } from '@tanstack/react-query';
+import { refreshChainReads } from './chain-refresh';
 import { testKeypair } from './test-wallet';
 
 /* The member's half of a sponsored write. The api builds a transaction with the
@@ -18,19 +20,27 @@ export function useSponsoredWrite(): (
   build: () => Promise<SponsoredTransactionResponse>,
 ) => Promise<ChainExecutionResponse> {
   const { mutateAsync: signTransaction } = useSignTransaction();
+  const queryClient = useQueryClient();
 
   return async function run(build) {
     const { transactionBytes } = await build();
-    /* The in-app test wallet signs the sponsor's bytes itself, as it signs
-       the login challenge, so a browser test can list, offer and accept
-       without a wallet extension in the loop. */
-    if (testKeypair !== null) {
-      const { signature } = await testKeypair.signTransaction(fromBase64(transactionBytes));
-      return executeChainAction({ transactionBytes, signature });
-    }
-    const signed = await signTransaction({ transaction: transactionBytes });
-    /* Post the bytes the wallet actually signed, so the signature and the
-       sponsor's cover the same transaction. */
-    return executeChainAction({ transactionBytes: signed.bytes, signature: signed.signature });
+    const execution = await (async (): Promise<ChainExecutionResponse> => {
+      /* The in-app test wallet signs the sponsor's bytes itself, as it signs
+         the login challenge, so a browser test can list, offer and accept
+         without a wallet extension in the loop. */
+      if (testKeypair !== null) {
+        const { signature } = await testKeypair.signTransaction(fromBase64(transactionBytes));
+        return executeChainAction({ transactionBytes, signature });
+      }
+      const signed = await signTransaction({ transaction: transactionBytes });
+      /* Post the bytes the wallet actually signed, so the signature and the
+         sponsor's cover the same transaction. */
+      return executeChainAction({ transactionBytes: signed.bytes, signature: signed.signature });
+    })();
+    /* Every screen that reads the chain is refreshed here, once, for every
+       write, rather than each caller keeping its own list of what it thinks
+       it changed. The refresh repeats as the node's indexer settles. */
+    await refreshChainReads(queryClient);
+    return execution;
   };
 }

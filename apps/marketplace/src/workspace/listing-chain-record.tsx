@@ -32,17 +32,17 @@ export function ListingChainRecord({
         On chain
       </h3>
       <ul className="flex flex-col gap-2">
-        <Record icon={<LockIcon />} label="Pledge">
+        <Record icon={<LockIcon />} label="Pledge" typeName="pledge::Pledge">
           <ChainLink value={pledgeObjectId} kind="object" testId="listing-chain-object" />
         </Record>
-        <Record icon={<ReceiptIcon />} label="Vault receipt">
+        <Record icon={<ReceiptIcon />} label="Vault receipt" typeName="custody::VaultReceipt">
           {receiptObjectId === null ? (
             <span className="font-body text-xs text-ink-secondary">Not on chain</span>
           ) : (
             <ChainLink value={receiptObjectId} kind="object" testId="listing-chain-receipt" />
           )}
         </Record>
-        <Record icon={<PersonIcon />} label="Borrower">
+        <Record icon={<PersonIcon />} label="Borrower" typeName="address">
           <ChainLink value={borrowerAddress} kind="address" testId="listing-chain-borrower" />
         </Record>
       </ul>
@@ -53,10 +53,14 @@ export function ListingChainRecord({
 function Record({
   icon,
   label,
+  typeName,
   children,
 }: {
   readonly icon: ReactNode;
   readonly label: string;
+  /* What the explorer will call it: the Move object behind the plain name,
+     so the two pages agree about what the reader is looking at. */
+  readonly typeName: string;
   readonly children: ReactNode;
 }): ReactElement {
   return (
@@ -66,7 +70,10 @@ function Record({
         {icon}
       </span>
       <span className="flex min-w-0 flex-col">
-        <span className="font-body text-xs text-ink-secondary">{label}</span>
+        <span className="flex flex-wrap items-baseline gap-x-2 font-body text-xs text-ink-secondary">
+          {label}
+          <span className="font-mono">{typeName}</span>
+        </span>
         {children}
       </span>
     </li>

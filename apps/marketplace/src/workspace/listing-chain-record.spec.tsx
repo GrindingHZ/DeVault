@@ -24,11 +24,14 @@ describe('ListingChainRecord', () => {
 
   /* A hash speaks for nothing on its own. Each record says what it is before
      it says where it is. */
-  it('names each record in words', () => {
+  it('names each record in words and by the object it is on chain', () => {
     render(<ListingChainRecord {...record} />);
     expect(screen.getByText('Pledge')).toBeTruthy();
+    expect(screen.getByText('pledge::Pledge')).toBeTruthy();
     expect(screen.getByText('Vault receipt')).toBeTruthy();
+    expect(screen.getByText('custody::VaultReceipt')).toBeTruthy();
     expect(screen.getByText('Borrower')).toBeTruthy();
+    expect(screen.getByText('address')).toBeTruthy();
   });
 
   it('says so when the chain does not know the receipt', () => {

@@ -120,15 +120,11 @@ describe('offer builders', () => {
       expiresAtMs: 1_700_000_600_000n,
     });
     appendRefundExpired(transaction, deployment, { holdObjectId: hold });
-    appendRefundLosing(transaction, deployment, {
-      holdObjectId: hold,
-      pledgeMatched: true,
-      acceptedHoldKey: 'HOLD-2',
-    });
+    appendRefundLosing(transaction, deployment, { pledgeObjectId: pledge, holdObjectId: hold });
     expect(callsOf(transaction).map((call) => `${call.module}::${call.function}`)).toEqual([
-      'escrow::make_offer',
+      'pledge::offer',
       'escrow::refund_expired',
-      'escrow::refund_losing',
+      'pledge::refund_losing',
     ]);
   });
 });

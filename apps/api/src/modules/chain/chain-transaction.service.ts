@@ -173,14 +173,13 @@ export class ChainTransactionService {
 
   reclaimLosing(
     member: string,
-    request: { holdObjectId: string; acceptedHoldKey: string },
+    request: { pledgeObjectId: string; holdObjectId: string },
   ): Promise<SponsoredTransaction> {
     const deployment = this.deployments.current();
     return this.gateway.build(member, (transaction) =>
       appendRefundLosing(transaction, deployment, {
+        pledgeObjectId: request.pledgeObjectId,
         holdObjectId: request.holdObjectId,
-        pledgeMatched: true,
-        acceptedHoldKey: request.acceptedHoldKey,
       }),
     );
   }

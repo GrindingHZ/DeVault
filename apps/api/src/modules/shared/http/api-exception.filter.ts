@@ -1,9 +1,11 @@
 import { ArgumentsHost, Catch, HttpException, Logger } from '@nestjs/common';
 import type { ExceptionFilter } from '@nestjs/common';
 import type { Response } from 'express';
+import { DomainError } from '../../../domain/shared/domain-error';
 import { CurrencyMismatchError } from '../../../domain/shared/money';
 import { DomainErrorHttpException } from './domain-error-http.exception';
 import type { ErrorEnvelope } from './domain-error-http.exception';
+import { domainErrorStatusFor } from './domain-error-status';
 
 const codeByStatus: Record<number, string> = {
   401: 'UNAUTHENTICATED',
@@ -31,6 +33,19 @@ export class ApiExceptionFilter implements ExceptionFilter {
 
     if (exception instanceof DomainErrorHttpException) {
       response.status(exception.getStatus()).json(exception.getResponse());
+      return;
+    }
+
+    /* A use case answers a domain error as a Result the controller wraps.
+       A chain execution cannot: the state can move between the build and
+       the signed submit, and the submitter throws the domain error the
+       Move abort names. It is answered with its own code and status, so a
+       screen that acted on a stale view hears why rather than a fault. */
+    if (exception instanceof DomainError) {
+      const envelope: ErrorEnvelope = {
+        error: { code: exception.code, message: exception.message },
+      };
+      response.status(domainErrorStatusFor(exception.code)).json(envelope);
       return;
     }
 

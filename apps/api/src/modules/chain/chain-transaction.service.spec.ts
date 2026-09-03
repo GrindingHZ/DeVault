@@ -114,7 +114,7 @@ describe('ChainTransactionService', () => {
       aprBps: 1800,
       expiresAtMs: 1_800_000_000_000,
     });
-    expect(stepsOf(gateway.transaction as Transaction)).toEqual(['split', 'escrow::make_offer']);
+    expect(stepsOf(gateway.transaction as Transaction)).toEqual(['split', 'pledge::offer']);
 
     await service.buyPosition(member, {
       listingObjectId: object('7'),

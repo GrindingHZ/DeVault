@@ -8,7 +8,7 @@
 
 const MILLISECONDS_PER_YEAR = 365n * 24n * 60n * 60n * 1000n;
 
-export type PledgeStatus = 'open' | 'active' | 'repaid' | 'defaulted';
+export type PledgeStatus = 'open' | 'active' | 'repaid' | 'defaulted' | 'cancelled' | 'closed';
 
 export function pledgeStatusOf(status: number): PledgeStatus {
   switch (status) {
@@ -18,6 +18,10 @@ export function pledgeStatusOf(status: number): PledgeStatus {
       return 'repaid';
     case 3:
       return 'defaulted';
+    case 4:
+      return 'cancelled';
+    case 5:
+      return 'closed';
     default:
       return 'open';
   }

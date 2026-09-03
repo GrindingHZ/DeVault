@@ -41,6 +41,8 @@ describe('pledgeStatusOf', () => {
     expect(pledgeStatusOf(1)).toBe('active');
     expect(pledgeStatusOf(2)).toBe('repaid');
     expect(pledgeStatusOf(3)).toBe('defaulted');
+    expect(pledgeStatusOf(4)).toBe('cancelled');
+    expect(pledgeStatusOf(5)).toBe('closed');
   });
 });
 

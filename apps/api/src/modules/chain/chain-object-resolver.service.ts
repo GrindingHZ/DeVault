@@ -47,9 +47,41 @@ function readU64(value: unknown): bigint {
   return 0n;
 }
 
-/* The receipt stores its category as the u8 code custody.move issued it with,
-   in the order the code assigns (BULLION 0 through ART 4). */
-const itemCategoryNames = ['BULLION', 'WATCH', 'JEWELLERY', 'COLLECTIBLE', 'ART'] as const;
+function readAddress(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+/* The pledge's status byte as pledge.move numbers it. */
+export const pledgeStatuses = {
+  OPEN: 0,
+  ACTIVE: 1,
+  REPAID: 2,
+  DEFAULTED: 3,
+  CANCELLED: 4,
+  CLOSED: 5,
+} as const;
+
+/* A pledge as the chain holds it at the moment of asking: what an action
+   against a listing or a loan checks before its transaction is built. */
+export interface PledgeState {
+  readonly objectId: string;
+  readonly status: number;
+  readonly borrower: string;
+  readonly requestedPrincipalBaseUnits: bigint;
+  readonly requestedAprBps: number;
+  readonly acceptedHoldKey: string;
+  readonly maturesAtMs: bigint;
+  readonly gracePeriodMs: bigint;
+}
+
+/* A standing offer's hold: which pledge it is against, whose money it is,
+   and when it lapses. */
+export interface HoldState {
+  readonly objectId: string;
+  readonly pledgeId: string;
+  readonly owner: string;
+  readonly expiresAtMs: bigint;
+}
 
 /* Resolves the on-chain object ids a build call needs from what the member can
    name. The frontend can no longer read the chain itself, so the ids it once
@@ -116,39 +148,48 @@ export class ChainObjectResolver {
     throw new NotFoundException('You do not hold the note for this loan');
   }
 
-  /* Whether a pledge has matched an offer, and which hold key won. A losing
-     lender reclaims by proving the pledge matched a hold that is not theirs, so
-     the caller reads that here rather than the escrow depending on the pledge. */
-  async pledgeAcceptance(pledgeId: string): Promise<{ matched: boolean; acceptedHoldKey: string }> {
+  /* The pledge behind a listing or a loan, read fresh from the chain, or null
+     when no such object exists. A pledge is never deleted, so null means the
+     id was never a pledge under this package; a listing taken down reads as
+     CANCELLED and a collected loan as CLOSED. */
+  async pledgeState(pledgeId: string): Promise<PledgeState | null> {
     const objects = await this.client.core.getObjects({
       objectIds: [pledgeId],
       include: { json: true },
     });
     const entry = entryOf(objects.objects[0]);
-    const status = Number(entry?.json?.status ?? 0);
-    return { matched: status !== 0, acceptedHoldKey: decodeBytes(entry?.json?.accepted_hold_key) };
+    if (entry === null || entry.json === null) {
+      return null;
+    }
+    return {
+      objectId: entry.objectId,
+      status: Number(entry.json.status ?? -1),
+      borrower: readAddress(entry.json.borrower),
+      requestedPrincipalBaseUnits: readU64(entry.json.requested_principal),
+      requestedAprBps: Number(entry.json.requested_apr_bps ?? 0),
+      acceptedHoldKey: decodeBytes(entry.json.accepted_hold_key),
+      maturesAtMs: readU64(entry.json.matures_at_ms),
+      gracePeriodMs: readU64(entry.json.grace_period_ms),
+    };
   }
 
-  /* The appraised value and category of the item a pledge wraps, read from the
-     receipt nested inside it. The offer build uses this to hold an offer to the
-     item's lending ceiling; a pledge whose receipt cannot be read answers a zero
-     appraisal, which the caller treats as no ceiling rather than as a refusal. */
-  async pledgeAppraisal(
-    pledgeId: string,
-  ): Promise<{ appraisedValueBaseUnits: bigint; category: string }> {
+  /* The hold behind an offer, or null once it has been consumed by an
+     acceptance or refunded: a hold is deleted on both. */
+  async holdState(holdObjectId: string): Promise<HoldState | null> {
     const objects = await this.client.core.getObjects({
-      objectIds: [pledgeId],
+      objectIds: [holdObjectId],
       include: { json: true },
     });
     const entry = entryOf(objects.objects[0]);
-    const receipt = entry?.json?.receipt;
-    const receiptJson = receipt !== null && typeof receipt === 'object' ? (receipt as Json) : null;
-    const categoryCode = Number(receiptJson?.item_category ?? -1);
-    const category =
-      categoryCode >= 0 && categoryCode < itemCategoryNames.length
-        ? (itemCategoryNames[categoryCode] ?? '')
-        : '';
-    return { appraisedValueBaseUnits: readU64(receiptJson?.appraised_value), category };
+    if (entry === null || entry.json === null) {
+      return null;
+    }
+    return {
+      objectId: entry.objectId,
+      pledgeId: readAddress(entry.json.pledge_id),
+      owner: readAddress(entry.json.owner),
+      expiresAtMs: readU64(entry.json.expires_at),
+    };
   }
 
   async receiptForKey(owner: string, receiptKey: string): Promise<string> {

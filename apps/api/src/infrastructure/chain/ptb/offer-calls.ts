@@ -2,11 +2,14 @@ import type { Transaction, TransactionObjectArgument } from '@mysten/sui/transac
 import type { ChainDeployment } from '../chain-deployment';
 import { bytesOf } from './codec';
 
-/* An offer is the lender's own coin locked in a shared hold against a pledge.
-   The lender signs `make_offer`; a refund is pull, so anyone may trigger it
-   once the offer has expired or lost, and the coin only ever goes home. */
-function target(deployment: ChainDeployment, name: string): string {
-  return `${deployment.packageId}::escrow::${name}`;
+/* An offer is the lender's own coin locked in a shared hold against a
+   pledge. The lender signs `pledge::offer`, which reads the listing before
+   the escrow takes the coin, so the transaction itself fails on a listing
+   that has closed. A refund is pull: anyone may trigger it once the offer
+   has expired (the escrow, on the clock) or lost (the pledge, on its own
+   status), and the coin only ever goes home. */
+function target(deployment: ChainDeployment, module: 'escrow' | 'pledge', name: string): string {
+  return `${deployment.packageId}::${module}::${name}`;
 }
 
 export function appendMakeOffer(
@@ -21,11 +24,11 @@ export function appendMakeOffer(
   },
 ): void {
   transaction.moveCall({
-    target: target(deployment, 'make_offer'),
+    target: target(deployment, 'pledge', 'offer'),
     typeArguments: [deployment.settlementCoinType],
     arguments: [
       transaction.object(deployment.configId),
-      transaction.pure.id(input.pledgeObjectId),
+      transaction.object(input.pledgeObjectId),
       transaction.pure.vector('u8', bytesOf(input.holdKey)),
       input.payment,
       transaction.pure.u16(input.aprBps),
@@ -41,7 +44,7 @@ export function appendRefundExpired(
   input: { readonly holdObjectId: string },
 ): void {
   transaction.moveCall({
-    target: target(deployment, 'refund_expired'),
+    target: target(deployment, 'escrow', 'refund_expired'),
     typeArguments: [deployment.settlementCoinType],
     arguments: [transaction.object(input.holdObjectId), transaction.object.clock()],
   });
@@ -50,19 +53,11 @@ export function appendRefundExpired(
 export function appendRefundLosing(
   transaction: Transaction,
   deployment: ChainDeployment,
-  input: {
-    readonly holdObjectId: string;
-    readonly pledgeMatched: boolean;
-    readonly acceptedHoldKey: string;
-  },
+  input: { readonly pledgeObjectId: string; readonly holdObjectId: string },
 ): void {
   transaction.moveCall({
-    target: target(deployment, 'refund_losing'),
+    target: target(deployment, 'pledge', 'refund_losing'),
     typeArguments: [deployment.settlementCoinType],
-    arguments: [
-      transaction.object(input.holdObjectId),
-      transaction.pure.bool(input.pledgeMatched),
-      transaction.pure.vector('u8', bytesOf(input.acceptedHoldKey)),
-    ],
+    arguments: [transaction.object(input.pledgeObjectId), transaction.object(input.holdObjectId)],
   });
 }

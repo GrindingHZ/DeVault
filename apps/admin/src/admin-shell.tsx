@@ -89,7 +89,9 @@ export function AdminShell({ current, children }: AdminShellProps): ReactElement
         navigation={
           <>
             <AdminNavigation current={current} />
-            <span data-testid="account-email">{currentAccount.data.email}</span>
+            <span data-testid="account-email">
+              {currentAccount.data.email ?? currentAccount.data.walletAddress}
+            </span>
           </>
         }
         actions={

@@ -1,7 +1,16 @@
 import { ApiError, makeOfferAction, messageForError } from '@depawn/contracts';
 import type { ListingDetailResponse } from '@depawn/contracts';
 import { useSponsoredWrite } from '../wallet/use-sponsored-write';
-import { Button, Money, Slider, formatMoney, formatRate, interestOver } from '@depawn/ui';
+import {
+  Button,
+  Money,
+  Slider,
+  formatMoney,
+  formatRate,
+  interestOver,
+  rateToBasisPoints,
+  standingAmong,
+} from '@depawn/ui';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import type { ReactElement } from 'react';
@@ -12,10 +21,13 @@ import { walletKeys } from '../wallet-keys';
 function offerMessageFor(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.code === 'LOAN_TO_VALUE_EXCEEDED') {
-      return 'The amount is above the lending ceiling for this item.';
+      return 'The principal is above the lending ceiling for this item.';
+    }
+    if (error.code === 'RATE_ABOVE_MAXIMUM') {
+      return 'The rate is above the maximum for this listing.';
     }
     if (error.code === 'INSUFFICIENT_FUNDS') {
-      return 'Your available balance does not cover this amount.';
+      return 'Your available balance does not cover this principal.';
     }
     if (error.code === 'SYSTEM_PAUSED') {
       return 'Trading is paused. Repayments and redemptions are unaffected.';
@@ -26,17 +38,26 @@ function offerMessageFor(error: unknown): string {
 
 const millisecondsPerDay = 24 * 60 * 60 * 1000;
 
-/* One dollar in the settlement currency's minor units, the step the amount
-   moves in: cents are the money's smallest unit here, so a lender lends whole
-   dollars and the arithmetic stays exact. */
-const minorUnitsPerStep = 100;
+/* The smallest rate the contract accepts. Anything below it is not a cheap
+   offer, it is a rejected one. */
+const smallestRateBasisPoints = 1;
 
-/* Placing an offer commits real money for the loan's term. The borrower sets
-   the rate when they list, and the contract charges that same rate whoever
-   funds the loan, so a lender does not set a rate: they compete on how much to
-   lend, up to the item's category ceiling. The control is the amount, and
-   everything below it is the consequence of what it holds: what the lender
-   earns at the borrower's rate, and what the borrower repays.
+function withoutSuffix(basisPoints: number): string {
+  return formatRate(basisPoints).replace(' p.a.', '');
+}
+
+/* Placing an offer commits real money for a month, and the form for it was a
+   number in a box. Everything below the control is the consequence of what
+   it holds: what the lender earns, where they would stand, and what the
+   borrower would repay. All three move as the rate moves.
+
+   The rate is set by dragging rather than by typing. Undercutting is the
+   whole mechanic, and a lender doing it by typing has to hold the number to
+   beat in their head, compute one below it, and enter the result. On a
+   scale, the offer to beat is a mark they can aim at and the ceiling is the
+   end of the track. The box is still there, still typable, and shows the
+   same figure: some people know the rate they want and should not have to
+   hunt for it with a mouse.
 
    The arithmetic is the server's own, from packages/ui/src/interest.ts, so a
    figure quoted here and the figure charged later cannot disagree. */
@@ -48,63 +69,61 @@ export function PlaceOfferForm({
   const queryClient = useQueryClient();
   const feedback = useFeedback();
   const sign = useSponsoredWrite();
-
-  const currency = detail.requestedPrincipal.currency;
-  /* The most a lender may lend against this item: its appraised value scaled by
-     the category ceiling, which the api has already resolved into the requested
-     principal. */
-  const ceilingMinorUnits = BigInt(detail.requestedPrincipal.minorUnits);
-  const rateBasisPoints = detail.maxAnnualPercentageRateBasisPoints;
-  const days = Math.round(detail.requestedDurationMs / millisecondsPerDay);
-
   /* Two pieces of state for one number, on purpose. The box holds what was
-     typed, including the half finished states a person passes through, and is
-     what the form submits. The slider holds the last figure that parsed, so
-     clearing the box to retype it does not throw the handle to one end. */
-  const ceilingDollars = (Number(ceilingMinorUnits) / minorUnitsPerStep).toFixed(2);
-  const [amountInput, setAmountInput] = useState(ceilingDollars);
-  const [sliderMinorUnits, setSliderMinorUnits] = useState(Number(ceilingMinorUnits));
+     typed, including the half finished states a person passes through, and
+     is what the form submits. The slider holds the last figure that parsed,
+     so clearing the box to retype it does not throw the handle to one end of
+     the track. */
+  const [rateInput, setRateInput] = useState('18.00');
+  const [sliderBasisPoints, setSliderBasisPoints] = useState(1800);
   const [inputError, setInputError] = useState<string | null>(null);
 
-  const parsed = parseAmount(amountInput);
-  const amountMinorUnits = parsed === null ? null : BigInt(parsed);
-  const isOverCeiling = amountMinorUnits !== null && amountMinorUnits > ceilingMinorUnits;
-  const isEmpty = amountMinorUnits === null || amountMinorUnits <= 0n;
-  const interest =
-    amountMinorUnits === null || isEmpty || isOverCeiling
-      ? null
-      : interestOver(amountMinorUnits.toString(), rateBasisPoints, detail.requestedDurationMs);
-
-  /* The most any standing offer already lends, drawn on the track as the figure
-     to match or beat: a borrower prefers the offer that raises them the most. */
-  const standingAmounts = detail.offerBook
+  const basisPoints = rateToBasisPoints(rateInput);
+  const ceiling = detail.maxAnnualPercentageRateBasisPoints;
+  const standingRates = detail.offerBook
     .filter((offer) => offer.status === 'PENDING')
-    .map((offer) => Number(offer.principal.minorUnits));
-  const mostLent = standingAmounts.length === 0 ? null : Math.max(...standingAmounts);
+    .map((offer) => offer.annualPercentageRateBasisPoints);
+  const best = standingRates.length === 0 ? null : Math.min(...standingRates);
 
-  function takeAmount(nextMinorUnits: number): void {
-    setSliderMinorUnits(nextMinorUnits);
-    setAmountInput((nextMinorUnits / minorUnitsPerStep).toFixed(2));
+  const isAboveCeiling = basisPoints !== null && basisPoints > ceiling;
+  const interest =
+    basisPoints === null || isAboveCeiling
+      ? null
+      : interestOver(detail.requestedPrincipal.minorUnits, basisPoints, detail.requestedDurationMs);
+  const standing = basisPoints === null ? null : standingAmong(basisPoints, standingRates);
+  const days = Math.round(detail.requestedDurationMs / millisecondsPerDay);
+
+  function takeRate(nextBasisPoints: number): void {
+    setSliderBasisPoints(nextBasisPoints);
+    setRateInput((nextBasisPoints / 100).toFixed(2));
     setInputError(null);
   }
 
-  function takeTypedAmount(text: string): void {
-    setAmountInput(text);
-    const next = parseAmount(text);
-    if (next !== null) {
-      setSliderMinorUnits(Math.min(next, Number(ceilingMinorUnits)));
+  function takeTypedRate(text: string): void {
+    setRateInput(text);
+    const parsed = rateToBasisPoints(text);
+    if (parsed !== null) {
+      setSliderBasisPoints(Math.min(Math.max(parsed, smallestRateBasisPoints), ceiling));
       setInputError(null);
     }
   }
 
+  /* Rule M4: lenders compete by lowering the rate, not by raising the
+     principal. So the amount is the one the borrower asked for and is not a
+     field. A lender choosing their own amount would be competing on a second
+     axis the borrower never opened. */
   const offerMutation = useMutation({
-    mutationFn: (minorUnits: bigint) =>
+    /* The lender funds the principal the borrower asked for and competes on the
+       rate: this offer lends at the rate on the slider, at or below the
+       borrower's asked maximum, and the loan is charged that rate if accepted.
+       The amount is the requested principal restated in the settlement coin's
+       base units. */
+    mutationFn: (rateBasisPoints: number) =>
       sign(() =>
         makeOfferAction({
           pledgeId: detail.id,
-          /* The dto's minor units are cents; the settlement coin's base units
-             carry the coin's own decimals, so the amount is restated in them. */
-          amountBaseUnits: (minorUnits * 10_000n).toString(),
+          amountBaseUnits: (BigInt(detail.requestedPrincipal.minorUnits) * 10_000n).toString(),
+          aprBps: rateBasisPoints,
           expiresAtMs: Date.parse(detail.expiresAt),
         }),
       ),
@@ -118,9 +137,7 @@ export function PlaceOfferForm({
 
   const errorMessage =
     inputError ??
-    (isOverCeiling
-      ? `Above this item's ceiling of ${formatMoney(detail.requestedPrincipal)}.`
-      : null);
+    (isAboveCeiling ? `Above this listing's maximum of ${withoutSuffix(ceiling)}.` : null);
 
   return (
     <div className="flex flex-col gap-3 p-3">
@@ -128,54 +145,51 @@ export function PlaceOfferForm({
         Place an offer
       </h3>
 
-      <p className="font-body text-xs text-ink-secondary">
-        This borrower pays {formatRate(rateBasisPoints)}, whoever funds the loan. You choose how
-        much to lend, up to the item&apos;s ceiling.
-      </p>
-
       <form
         className="flex flex-col gap-4"
         onSubmit={(event) => {
           event.preventDefault();
-          if (amountMinorUnits === null || isEmpty) {
-            setInputError('Enter an amount to lend.');
+          if (basisPoints === null) {
+            setInputError('Enter a rate like 18.00.');
             return;
           }
-          if (isOverCeiling) {
+          if (isAboveCeiling) {
             return;
           }
           setInputError(null);
-          offerMutation.mutate(amountMinorUnits);
+          offerMutation.mutate(basisPoints);
         }}
       >
         <div className="flex flex-col gap-1">
           <Slider
-            label="How much to lend"
-            testId="offer-amount-slider"
-            value={Math.min(sliderMinorUnits, Number(ceilingMinorUnits))}
-            min={0}
-            max={Number(ceilingMinorUnits)}
-            step={minorUnitsPerStep}
-            onValueChange={takeAmount}
-            valueText={(value) => formatMoney({ minorUnits: String(Math.round(value)), currency })}
-            marker={mostLent === null ? undefined : { value: mostLent, label: 'Most lent' }}
+            label="Annual rate (% per year)"
+            testId="offer-rate-slider"
+            value={sliderBasisPoints}
+            min={smallestRateBasisPoints}
+            max={ceiling}
+            onValueChange={takeRate}
+            valueText={withoutSuffix}
+            /* The offer to beat, drawn on the scale. Undercutting used to be
+               a button that did the subtraction; a mark on the track says
+               the same thing without deciding by how much. */
+            marker={best === null ? undefined : { value: best, label: 'Best' }}
             valueControl={
               <span className="flex items-center gap-1">
-                <span className="font-body text-sm text-ink-secondary">$</span>
                 <input
-                  data-testid="offer-amount"
+                  data-testid="offer-rate"
                   inputMode="decimal"
-                  aria-label="Amount to lend"
+                  aria-label="Annual rate, percent per year"
                   aria-invalid={errorMessage !== null}
-                  value={amountInput}
-                  onChange={(event) => takeTypedAmount(event.target.value)}
+                  value={rateInput}
+                  onChange={(event) => takeTypedRate(event.target.value)}
                   className={[
-                    'min-h-8 w-24 rounded-md border bg-surface-raised px-2',
+                    'min-h-8 w-20 rounded-md border bg-surface-raised px-2',
                     'text-right font-figure text-sm tabular-nums text-ink-primary',
                     'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-status-active',
                     errorMessage === null ? 'border-edge-strong' : 'border-status-danger',
                   ].join(' ')}
                 />
+                <span className="font-body text-sm text-ink-secondary">%</span>
               </span>
             }
           />
@@ -186,19 +200,20 @@ export function PlaceOfferForm({
           )}
         </div>
 
-        <Consequence interest={interest} currency={currency} days={days} rate={rateBasisPoints} />
+        <Consequence
+          interest={interest}
+          currency={detail.requestedPrincipal.currency}
+          principalMinorUnits={detail.requestedPrincipal.minorUnits}
+          days={days}
+          standing={standing}
+        />
 
         <Button
           data-testid="offer-submit"
           type="submit"
-          disabled={offerMutation.isPending || isEmpty || isOverCeiling}
+          disabled={offerMutation.isPending || basisPoints === null || isAboveCeiling}
         >
-          Lend{' '}
-          {amountMinorUnits === null || isEmpty ? (
-            <Money value={detail.requestedPrincipal} />
-          ) : (
-            <Money value={{ minorUnits: amountMinorUnits.toString(), currency }} />
-          )}
+          Lend <Money value={detail.requestedPrincipal} />
         </Button>
 
         {offerMutation.isError ? (
@@ -211,36 +226,27 @@ export function PlaceOfferForm({
   );
 }
 
-/* Cents from a typed dollar amount, or null while the box holds something that
-   is not yet a number. Whole cents only, so the money arithmetic never meets a
-   fraction of the smallest unit. */
-function parseAmount(text: string): number | null {
-  const trimmed = text.trim();
-  if (trimmed === '') {
-    return null;
-  }
-  const dollars = Number(trimmed);
-  if (!Number.isFinite(dollars) || dollars < 0) {
-    return null;
-  }
-  return Math.round(dollars * minorUnitsPerStep);
-}
-
 function Consequence({
   interest,
   currency,
+  principalMinorUnits,
   days,
-  rate,
+  standing,
 }: {
   readonly interest: bigint | null;
   readonly currency: string;
+  readonly principalMinorUnits: string;
   readonly days: number;
-  readonly rate: number;
+  readonly standing: {
+    readonly position: number;
+    readonly total: number;
+    readonly isBest: boolean;
+  } | null;
 }): ReactElement {
-  if (interest === null) {
+  if (interest === null || standing === null) {
     return (
       <p className="font-body text-xs text-ink-secondary">
-        Set an amount to see what it earns at {formatRate(rate)}.
+        Set a rate to see what it earns and where it would stand.
       </p>
     );
   }
@@ -255,7 +261,21 @@ function Consequence({
           {formatMoney({ minorUnits: interest.toString(), currency })}
         </span>
       </Line>
-      <Line label="The rate">{formatRate(rate)}</Line>
+      <Line label="The borrower repays">
+        {formatMoney({
+          minorUnits: (BigInt(principalMinorUnits) + interest).toString(),
+          currency,
+        })}
+      </Line>
+      <Line label="Your place in the book">
+        {/* Said in words. A lender's real question is whether they win, and
+            "2nd of 4" answers it without them counting rows. */}
+        <span className={standing.isBest ? 'font-semibold text-accent' : 'text-ink-primary'}>
+          {standing.isBest
+            ? 'Best offer'
+            : `${String(standing.position)} of ${String(standing.total)}`}
+        </span>
+      </Line>
     </dl>
   );
 }

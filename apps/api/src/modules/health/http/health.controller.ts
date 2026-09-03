@@ -1,6 +1,8 @@
 import { Controller, Get, Inject } from '@nestjs/common';
 import { CLOCK_PORT } from '../../../domain/ports/clock.port';
 import type { ClockPort } from '../../../domain/ports/clock.port';
+import { loadChainConfiguration } from '../../../config/chain-configuration';
+import { isChainDriverEnabled, loadConfiguration } from '../../../config/configuration';
 import { hasAdvanceableClock } from '../../../config/runtime-mode';
 import { Public } from '../../shared/http/public.decorator';
 
@@ -15,6 +17,9 @@ export interface HealthResponse {
      talking to actually has a clock it can move, so the answer has to come
      from the process rather than from the browser's own build flags. */
   readonly demoMode: boolean;
+  /* Which chain the process settles on, so the client links a digest to the
+     right explorer. Null on the ledger drivers. */
+  readonly chain: { readonly network: 'localnet' | 'testnet' | 'mainnet' } | null;
 }
 
 @Controller('health')
@@ -28,6 +33,9 @@ export class HealthController {
       status: 'ok',
       now: new Date(Number(this.clock.now().epochMilliseconds)).toISOString(),
       demoMode: hasAdvanceableClock(),
+      chain: isChainDriverEnabled(loadConfiguration())
+        ? { network: loadChainConfiguration().network }
+        : null,
     };
   }
 }

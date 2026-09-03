@@ -42,10 +42,16 @@ export const auditPageResponseSchema = z.object({
 
 export type AuditPageResponse = z.infer<typeof auditPageResponseSchema>;
 
+export const chainNetworkSchema = z.enum(['localnet', 'testnet', 'mainnet']);
+
 export const healthResponseSchema = z.object({
   status: z.literal('ok'),
   now: z.string(),
   demoMode: z.boolean(),
+  /* Present when the process runs on the chain drivers, so the client knows
+     which explorer a settlement digest belongs to. Null on the ledger
+     drivers, where a reference is a database id. */
+  chain: z.object({ network: chainNetworkSchema }).nullable(),
 });
 
 export type HealthResponse = z.infer<typeof healthResponseSchema>;

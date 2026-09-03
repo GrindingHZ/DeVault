@@ -14,7 +14,6 @@ import { PersistenceModule } from './infrastructure/persistence/persistence.modu
 import { SettlementModule } from './infrastructure/settlement/settlement.module';
 import { SystemStateModule } from './infrastructure/system-state/system-state.module';
 import { AccountsModule } from './modules/accounts/accounts.module';
-import { AdminApiModule } from './modules/admin/admin-api.module';
 import { CustodyApiModule } from './modules/custody/custody-api.module';
 import { HealthModule } from './modules/health/health.module';
 import { LedgerModule } from './modules/ledger/ledger.module';
@@ -53,7 +52,6 @@ export class AppModule implements NestModule {
         ProtocolParametersModule,
         SharedHttpModule,
         AccountsModule,
-        AdminApiModule,
         LedgerModule,
         CustodyApiModule,
         MarketplaceApiModule,

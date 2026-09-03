@@ -2,10 +2,8 @@
 #
 #   docker compose up --build
 #
-# Then the marketplace is on 5273, the vault console on 5174 and the admin on
-# 5175, the same addresses `pnpm dev` uses, so docs/DEMO.md reads the same
-# either way. The database keeps its data between runs, and the seed only
-# fills an empty one.
+# Then the marketplace is on 5273 and the vault console on 5174, the same
+# addresses `pnpm dev` uses. The database keeps its data between runs.
 
 services:
   postgres:
@@ -80,19 +78,6 @@ services:
         condition: service_healthy
     ports:
       - '5174:80'
-
-  admin:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
-      target: web
-      args:
-        APP: admin
-    depends_on:
-      api:
-        condition: service_healthy
-    ports:
-      - '5175:80'
 
 volumes:
   postgres-data:

@@ -64,7 +64,6 @@ apps/
   api/              NestJS backend
   marketplace/      Borrower + lender SPA
   vault-console/    Vault staff SPA
-  admin/            Internal operations SPA
 packages/
   contracts/        Shared request/response types + Zod schemas
   ui/               Shared React components and design tokens

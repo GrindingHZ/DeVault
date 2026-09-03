@@ -29,6 +29,7 @@ export type PositionActionKind =
   | 'repay'
   | 'default'
   | 'collect'
+  | 'collectPayout'
   | 'claim'
   | 'sell'
   | 'withdrawSale';
@@ -818,14 +819,18 @@ export function positionOfLentLoan(
   }
 
   if (loan.status === 'REPAID') {
+    /* Self-custody pays by parking, not pushing: the borrower's repayment sits
+       in the pledge until the note holder pulls it. Until they do, the money is
+       theirs but not in their balance, so the row asks for it rather than
+       reading as finished. */
     return {
       ...base,
       ...staged('Settled', 'lending'),
       term: null,
-      caption: 'The borrower paid in full',
-      figure: null,
-      action: null,
-      needsAttention: false,
+      caption: 'The borrower paid in full. Collect the payoff into your balance.',
+      figure: { label: 'To collect', value: formatMoney(loan.principal) },
+      action: { label: 'Collect your money', kind: 'collectPayout' },
+      needsAttention: true,
     };
   }
 

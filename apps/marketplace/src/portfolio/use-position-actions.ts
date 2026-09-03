@@ -1,4 +1,9 @@
-import { claimAction, delistPositionAction, reclaimHoldAction } from '@depawn/contracts';
+import {
+  claimAction,
+  collectAction,
+  delistPositionAction,
+  reclaimHoldAction,
+} from '@depawn/contracts';
 import type { ChainExecutionResponse, SponsoredTransactionResponse } from '@depawn/contracts';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { marketKeys } from '../market-keys';
@@ -35,6 +40,9 @@ function successFor(position: Position): string {
   if (position.action?.kind === 'withdrawSale') {
     return 'The sale is withdrawn. The position is yours again.';
   }
+  if (position.action?.kind === 'collectPayout') {
+    return 'The payoff is in your balance.';
+  }
   return 'The collateral is yours to collect.';
 }
 
@@ -50,6 +58,11 @@ function runAction(position: Position, sign: Sign): Promise<unknown> {
   if (position.action?.kind === 'withdrawSale' && position.noteSale !== null) {
     const listingObjectId = position.noteSale.id;
     return sign(() => delistPositionAction({ listingObjectId }));
+  }
+  /* The lender pulls the parked payoff of a loan the borrower has repaid. */
+  if (position.action?.kind === 'collectPayout' && position.loanId !== null) {
+    const pledgeId = position.loanId;
+    return sign(() => collectAction({ pledgeId }));
   }
   /* Reclaiming the hold behind a beaten or expired offer, a pull refund the
      escrow allows once the offer has lost or run out. */

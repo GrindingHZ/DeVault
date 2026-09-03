@@ -37,6 +37,8 @@ export function needsAttention(position: Position): boolean {
    two renders of the same data. */
 const rank: Record<PositionActionKind, number> = {
   reclaim: 0,
+  /* Money the lender has earned and not yet pulled, alongside a reclaim. */
+  collectPayout: 0,
   repay: 1,
   default: 2,
   claim: 3,

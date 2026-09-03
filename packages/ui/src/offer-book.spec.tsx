@@ -68,6 +68,12 @@ describe('OfferBook', () => {
     expect(screen.getByText('USD 4,036.16')).toBeTruthy();
   });
 
+  it('draws the coin on what each offer costs', () => {
+    render(<OfferBook offers={[offer('a', 1100, '3616')]} role="borrower" currency="USDC" />);
+    expect(screen.getAllByRole('img', { name: 'USDC' })).toHaveLength(1);
+    expect(screen.getByText('4,036.16')).toBeTruthy();
+  });
+
   /* The replacement for a depth column, which stopped meaning anything once
      every offer was for the same amount. */
   it('states what each offer costs above the cheapest', () => {

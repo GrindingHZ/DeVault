@@ -29,6 +29,17 @@ describe('Tape', () => {
     expect(screen.queryByText('L1')).toBeNull();
   });
 
+  /* One coin per visible row. The second copy of the track is hidden from
+     assistive technology and stays out of the count. */
+  it('draws the coin on each amount', () => {
+    render(
+      <Tape
+        items={items.map((item) => ({ ...item, amount: { ...item.amount, currency: 'USDC' } }))}
+      />,
+    );
+    expect(screen.getAllByRole('img', { name: 'USDC' })).toHaveLength(2);
+  });
+
   it('keeps the order it was given', () => {
     const { container } = render(<Tape items={items} />);
     const rows = [...container.querySelectorAll('[role="log"] button')];

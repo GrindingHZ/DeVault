@@ -44,6 +44,19 @@ describe('CollateralRow', () => {
     expect(screen.getByText('3 Nov 2026')).toBeTruthy();
   });
 
+  /* The settlement coin is drawn on the amount asked for, as on every figure
+     in the product, so a rail of forty rows is not forty repetitions of a
+     code. */
+  it('draws the coin on the principal', () => {
+    render(
+      <CollateralRow
+        item={{ ...item, requestedPrincipal: { minorUnits: '800000', currency: 'USDC' } }}
+      />,
+    );
+    expect(screen.getByRole('img', { name: 'USDC' })).toBeTruthy();
+    expect(screen.getByText('8,000.00')).toBeTruthy();
+  });
+
   it('says so rather than showing a rate when nobody has offered', () => {
     render(<CollateralRow item={{ ...item, bestRateBasisPoints: null }} />);
     expect(screen.getByText('No offers')).toBeTruthy();

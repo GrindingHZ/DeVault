@@ -1,7 +1,8 @@
 import type { ReactElement } from 'react';
 import { ItemPhotograph } from './item-photograph';
 import { LoanToValueMeter } from './loan-to-value';
-import { formatMoney } from './money';
+import { CurrencyMark } from './currency-mark';
+import { formatAmount } from './money';
 import type { MoneyValue } from './money';
 import { formatRate } from './rate';
 
@@ -108,7 +109,7 @@ function AskingRate({ basisPoints }: { readonly basisPoints: number | null }): R
 function Principal({ value }: { readonly value: MoneyValue }): ReactElement {
   return (
     <span className="shrink-0 whitespace-nowrap font-figure text-sm font-semibold tabular-nums text-ink-primary">
-      {formatMoney(value)}
+      <CurrencyMark currency={value.currency} /> {formatAmount(value)}
     </span>
   );
 }

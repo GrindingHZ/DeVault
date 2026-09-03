@@ -18,6 +18,20 @@ describe('CollateralBar', () => {
     expect(screen.getByText('USD 4,000.00')).toBeTruthy();
   });
 
+  it('draws the coin on both amounts when the book settles in usdc', () => {
+    const usdc = (minorUnits: string) => ({ minorUnits, currency: 'USDC' });
+    render(
+      <CollateralBar
+        appraisedValue={usdc('1100000')}
+        requestedPrincipal={usdc('400000')}
+        maxPrincipal={usdc('550000')}
+        loanToValueBasisPoints={3636}
+      />,
+    );
+    expect(screen.getAllByRole('img', { name: 'USDC' })).toHaveLength(2);
+    expect(screen.getByText('4,000.00')).toBeTruthy();
+  });
+
   /* The limit stays as the line on the bar. As a figure it was money nobody
      in this market can lend, since lenders compete on rate alone. */
   it('does not state the limit as an amount', () => {

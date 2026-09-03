@@ -3,7 +3,8 @@ import type { CSSProperties, ReactElement, ReactNode } from 'react';
 import { ChainLink } from './chain-link';
 import { EmptyState } from './empty-state';
 import type { MarketRole } from './market-delta';
-import { formatMoney } from './money';
+import { CurrencyMark } from './currency-mark';
+import { formatAmount, formatMoney } from './money';
 import type { MoneyValue } from './money';
 import { accumulateDepth } from './offer-depth';
 import type { DepthInput } from './offer-depth';
@@ -311,7 +312,10 @@ function BookRowView({
         </Choosable>
       </td>
       <td className="px-2 py-1 text-right font-figure text-ink-primary">
-        <Choosable>{repayable}</Choosable>
+        <Choosable>
+          <CurrencyMark currency={currency} />{' '}
+          {formatAmount({ minorUnits: row.repayable.toString(), currency })}
+        </Choosable>
       </td>
       {/* The premium, with a bar behind it. A number alone does not show that
           half the book is bunched and the tail is not; a length does it
@@ -326,9 +330,14 @@ function BookRowView({
           <span
             className={`relative ${row.premium === 0n ? 'text-ink-secondary' : 'text-ink-primary'}`}
           >
-            {row.premium === 0n
-              ? dash
-              : `+${formatMoney({ minorUnits: row.premium.toString(), currency })}`}
+            {row.premium === 0n ? (
+              dash
+            ) : (
+              <>
+                +<CurrencyMark currency={currency} />{' '}
+                {formatAmount({ minorUnits: row.premium.toString(), currency })}
+              </>
+            )}
           </span>
         </Choosable>
       </td>

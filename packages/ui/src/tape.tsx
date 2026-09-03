@@ -2,7 +2,8 @@ import { useState } from 'react';
 import type { ReactElement } from 'react';
 import { CategoryIcon } from './category-icon';
 import { PauseIcon, PlayIcon } from './icons';
-import { formatMoney } from './money';
+import { CurrencyMark } from './currency-mark';
+import { formatAmount } from './money';
 import type { MoneyValue } from './money';
 import { formatRate } from './rate';
 
@@ -72,7 +73,7 @@ export function Tape({
             {formatRate(item.rateBasisPoints).replace(' p.a.', '')}
           </span>
           <span className="font-figure tabular-nums text-ink-secondary">
-            {formatMoney(item.amount)}
+            <CurrencyMark currency={item.amount.currency} /> {formatAmount(item.amount)}
           </span>
         </button>
       ))}

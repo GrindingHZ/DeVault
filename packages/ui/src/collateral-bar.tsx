@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactElement } from 'react';
-import { formatMoney } from './money';
+import { CurrencyMark } from './currency-mark';
+import { formatAmount, formatMoney } from './money';
 import type { MoneyValue } from './money';
 import { formatPercentage } from './percentage';
 
@@ -78,12 +79,8 @@ export function CollateralBar({
           because seeing the fill stop short of it is the point of drawing it,
           but as a figure it was money nobody in this market can lend. */}
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <Reading label="Borrowed" tone="accent">
-          {formatMoney(requestedPrincipal)}
-        </Reading>
-        <Reading label="Appraised" tone="plain">
-          {formatMoney(appraisedValue)}
-        </Reading>
+        <Reading label="Borrowed" tone="accent" value={requestedPrincipal} />
+        <Reading label="Appraised" tone="plain" value={appraisedValue} />
       </div>
 
       {/* Not "room left". Since lenders compete on rate alone, nobody can
@@ -113,11 +110,11 @@ const toneClasses = {
 function Reading({
   label,
   tone,
-  children,
+  value,
 }: {
   readonly label: string;
   readonly tone: keyof typeof toneClasses;
-  readonly children: string;
+  readonly value: MoneyValue;
 }): ReactElement {
   return (
     <span className="flex items-baseline gap-2">
@@ -127,7 +124,9 @@ function Reading({
         {swatch}
       </span>
       <span className="font-body text-xs text-ink-secondary">{label}</span>
-      <span className="font-figure text-sm tabular-nums text-ink-primary">{children}</span>
+      <span className="font-figure text-sm tabular-nums text-ink-primary">
+        <CurrencyMark currency={value.currency} /> {formatAmount(value)}
+      </span>
     </span>
   );
 }

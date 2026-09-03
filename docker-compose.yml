@@ -37,7 +37,7 @@ services:
       DEMO_MODE: 'true'
       # Wallets the platform has authorised as vault staff. Signing in with one
       # reaches the custodian console; every other wallet is a member.
-      CUSTODIAN_WALLET_ADDRESSES: '0x3bad6e8f3f075f973629eef0fa730976314f525d5024995a38fec1a178b816da'
+      CUSTODIAN_WALLET_ADDRESSES: '0xbd4a8cdf1888857901777a8479da729cf1854819146dbc1bc3870fa8596c3461'
       STORAGE_DIRECTORY: /var/depawn/storage
     volumes:
       # Photographs live on disk beside the database rows that reference them,

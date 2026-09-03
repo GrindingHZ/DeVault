@@ -39,6 +39,11 @@ export class GrpcSponsoredTransactionGateway implements SponsoredTransactionGate
     if (result.$kind === 'FailedTransaction') {
       throw failureOf(result.FailedTransaction.status);
     }
+    /* Answer only once the full node has indexed the transaction. The screen
+       refetches the moment this returns, and a read that beats the index
+       shows the state from before the write: an item that vanished, money
+       that has not arrived. Waiting here is what makes "done" mean done. */
+    await this.client.waitForTransaction({ digest: result.Transaction.digest });
     return executionOf(result.Transaction);
   }
 }

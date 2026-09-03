@@ -3,6 +3,7 @@ import type {
   ListingDetailResponse,
   ListingSummary,
   MyListingResponse,
+  RankedOfferResponse,
 } from '@depawn/contracts';
 import { ReceiptMetadataStore } from '../receipt-metadata/receipt-metadata.store';
 import { ListingsReadService } from './listings-read.service';
@@ -79,19 +80,38 @@ export class MarketReadService {
   }
 
   async detail(pledgeId: string, nowMs: number): Promise<ListingDetailResponse | null> {
-    const { decimals, listings, offerCountByPledge } = await this.listings.read();
+    const { decimals, listings, offerCountByPledge, offersByPledge } = await this.listings.read();
     const listing = listings.find((one) => one.pledgeId === pledgeId);
     if (listing === undefined) {
       return null;
     }
     const summary = await this.toSummary(listing, decimals, offerCountByPledge, nowMs);
+    const offers = offersByPledge.get(pledgeId) ?? [];
+    const offerBook = offers.map((offer): RankedOfferResponse => {
+      const principal = toMoneyDto(offer.amountBaseUnits, decimals);
+      /* The whole-term cost, so the borrower can rank offers of the same rate by
+         the money they raise: principal plus simple interest over the default
+         term. */
+      const interest =
+        (offer.amountBaseUnits * BigInt(listing.requestedAprBps) * BigInt(DEFAULT_DURATION_MS)) /
+        (10_000n * 365n * 24n * 60n * 60n * 1000n);
+      return {
+        id: offer.holdObjectId,
+        listingId: pledgeId,
+        lenderAccountId: offer.lender,
+        principal,
+        annualPercentageRateBasisPoints: listing.requestedAprBps,
+        durationMs: DEFAULT_DURATION_MS,
+        expiresAt: new Date(nowMs + DEFAULT_EXPIRY_MS).toISOString(),
+        createdAt: new Date(nowMs).toISOString(),
+        status: 'PENDING',
+        totalCostToBorrower: toMoneyDto(offer.amountBaseUnits + interest, decimals),
+      };
+    });
     return {
       ...summary,
       maxPrincipal: toMoneyDto(listing.appraisedValueBaseUnits, decimals),
-      /* The offer book is the lenders competing on this pledge. Their amounts
-         are not carried on the listing read, so an empty book is shown until
-         the offer-book slice lands. */
-      offerBook: [],
+      offerBook,
     };
   }
 

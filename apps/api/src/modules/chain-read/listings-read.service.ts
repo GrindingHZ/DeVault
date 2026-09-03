@@ -7,6 +7,14 @@ import { listingSeeds, openListingFromJson } from './listings-figures';
 import type { OpenListing } from './listings-figures';
 import { DeploymentNotFound } from './wallet-read.service';
 
+/* A standing offer on a pledge, from its OfferMade event: the hold that backs
+   it, the amount it holds, and the lender who made it. */
+export interface PledgeOffer {
+  readonly holdObjectId: string;
+  readonly amountBaseUnits: bigint;
+  readonly lender: string;
+}
+
 /* Reads the open listings from the chain over gRPC: the pledges a borrower has
    opened and not yet had funded or cancelled, for a lender to browse. The
    pledge ids come from ListingOpened events because shared objects cannot be
@@ -23,6 +31,7 @@ export class ListingsReadService {
     readonly decimals: number;
     readonly listings: readonly OpenListing[];
     readonly offerCountByPledge: ReadonlyMap<string, number>;
+    readonly offersByPledge: ReadonlyMap<string, readonly PledgeOffer[]>;
   }> {
     const deployment = await readDeployment(this.prisma);
     if (deployment === null) {
@@ -41,18 +50,28 @@ export class ListingsReadService {
         order: 'descending',
       }),
     ]);
-    /* How many offers each pledge has drawn, so a listing can say a lender is
-       competing rather than only that it exists. */
+    /* How many offers each pledge has drawn and their standing amounts, so a
+       listing can say a lender is competing and its detail can show the book the
+       borrower accepts from. */
     const offerCountByPledge = new Map<string, number>();
+    const offersByPledge = new Map<string, PledgeOffer[]>();
     for (const event of offerEvents.events) {
-      const pledgeId = (event.json as { pledge_id?: unknown } | null)?.pledge_id;
-      if (typeof pledgeId === 'string') {
-        offerCountByPledge.set(pledgeId, (offerCountByPledge.get(pledgeId) ?? 0) + 1);
+      const json = event.json as { pledge_id?: unknown; hold_id?: unknown; amount?: unknown; owner?: unknown } | null;
+      const pledgeId = json?.pledge_id;
+      const holdId = json?.hold_id;
+      if (typeof pledgeId !== 'string' || typeof holdId !== 'string') {
+        continue;
       }
+      offerCountByPledge.set(pledgeId, (offerCountByPledge.get(pledgeId) ?? 0) + 1);
+      const amount = typeof json?.amount === 'string' && /^\d+$/.test(json.amount) ? BigInt(json.amount) : 0n;
+      const lender = typeof json?.owner === 'string' ? json.owner : event.sender;
+      const list = offersByPledge.get(pledgeId) ?? [];
+      list.push({ holdObjectId: holdId, amountBaseUnits: amount, lender });
+      offersByPledge.set(pledgeId, list);
     }
     const seeds = listingSeeds(events.events.map((event) => ({ json: event.json })));
     if (seeds.length === 0) {
-      return { decimals, listings: [], offerCountByPledge };
+      return { decimals, listings: [], offerCountByPledge, offersByPledge };
     }
     const receiptKeys = new Map(seeds.map((seed) => [seed.pledgeId, seed.receiptKey]));
     const objects = await this.client.core.getObjects({
@@ -71,6 +90,6 @@ export class ListingsReadService {
         listings.push(listing);
       }
     }
-    return { decimals, listings, offerCountByPledge };
+    return { decimals, listings, offerCountByPledge, offersByPledge };
   }
 }

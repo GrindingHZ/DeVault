@@ -22,6 +22,7 @@ import {
   PageHeader,
   PageSection,
   Skeleton,
+  formatMoney,
 } from '@depawn/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Navigate, createFileRoute, useNavigate } from '@tanstack/react-router';
@@ -335,17 +336,45 @@ function ListReceiptDialog({
   const queryClient = useQueryClient();
   const feedback = useFeedback();
   const sign = useSponsoredWrite();
-  const [rateInput, setRateInput] = useState('18.00');
+
+  const currency = receipt.appraisedValue.currency;
+  /* The ceiling the contract enforces at open: a share of the appraised value,
+     set by the item's category. The borrower cannot ask for more. */
+  const ceilingMinorUnits =
+    (BigInt(receipt.appraisedValue.minorUnits) *
+      BigInt(receipt.categoryMaxLoanToValueBasisPoints)) /
+    10_000n;
+  const ceilingMoney = { minorUnits: ceilingMinorUnits.toString(), currency };
+
+  const [principalInput, setPrincipalInput] = useState(() =>
+    (Number(ceilingMinorUnits) / 100).toFixed(2),
+  );
+  const [rateInput, setRateInput] = useState('24.00');
   const [inputError, setInputError] = useState<string | null>(null);
 
   const listMutation = useMutation({
     mutationFn: () => {
+      const dollars = Number(principalInput);
+      if (!Number.isFinite(dollars) || dollars <= 0) {
+        return Promise.reject(new Error('Enter how much you want to borrow.'));
+      }
+      const principalMinorUnits = BigInt(Math.round(dollars * 100));
+      if (principalMinorUnits > ceilingMinorUnits) {
+        return Promise.reject(
+          new Error(`You can borrow up to ${formatMoney(ceilingMoney)} against this item.`),
+        );
+      }
       const percent = Number(rateInput);
       if (!Number.isFinite(percent) || percent <= 0) {
-        return Promise.reject(new Error('Enter a rate like 18.00.'));
+        return Promise.reject(new Error('Enter the most you will pay, like 24.'));
       }
       return sign(() =>
-        openPledgeAction({ receiptKey: receipt.id, requestedAprBps: Math.round(percent * 100) }),
+        openPledgeAction({
+          receiptKey: receipt.id,
+          /* Cents to the settlement coin's base units. */
+          requestedPrincipalBaseUnits: (principalMinorUnits * 10_000n).toString(),
+          requestedAprBps: Math.round(percent * 100),
+        }),
       );
     },
     onSuccess: async () => {
@@ -370,12 +399,18 @@ function ListReceiptDialog({
         }}
       >
         <p className="font-body text-sm text-ink-secondary">
-          {receipt.itemDescription} is appraised at <Money value={receipt.appraisedValue} />.
-          Lenders compete on how much to lend against it, up to its category ceiling. You set the
-          annual rate you are willing to pay.
+          {receipt.itemDescription} is appraised at <Money value={receipt.appraisedValue} />. You
+          can borrow up to {receipt.categoryMaxLoanToValueBasisPoints / 100}% of that,{' '}
+          <Money value={ceilingMoney} />. Lenders then compete to fund it by offering a lower rate
+          than the most you will pay.
         </p>
         <Field
-          label="Rate you will pay (% p.a.)"
+          label={`How much to borrow (up to ${formatMoney(ceilingMoney)})`}
+          value={principalInput}
+          onChange={(event) => setPrincipalInput(event.target.value)}
+        />
+        <Field
+          label="Most you will pay (% p.a.)"
           value={rateInput}
           onChange={(event) => setRateInput(event.target.value)}
         />

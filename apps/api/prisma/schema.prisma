@@ -724,3 +724,30 @@ model ChainReceipt {
 
   @@map("chain_receipt")
 }
+
+model ChainEvent {
+  id         String   @id
+  checkpoint BigInt?
+  digest     String
+  eventIndex Int      @map("event_index")
+  module     String
+  eventType  String   @map("event_type")
+  sender     String
+  json       Json
+  ingestedAt DateTime @map("ingested_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([module, checkpoint])
+  @@index([digest])
+  @@map("chain_event")
+}
+
+model ChainIndexerCursor {
+  module        String   @id
+  newestEventId String?  @map("newest_event_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("chain_indexer_cursor")
+}

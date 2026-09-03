@@ -1,14 +1,13 @@
-import { fetchRedemptionQueue, nameForRedemptionStatus } from '@depawn/contracts';
-import type { RedemptionRequestResponse } from '@depawn/contracts';
-import { Card, DataTable, Page, PageHeader, Skeleton, StatusBadge } from '@depawn/ui';
+import { fetchReleaseQueue } from '@depawn/contracts';
+import type { ReleaseQueueResponse } from '@depawn/contracts';
+import { Card, DataTable, Page, PageHeader, Skeleton } from '@depawn/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Link, createFileRoute } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import type { ReactElement } from 'react';
 import { ConsoleShell } from '../console-shell';
-import { redemptionKeys } from '../redemption-keys';
-import { redemptionStatusTone } from '../redemption-status-tone';
 import { StaffGuard } from '../staff-guard';
-import { demoVaultId } from '../vault-constants';
+
+type ReleaseRow = ReleaseQueueResponse['items'][number];
 
 export const Route = createFileRoute('/releases/')({
   component: ReleasesPage,
@@ -21,7 +20,7 @@ function ReleasesPage(): ReactElement {
         <Page>
           <PageHeader
             title="Releases"
-            description="People waiting to collect an item, in the order they asked."
+            description="Members who burned their receipt on chain and are waiting to collect. Check identity at the counter before you hand the item over."
           />
           <ReleaseQueueCard />
         </Page>
@@ -32,8 +31,8 @@ function ReleasesPage(): ReactElement {
 
 function ReleaseQueueCard(): ReactElement {
   const queueQuery = useQuery({
-    queryKey: redemptionKeys.queue,
-    queryFn: () => fetchRedemptionQueue(demoVaultId),
+    queryKey: ['chain', 'releases'],
+    queryFn: () => fetchReleaseQueue(),
   });
 
   if (queueQuery.isPending) {
@@ -47,7 +46,7 @@ function ReleaseQueueCard(): ReactElement {
     return (
       <Card title="Releases">
         <p role="alert" className="font-body text-sm text-status-danger">
-          The release queue could not be loaded.
+          The release queue could not be read from the chain.
         </p>
       </Card>
     );
@@ -59,43 +58,43 @@ function ReleaseQueueCard(): ReactElement {
         <DataTable
           columns={[
             {
-              key: 'request',
-              header: 'Request',
-              render: (item: RedemptionRequestResponse) => (
-                <Link
-                  to="/releases/$requestId"
-                  params={{ requestId: item.id }}
-                  className="font-mono text-xs text-status-active"
-                >
-                  {item.id}
-                </Link>
-              ),
-            },
-            {
               key: 'receipt',
               header: 'Receipt',
-              render: (item: RedemptionRequestResponse) => (
-                <span className="font-mono text-xs">{item.receiptId}</span>
+              render: (item: ReleaseRow) => (
+                <span className="font-mono text-xs">{item.receiptKey}</span>
               ),
             },
             {
-              key: 'requested',
-              header: 'Requested',
-              render: (item: RedemptionRequestResponse) => item.requestedAt.slice(0, 10),
+              key: 'collector',
+              header: 'Collector',
+              render: (item: ReleaseRow) => (
+                <a
+                  href={`https://suiscan.xyz/testnet/account/${item.holder}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-mono text-xs text-status-active underline"
+                >
+                  {item.holder.slice(0, 10)}...{item.holder.slice(-6)}
+                </a>
+              ),
             },
             {
-              key: 'status',
-              header: 'Status',
-              render: (item: RedemptionRequestResponse) => (
-                <StatusBadge
-                  tone={redemptionStatusTone(item.status)}
-                  label={nameForRedemptionStatus(item.status)}
-                />
+              key: 'burn',
+              header: 'Burn',
+              render: (item: ReleaseRow) => (
+                <a
+                  href={`https://suiscan.xyz/testnet/tx/${item.digest}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-mono text-xs text-ink-secondary underline"
+                >
+                  {item.digest.slice(0, 10)}...
+                </a>
               ),
             },
           ]}
           rows={queueQuery.data.items}
-          rowKey={(item) => item.id}
+          rowKey={(item) => item.digest}
           emptyTitle="Nobody is waiting at the counter"
         />
       </div>

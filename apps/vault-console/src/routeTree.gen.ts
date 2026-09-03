@@ -13,7 +13,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MintRouteImport } from './routes/mint'
 import { Route as ReleasesIndexRouteImport } from './routes/releases.index'
-import { Route as ReleasesRequestIdRouteImport } from './routes/releases.$requestId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -35,24 +34,17 @@ const ReleasesIndexRoute = ReleasesIndexRouteImport.update({
   path: '/releases/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ReleasesRequestIdRoute = ReleasesRequestIdRouteImport.update({
-  id: '/releases/$requestId',
-  path: '/releases/$requestId',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/mint': typeof MintRoute
-  '/releases/$requestId': typeof ReleasesRequestIdRoute
   '/releases/': typeof ReleasesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/mint': typeof MintRoute
-  '/releases/$requestId': typeof ReleasesRequestIdRoute
   '/releases': typeof ReleasesIndexRoute
 }
 export interface FileRoutesById {
@@ -60,28 +52,20 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/mint': typeof MintRoute
-  '/releases/$requestId': typeof ReleasesRequestIdRoute
   '/releases/': typeof ReleasesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/mint' | '/releases/$requestId' | '/releases/'
+  fullPaths: '/' | '/login' | '/mint' | '/releases/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/mint' | '/releases/$requestId' | '/releases'
-  id:
-    | '__root__'
-    | '/'
-    | '/login'
-    | '/mint'
-    | '/releases/$requestId'
-    | '/releases/'
+  to: '/' | '/login' | '/mint' | '/releases'
+  id: '__root__' | '/' | '/login' | '/mint' | '/releases/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   MintRoute: typeof MintRoute
-  ReleasesRequestIdRoute: typeof ReleasesRequestIdRoute
   ReleasesIndexRoute: typeof ReleasesIndexRoute
 }
 
@@ -115,13 +99,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReleasesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/releases/$requestId': {
-      id: '/releases/$requestId'
-      path: '/releases/$requestId'
-      fullPath: '/releases/$requestId'
-      preLoaderRoute: typeof ReleasesRequestIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -129,7 +106,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   MintRoute: MintRoute,
-  ReleasesRequestIdRoute: ReleasesRequestIdRoute,
   ReleasesIndexRoute: ReleasesIndexRoute,
 }
 export const routeTree = rootRouteImport

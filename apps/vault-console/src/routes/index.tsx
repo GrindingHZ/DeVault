@@ -27,8 +27,8 @@ function HomeContent(): ReactElement {
           {currentAccount.data?.email ?? currentAccount.data?.walletAddress}
         </p>
         <EmptyState
-          title="Start with an intake"
-          description="Use the intake tab to receive an item, or inventory to see what is stored."
+          title="Issue a receipt"
+          description="Use the Issue tab to take an item in and mint its receipt on chain, or Releases to hand an item back when a member collects."
         />
       </ConsoleShell>
     </div>

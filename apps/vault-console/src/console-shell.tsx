@@ -42,20 +42,11 @@ export function ConsoleShell({ children }: { readonly children: ReactNode }): Re
       surface="terminal"
       navigation={
         <>
-          <Link to="/intake" className="font-body text-sm text-ink-secondary">
-            Intake
-          </Link>
           <Link to="/mint" className="font-body text-sm text-ink-secondary">
             Issue
           </Link>
-          <Link to="/inventory" className="font-body text-sm text-ink-secondary">
-            Inventory
-          </Link>
           <Link to="/releases" className="font-body text-sm text-ink-secondary">
             Releases
-          </Link>
-          <Link to="/exposure" className="font-body text-sm text-ink-secondary">
-            Exposure
           </Link>
         </>
       }

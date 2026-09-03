@@ -9,6 +9,7 @@ import {
   walletResponseSchema,
 } from '../chain-actions';
 import type {
+  AcceptOfferAction,
   BuildAcceptOfferRequest,
   BuildBuyPositionRequest,
   BuildCancelPledgeRequest,
@@ -19,7 +20,14 @@ import type {
   BuildRedeemRequest,
   BuildRepayRequest,
   BuildSettlePledgeRequest,
+  BuyPositionAction,
   ChainDeploymentResponse,
+  DelistPositionAction,
+  ListPositionAction,
+  MakeOfferAction,
+  OpenPledgeAction,
+  PledgeAction,
+  RedeemAction,
   ChainExecutionResponse,
   ExecuteChainActionRequest,
   IssueVaultReceiptRequest,
@@ -78,6 +86,39 @@ export function buildDelistPosition(
   body: BuildDelistPositionRequest,
 ): Promise<SponsoredTransactionResponse> {
   return buildSponsored('/chain/positions/delist/build', body);
+}
+
+/* The high-level actions: the member names only what a screen shows, and the
+   api resolves the coin, note, and receipt object ids before it builds. */
+export function openPledgeAction(body: OpenPledgeAction): Promise<SponsoredTransactionResponse> {
+  return buildSponsored('/chain/actions/open-pledge', body);
+}
+export function makeOfferAction(body: MakeOfferAction): Promise<SponsoredTransactionResponse> {
+  return buildSponsored('/chain/actions/make-offer', body);
+}
+export function acceptOfferAction(body: AcceptOfferAction): Promise<SponsoredTransactionResponse> {
+  return buildSponsored('/chain/actions/accept-offer', body);
+}
+export function repayAction(body: PledgeAction): Promise<SponsoredTransactionResponse> {
+  return buildSponsored('/chain/actions/repay', body);
+}
+export function collectAction(body: PledgeAction): Promise<SponsoredTransactionResponse> {
+  return buildSponsored('/chain/actions/collect', body);
+}
+export function claimAction(body: PledgeAction): Promise<SponsoredTransactionResponse> {
+  return buildSponsored('/chain/actions/claim', body);
+}
+export function redeemAction(body: RedeemAction): Promise<SponsoredTransactionResponse> {
+  return buildSponsored('/chain/actions/redeem', body);
+}
+export function listPositionAction(body: ListPositionAction): Promise<SponsoredTransactionResponse> {
+  return buildSponsored('/chain/actions/list-position', body);
+}
+export function buyPositionAction(body: BuyPositionAction): Promise<SponsoredTransactionResponse> {
+  return buildSponsored('/chain/actions/buy-position', body);
+}
+export function delistPositionAction(body: DelistPositionAction): Promise<SponsoredTransactionResponse> {
+  return buildSponsored('/chain/actions/delist-position', body);
 }
 
 /* The member posts the signed transaction bytes back; the api sponsor-signs and

@@ -191,6 +191,44 @@ export type BuildBuyPositionRequest = z.infer<typeof buildBuyPositionRequestSche
 export const buildDelistPositionRequestSchema = z.object({ listingObjectId: objectId });
 export type BuildDelistPositionRequest = z.infer<typeof buildDelistPositionRequestSchema>;
 
+/* The high-level action surface: the member names only what they can see, and
+   the api resolves the coin, note, and receipt object ids over gRPC before it
+   builds. The frontend can no longer read the chain to supply those itself. */
+export const openPledgeActionSchema = z.object({
+  receiptKey: z.string().min(1),
+  requestedAprBps: z.number().int().nonnegative().max(65_535),
+});
+export type OpenPledgeAction = z.infer<typeof openPledgeActionSchema>;
+
+export const makeOfferActionSchema = z.object({
+  pledgeId: objectId,
+  amountBaseUnits: baseUnits,
+  expiresAtMs: z.number().int().positive(),
+});
+export type MakeOfferAction = z.infer<typeof makeOfferActionSchema>;
+
+export const acceptOfferActionSchema = z.object({
+  pledgeId: objectId,
+  holdObjectId: objectId,
+  termMs: z.number().int().positive(),
+});
+export type AcceptOfferAction = z.infer<typeof acceptOfferActionSchema>;
+
+export const pledgeActionSchema = z.object({ pledgeId: objectId });
+export type PledgeAction = z.infer<typeof pledgeActionSchema>;
+
+export const redeemActionSchema = z.object({ receiptKey: z.string().min(1) });
+export type RedeemAction = z.infer<typeof redeemActionSchema>;
+
+export const listPositionActionSchema = z.object({ pledgeId: objectId, askBaseUnits: baseUnits });
+export type ListPositionAction = z.infer<typeof listPositionActionSchema>;
+
+export const buyPositionActionSchema = z.object({ listingObjectId: objectId, askBaseUnits: baseUnits });
+export type BuyPositionAction = z.infer<typeof buyPositionActionSchema>;
+
+export const delistPositionActionSchema = z.object({ listingObjectId: objectId });
+export type DelistPositionAction = z.infer<typeof delistPositionActionSchema>;
+
 /* The custodian issues a receipt on chain to a member's wallet. This is the one
    custodial step: a person confirms a physical item exists, appraises it, and
    takes custody, which no on-chain code can attest. Operator-signed, because

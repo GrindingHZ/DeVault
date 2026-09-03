@@ -6,6 +6,9 @@ import { GrpcSponsoredTransactionGateway } from '../../infrastructure/chain/grpc
 import { OperatorSigner } from '../../infrastructure/chain/operator-signer';
 import { SPONSORED_TRANSACTION_GATEWAY } from '../../infrastructure/chain/sponsored-transaction';
 import { ReceiptMetadataModule } from '../receipt-metadata/receipt-metadata.module';
+import { ChainActionController } from './chain-action.controller';
+import { ChainActionService } from './chain-action.service';
+import { ChainObjectResolver } from './chain-object-resolver.service';
 import { ChainTransactionController } from './chain-transaction.controller';
 import { ChainTransactionService } from './chain-transaction.service';
 import { CustodianReceiptController } from './custodian-receipt.controller';
@@ -16,9 +19,11 @@ import { CustodianReceiptService } from './custodian-receipt.service';
    in a database only process. */
 @Module({
   imports: [ChainModule, ReceiptMetadataModule],
-  controllers: [ChainTransactionController, CustodianReceiptController],
+  controllers: [ChainTransactionController, CustodianReceiptController, ChainActionController],
   providers: [
     ChainTransactionService,
+    ChainActionService,
+    ChainObjectResolver,
     CustodianReceiptService,
     {
       provide: SPONSORED_TRANSACTION_GATEWAY,

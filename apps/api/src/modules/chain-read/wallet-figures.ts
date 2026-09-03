@@ -38,7 +38,13 @@ export interface PledgeTerms {
   readonly parkedBaseUnits: bigint;
 }
 
-export function accruedBaseUnits(terms: PledgeTerms, untilMs: number): bigint {
+/* The part of the terms the interest arithmetic reads. */
+export type InterestTerms = Pick<
+  PledgeTerms,
+  'principalBaseUnits' | 'aprBps' | 'startedAtMs' | 'maturesAtMs'
+>;
+
+export function accruedBaseUnits(terms: InterestTerms, untilMs: number): bigint {
   if (terms.aprBps <= 0) {
     return 0n;
   }
@@ -51,6 +57,16 @@ export function accruedBaseUnits(terms: PledgeTerms, untilMs: number): bigint {
     (terms.principalBaseUnits * BigInt(terms.aprBps) * BigInt(elapsedMs)) /
     (10_000n * MILLISECONDS_PER_YEAR)
   );
+}
+
+/* A payoff quote holds for this long. The chain reprices the payoff per
+   millisecond at repayment, so the coin split to settle a loan is sized to the
+   payoff as it will stand when the quote lapses, not as it stands now; the
+   contract hands back whatever of that headroom it does not need. */
+export const payoffQuoteWindowMs = 60_000;
+
+export function payoffCoverBaseUnits(terms: InterestTerms, nowMs: number): bigint {
+  return terms.principalBaseUnits + accruedBaseUnits(terms, nowMs + payoffQuoteWindowMs);
 }
 
 export interface LenderStanding {

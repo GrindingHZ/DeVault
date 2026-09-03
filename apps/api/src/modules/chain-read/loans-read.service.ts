@@ -8,6 +8,7 @@ import { WALLET_READ_CLIENT } from './chain-read.tokens';
 import {
   accruedBaseUnits,
   notePledgeIdFromJson,
+  payoffQuoteWindowMs,
   pledgeStatusOf,
   pledgeTermsFromJson,
 } from './wallet-figures';
@@ -163,7 +164,7 @@ export class LoansReadService {
       accruedInterest: toMoneyDto(accrued, decimals),
       total: toMoneyDto(terms.principalBaseUnits + accrued, decimals),
       quotedAtMs: nowMs,
-      validUntilMs: nowMs + 60_000,
+      validUntilMs: nowMs + payoffQuoteWindowMs,
     };
   }
 }

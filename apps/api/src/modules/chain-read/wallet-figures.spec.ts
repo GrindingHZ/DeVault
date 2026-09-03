@@ -6,6 +6,8 @@ import {
   lenderStanding,
   offerFromEventJson,
   offerStanding,
+  payoffCoverBaseUnits,
+  payoffQuoteWindowMs,
   pledgeStatusOf,
   pledgeTermsFromJson,
   summarizeFigures,
@@ -73,6 +75,21 @@ describe('borrowerStanding', () => {
       1_000_000_000n + expectedAccrued(1_000_000_000n, 3600, 10 * day),
     );
     expect(standing.graceEndsAtMs).toBe(matures + 7 * day);
+  });
+});
+
+describe('payoffCoverBaseUnits', () => {
+  it('covers the payoff as it will stand when the quote lapses', () => {
+    const now = started + 10 * day;
+    expect(payoffCoverBaseUnits(terms(), now)).toBe(
+      1_000_000_000n + expectedAccrued(1_000_000_000n, 3600, 10 * day + payoffQuoteWindowMs),
+    );
+  });
+
+  it('adds nothing past maturity, where interest has stopped', () => {
+    expect(payoffCoverBaseUnits(terms(), matures - 1000)).toBe(
+      1_000_000_000n + expectedAccrued(1_000_000_000n, 3600, 30 * day),
+    );
   });
 });
 

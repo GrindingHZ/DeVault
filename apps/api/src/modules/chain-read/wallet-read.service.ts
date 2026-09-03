@@ -35,12 +35,14 @@ export class DeploymentNotFound extends Error {
 }
 
 /* A gRPC object entry, whether from listOwnedObjects (always an object) or
-   getObjects (an object or an error for a deleted id). Anything without a
-   string id is a missing object and is skipped. */
+   getObjects (an object, or a `{ code: 'notExists', objectId }` stand in for a
+   deleted id). A deleted object still carries its id, so the `code` is what
+   separates a live object from a hold the accept consumed or a pledge that
+   settled; without this check a deleted hold would read as a standing one. */
 function objectEntry(entry: unknown): { objectId: string; json: Record<string, unknown> | null } | null {
   if (entry !== null && typeof entry === 'object' && !(entry instanceof Error)) {
-    const record = entry as { objectId?: unknown; json?: unknown };
-    if (typeof record.objectId === 'string') {
+    const record = entry as { objectId?: unknown; json?: unknown; code?: unknown };
+    if (typeof record.objectId === 'string' && record.code === undefined) {
       const json = record.json;
       return { objectId: record.objectId, json: json === null || json === undefined ? null : (json as Record<string, unknown>) };
     }

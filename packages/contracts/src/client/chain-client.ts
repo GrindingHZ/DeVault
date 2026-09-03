@@ -1,6 +1,7 @@
 import {
   chainDeploymentResponseSchema,
   issueVaultReceiptResponseSchema,
+  listingsResponseSchema,
   releaseQueueResponseSchema,
   walletResponseSchema,
 } from '../chain-actions';
@@ -8,6 +9,7 @@ import type {
   ChainDeploymentResponse,
   IssueVaultReceiptRequest,
   IssueVaultReceiptResponse,
+  ListingsResponse,
   ReleaseQueueResponse,
   WalletResponse,
 } from '../chain-actions';
@@ -32,6 +34,16 @@ export function fetchWallet(): Promise<WalletResponse> {
     method: 'GET',
     path: `${basePath}/chain/wallet`,
     responseSchema: walletResponseSchema,
+  });
+}
+
+/* The open market, read from the chain: pledges a borrower has opened for a
+   lender to browse and offer against. */
+export function fetchListings(): Promise<ListingsResponse> {
+  return requestJson({
+    method: 'GET',
+    path: `${basePath}/chain/listings`,
+    responseSchema: listingsResponseSchema,
   });
 }
 

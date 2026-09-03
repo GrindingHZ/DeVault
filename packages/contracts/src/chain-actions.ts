@@ -114,6 +114,24 @@ export const releaseQueueResponseSchema = z.object({
 });
 export type ReleaseQueueResponse = z.infer<typeof releaseQueueResponseSchema>;
 
+/* The open market, read from the chain: the pledges a borrower has opened and
+   not yet had funded, for a lender to browse and offer against. The appraised
+   value is the collateral behind the loan; a listing whose collateral shape the
+   node did not carry reads as zero and is priced by its rate alone. */
+export const listingsResponseSchema = z.object({
+  decimals: z.number().int().nonnegative(),
+  listings: z.array(
+    z.object({
+      pledgeId: z.string(),
+      borrower: z.string(),
+      requestedAprBps: z.number().int().nonnegative(),
+      appraisedValueBaseUnits: baseUnits,
+      itemCategory: z.string(),
+    }),
+  ),
+});
+export type ListingsResponse = z.infer<typeof listingsResponseSchema>;
+
 export const buildOpenPledgeRequestSchema = z.object({
   receiptObjectId: objectId,
   requestedAprBps: z.number().int().nonnegative().max(65_535),

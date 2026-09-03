@@ -8,7 +8,6 @@
   "scripts": {
     "db:up": "docker compose up -d postgres",
     "db:migrate": "pnpm --filter @depawn/api db:migrate",
-    "db:seed": "pnpm --filter @depawn/api db:seed",
     "dev": "turbo run dev",
     "build": "turbo run build",
     "test": "turbo run test:unit test:integration",

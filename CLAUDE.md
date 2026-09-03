@@ -127,7 +127,6 @@ docker compose up --build  the whole demo: database, api, all three apps
 pnpm install
 pnpm db:up                 docker compose up postgres
 pnpm db:migrate            prisma migrate dev
-pnpm db:seed               build the whole demo dataset, emptying the database first
 pnpm dev                   all apps in watch mode
 pnpm test                  unit + integration
 pnpm test:e2e              playwright

@@ -35,16 +35,8 @@ services:
     environment:
       DATABASE_URL: postgresql://depawn:depawn@postgres:5432/depawn
       PORT: '3000'
-      # The clock control on the admin screen, and the advanceable clock the
-      # seed needs to spread a loan book across weeks.
+      # The clock control on the admin screen.
       DEMO_MODE: 'true'
-      # The seed refuses to empty a database it cannot see is local, which is
-      # the right default for a script that truncates. Here the host is this
-      # file's own postgres service, so the refusal is answered deliberately
-      # rather than by widening the rule.
-      SEED_ANY_DATABASE: 'true'
-      # Set to false to keep whatever is already in the database.
-      SEED_ON_START: 'true'
       STORAGE_DIRECTORY: /var/depawn/storage
     volumes:
       # Photographs live on disk beside the database rows that reference them,

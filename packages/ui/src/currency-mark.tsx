@@ -1,4 +1,3 @@
-/// <reference path="./assets.d.ts" />
 import type { ReactElement } from 'react';
 import usdcMark from './usdc.svg';
 

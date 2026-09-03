@@ -68,7 +68,9 @@ class FakeResolver {
 class RecordingTransactions {
   built: { method: string; request: unknown } | null = null;
 
-  private record(method: string): (member: string, request: unknown) => Promise<{ transactionBytes: string }> {
+  private record(
+    method: string,
+  ): (member: string, request: unknown) => Promise<{ transactionBytes: string }> {
     return (_member, request) => {
       this.built = { method, request };
       return Promise.resolve({ transactionBytes: 'BYTES' });

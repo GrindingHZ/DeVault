@@ -36,7 +36,7 @@ The same person can be both. There is no borrower role and no lender role in the
 relationship to a particular listing.
 
 - **Browse** every live listing, filtered by category and by how much of the item's value is being
-  borrowed against, sorted by rate ceiling or by whichever closes soonest. Filtering happensf in the
+  borrowed against, sorted by rate ceiling or by whichever closes soonest. Filtering happens in the
   database, not over a page already fetched.
 - **A listing** shows the photograph the vault took, the appraisal, the loan to value, and an offer
   book ranked cheapest first, with the interest and the total repayable spelled out separately so

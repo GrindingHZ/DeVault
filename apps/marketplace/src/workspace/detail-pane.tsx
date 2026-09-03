@@ -11,7 +11,6 @@ import { useSponsoredWrite } from '../wallet/use-sponsored-write';
 import type { ListingDetailResponse, MoneyDto } from '@depawn/contracts';
 import {
   Button,
-  ChainLink,
   Explain,
   ImageCarousel,
   ItemPhotograph,
@@ -31,6 +30,7 @@ import { useState } from 'react';
 import type { ReactElement } from 'react';
 import { marketKeys } from '../market-keys';
 import { walletKeys } from '../wallet-keys';
+import { ListingChainRecord } from './listing-chain-record';
 import { PlaceOfferForm } from './place-offer-form';
 
 export interface DetailPaneProps {
@@ -190,12 +190,6 @@ function DetailBody({
               ? null
               : `. ${liquidityNoteForCategory(detail.itemCategory) ?? ''}`}
           </p>
-          {/* The listing is a shared pledge object; the id links to the
-              explorer so the reader can see the escrow for themselves. */}
-          <p className="mt-2 flex items-center gap-2 font-body text-xs text-ink-secondary">
-            <span>On chain</span>
-            <ChainLink value={detail.id} kind="object" testId="listing-chain-object" />
-          </p>
           {bestRate === null ? null : (
             <div className="mt-3">
               <BestRate
@@ -206,6 +200,18 @@ function DetailBody({
               />
             </div>
           )}
+          {/* The listing is a shared pledge object wrapping the receipt, opened
+              by a wallet. All three are on the explorer, so the reader can see
+              the escrow, the item and the borrower rather than take the
+              screen's word for them. On chain a listing names its borrower by
+              address, which is why the account id is one. */}
+          <div className="mt-4">
+            <ListingChainRecord
+              pledgeObjectId={detail.id}
+              receiptObjectId={detail.receiptObjectId}
+              borrowerAddress={detail.borrowerAccountId}
+            />
+          </div>
         </div>
       </header>
 
@@ -250,7 +256,10 @@ function DetailBody({
           </dl>
         </div>
 
-        <div className="w-full shrink-0 xl:w-[22rem]">
+        {/* Wider than a book of four figures needs, because each offer now
+            carries its hold on chain and a hash does not shorten past the
+            point of telling two apart. */}
+        <div className="w-full shrink-0 xl:w-[34rem]">
           <OfferBookPanel
             detail={detail}
             role={role}
@@ -369,6 +378,9 @@ function OfferBookPanel({
           principal: offer.principal,
           totalCostToBorrower: offer.totalCostToBorrower,
           isMine: offer.lenderAccountId === viewerAccountId,
+          /* The offer's id is the hold object that backs it, the same one the
+             accept consumes. */
+          chainObjectId: offer.id,
         }))}
         role={role}
         currency={detail.requestedPrincipal.currency}

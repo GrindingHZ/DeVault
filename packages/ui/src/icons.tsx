@@ -258,3 +258,25 @@ export function PlayIcon(props: IconProps): ReactElement {
     </Icon>
   );
 }
+
+/* Escrow: the pledge that holds a receipt while lenders compete for it. */
+export function LockIcon(props: IconProps): ReactElement {
+  return (
+    <Icon {...props}>
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+      <path d="M12 15v2" />
+    </Icon>
+  );
+}
+
+/* Whoever signed: on chain a person is an address, and the icon says a
+   person where the hash beside it cannot. */
+export function PersonIcon(props: IconProps): ReactElement {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M5 20a7 7 0 0 1 14 0" />
+    </Icon>
+  );
+}

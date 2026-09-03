@@ -3,9 +3,10 @@ import type { ListingDetailResponse } from '@depawn/contracts';
 import { useSponsoredWrite } from '../wallet/use-sponsored-write';
 import {
   Button,
+  CurrencyMark,
   Money,
   Slider,
-  formatMoney,
+  formatAmount,
   formatRate,
   interestOver,
   rateToBasisPoints,
@@ -17,6 +18,7 @@ import type { ReactElement } from 'react';
 import { useFeedback } from '../market-shell';
 import { marketKeys } from '../market-keys';
 import { walletKeys } from '../wallet-keys';
+import { rateStepBasisPoints, snapToRateStep } from './rate-step';
 
 function offerMessageFor(error: unknown): string {
   if (error instanceof ApiError) {
@@ -52,10 +54,6 @@ const millisecondsPerDay = 24 * 60 * 60 * 1000;
    a week is long enough for a borrower to weigh it and short enough that
    money is not parked indefinitely against a listing nobody accepts. */
 const offerLifetimeMs = 7 * millisecondsPerDay;
-
-/* The smallest rate the contract accepts. Anything below it is not a cheap
-   offer, it is a rejected one. */
-const smallestRateBasisPoints = 1;
 
 function withoutSuffix(basisPoints: number): string {
   return formatRate(basisPoints).replace(' p.a.', '');
@@ -118,7 +116,7 @@ export function PlaceOfferForm({
     setRateInput(text);
     const parsed = rateToBasisPoints(text);
     if (parsed !== null) {
-      setSliderBasisPoints(Math.min(Math.max(parsed, smallestRateBasisPoints), ceiling));
+      setSliderBasisPoints(snapToRateStep(parsed, ceiling));
       setInputError(null);
     }
   }
@@ -180,7 +178,11 @@ export function PlaceOfferForm({
             label="Annual rate (% per year)"
             testId="offer-rate-slider"
             value={sliderBasisPoints}
-            min={smallestRateBasisPoints}
+            /* Half percent notches, from the first one. The box below the
+               label takes any rate, so nothing is lost to the coarser
+               track. */
+            min={rateStepBasisPoints}
+            step={rateStepBasisPoints}
             max={ceiling}
             onValueChange={takeRate}
             valueText={withoutSuffix}
@@ -273,14 +275,18 @@ function Consequence({
     >
       <Line label={`You earn over ${String(days)} days`}>
         <span className="font-semibold text-accent">
-          {formatMoney({ minorUnits: interest.toString(), currency })}
+          <CurrencyMark currency={currency} />{' '}
+          {formatAmount({ minorUnits: interest.toString(), currency })}
         </span>
       </Line>
       <Line label="The borrower repays">
-        {formatMoney({
-          minorUnits: (BigInt(principalMinorUnits) + interest).toString(),
-          currency,
-        })}
+        <span>
+          <CurrencyMark currency={currency} />{' '}
+          {formatAmount({
+            minorUnits: (BigInt(principalMinorUnits) + interest).toString(),
+            currency,
+          })}
+        </span>
       </Line>
       <Line label="Your place in the book">
         {/* Said in words. A lender's real question is whether they win, and

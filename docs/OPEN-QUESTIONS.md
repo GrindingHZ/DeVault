@@ -441,3 +441,35 @@ the reconciliation basis the custodial build used.
 could carry the note sale instead, with royalty and rule support the bespoke object lacks. The
 bespoke object is smaller and matches the primary market's shape; the Kiosk is more standard and
 more work.
+
+## Q-042: does OfferMade carry expires_at
+**Blocks:** the indexer projection for Committed and Reclaimable (wallet Phase 2)
+**Currently implemented:** `escrow::OfferMade` carries hold_id, hold_key, owner, amount, pledge_id,
+but not expires_at, which the wallet needs to tell a standing offer from an expired one
+**Needs:** whoever owns docs/08
+**Notes:** Add expires_at to the event, or have the indexer read the FundsHold object once on
+OfferMade. The event field is the narrower change and needs no extra read.
+
+## Q-043: reading a pledge per owned note is an N+1
+**Blocks:** the chain-direct wallet reads (wallet Phase 1)
+**Currently implemented:** the design resolves each owned note's terms and status by reading its
+Pledge object; a member with many notes issues many reads
+**Needs:** whoever owns docs/05
+**Notes:** multiGetObjects batches the calls into one request. If a member holds enough notes that
+this is still slow, the indexer read model is the fallback. Measure before optimising.
+
+## Q-044: where a member's on-chain history comes from
+**Blocks:** the wallet History section (wallet Phase 2)
+**Currently implemented:** the ledger history table is removed; the replacement is unspecified
+**Needs:** whoever owns docs/05
+**Notes:** The indexer's projected events for the member's address, or a link out to the explorer
+for the first cut. Decide in Phase 2.
+
+## Q-045: is the testnet USDC mint sponsored
+**Blocks:** the wallet Get USDC action (wallet Phase 1)
+**Currently implemented:** Get USDC on testnet mints the stand-in USDC through the operator; whether
+the member signs a sponsored mint or the operator mints to them directly is open
+**Needs:** whoever owns docs/08
+**Notes:** Every other member action is sponsored, so the member needs no SUI. The mint should keep
+that property, either as a sponsored member transaction or an operator-run mint to the member's
+address.

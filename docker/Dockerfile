@@ -14,7 +14,6 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/api/package.json apps/api/
 COPY apps/marketplace/package.json apps/marketplace/
 COPY apps/vault-console/package.json apps/vault-console/
-COPY apps/admin/package.json apps/admin/
 COPY packages/contracts/package.json packages/contracts/
 COPY packages/ui/package.json packages/ui/
 COPY packages/test-support/package.json packages/test-support/

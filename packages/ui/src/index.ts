@@ -51,3 +51,4 @@ export * from './term-bar';
 export * from './legend';
 export * from './popover';
 export * from './best-rate';
+export * from './settlement-reference';

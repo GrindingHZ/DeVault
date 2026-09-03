@@ -83,6 +83,11 @@ export const listingSummarySchema = listingResponseSchema.extend({
      It comes from the protocol parameters, so the client never holds a second
      copy of a policy that can be edited. */
   categoryMaxLoanToValueBasisPoints: z.number().int().positive(),
+  /* The VaultReceipt the listing's pledge wraps, so a reader can open the
+     collateral itself on the explorer and not only the escrow around it. The
+     `receiptId` above is the api's key for the item's name and photographs;
+     this is the object. Null when the chain does not know the item. */
+  receiptObjectId: z.string().nullable(),
 });
 
 export type ListingSummary = z.infer<typeof listingSummarySchema>;

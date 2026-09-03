@@ -37,9 +37,24 @@ export interface OpenListing {
   readonly appraisedValueBaseUnits: bigint;
   readonly itemCategory: string;
   readonly receiptKey: string;
+  /* The VaultReceipt the pledge wraps, as the object a reader follows to the
+     explorer. Null on a shape that carries no receipt. */
+  readonly receiptObjectId: string | null;
 }
 
 type Json = Record<string, unknown>;
+
+/* A UID arrives as the bare address under one json layout and as the struct
+   that holds it under another, so both spellings are read. */
+function readObjectId(value: unknown): string | null {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (value !== null && typeof value === 'object') {
+    return readObjectId((value as Json).id);
+  }
+  return null;
+}
 
 /* The receipt_key rides on the event as base64 bytes; it is the key the item's
    name and photographs are filed under, so a lender browsing a listing can see
@@ -98,5 +113,6 @@ export function openListingFromJson(
     appraisedValueBaseUnits: readU64(receiptJson?.appraised_value),
     itemCategory: categoryNameOf(receiptJson?.item_category),
     receiptKey,
+    receiptObjectId: receiptJson === null ? null : readObjectId(receiptJson.id),
   };
 }

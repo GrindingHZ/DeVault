@@ -166,6 +166,7 @@ export class MarketReadService {
          none yet if nobody has offered. */
       bestOfferRateBasisPoints: bestRateOf(offers),
       categoryMaxLoanToValueBasisPoints: loanToValueBasisPointsFor(category),
+      receiptObjectId: listing.receiptObjectId,
     };
   }
 

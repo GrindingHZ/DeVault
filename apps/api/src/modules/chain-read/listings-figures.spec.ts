@@ -26,7 +26,7 @@ describe('openListingFromJson', () => {
         borrower: '0xb',
         requested_principal: '2500000',
         requested_apr_bps: 1200,
-        receipt: { appraised_value: '5000000', item_category: 1 },
+        receipt: { id: '0xr', appraised_value: '5000000', item_category: 1 },
       }),
     ).toEqual({
       pledgeId: '0xp',
@@ -36,7 +36,21 @@ describe('openListingFromJson', () => {
       appraisedValueBaseUnits: 5_000_000n,
       itemCategory: 'WATCH',
       receiptKey: 'receipt-9',
+      receiptObjectId: '0xr',
     });
+  });
+
+  /* The node renders a UID either as the bare address or as the struct that
+     holds it, depending on the layout it was asked for. The receipt object is
+     the one a reader follows to the explorer, so both spellings have to land. */
+  it('reads the wrapped receipt object id however the node spells the uid', () => {
+    const listing = openListingFromJson('0xp', 'receipt-9', {
+      status: 0,
+      borrower: '0xb',
+      requested_apr_bps: 1200,
+      receipt: { id: { id: '0xr' }, appraised_value: '5000000', item_category: 1 },
+    });
+    expect(listing?.receiptObjectId).toBe('0xr');
   });
 
   it('drops a pledge that is no longer open', () => {
@@ -66,6 +80,7 @@ describe('openListingFromJson', () => {
       appraisedValueBaseUnits: 0n,
       itemCategory: 'item',
       receiptKey: 'receipt-9',
+      receiptObjectId: null,
     });
   });
 });

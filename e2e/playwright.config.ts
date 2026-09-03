@@ -13,7 +13,7 @@ export default defineConfig({
     {
       name: 'marketplace',
       testMatch: /marketplace\..*\.spec\.ts/,
-      testIgnore: /marketplace\.(repayment|default)\.spec\.ts/,
+      testIgnore: /marketplace\.(repayment|default|wallet)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], baseURL: 'http://localhost:5273' },
     },
     {

@@ -340,3 +340,41 @@ That changes the economics every lender priced their offer against, so it is a p
 rather than an edge case. Mechanically it would work today: repayment pays the holder, and a
 borrower holding their own note would pay themselves. The narrowest reading keeps the two sides of
 a loan distinct until somebody decides otherwise.
+
+## Q-031: a parameter version dated ahead of its write never reaches the chain config
+**Blocks:** nothing today; the demo writes versions effective at once
+**Currently implemented:** `SuiProtocolParametersAdapter.writeVersion` mirrors a version onto
+the chain `Config` only when its effective instant is at or before the write. A future dated
+version stays in the database and the chain config keeps the previous values until another
+version is written after the date passes.
+**Needs:** whoever owns docs/08
+**Notes:** The mirror is informational: no Move function reads the fee or the loan to value
+caps, because the domain computes every split and passes amounts. Closing the gap means a
+scheduled job that applies the version in force at its effective instant, or a `Config` that
+stores the pending version beside the current one with its date and switches on read.
+
+## Q-032: the market's state machines stay in the application layer on Phase 3
+**Blocks:** nothing today
+**Currently implemented:** listings, offers, loans, notes, sales and liquidations run in the api
+and are attested on chain event by event; money and title are enforced by the escrow and custody
+modules, which is what the two ports reach
+**Needs:** founder
+**Notes:** Moving the state machines into Move objects needs a port per use case, which is a
+rewrite of the application layer rather than an adapter swap; the spec records the reasoning.
+
+## Q-033: members sign only their deposits
+**Blocks:** nothing today
+**Currently implemented:** the operator key signs every transaction a use case produces, under
+the api's own authorisation; a member with a linked wallet signs the deposit that moves USDC
+into their wallet object, and a withdrawal lands on the address they linked
+**Needs:** founder, then whoever owns docs/08
+**Notes:** Member signed offers and repayments need per use case entry points authorised by the
+acting address and a gas arrangement, which the escrow module does not yet offer.
+
+## Q-034: one custodian capability for every vault
+**Blocks:** nothing today
+**Currently implemented:** `init` mints one `CustodianCap` to the publisher, and every receipt
+carries its vault id as a field; the custodian of record is the operator
+**Needs:** operations policy
+**Notes:** A capability per vault is a mint and a transfer, and a `vault` field on the
+capability the custody functions assert against.

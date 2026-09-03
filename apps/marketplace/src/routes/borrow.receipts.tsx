@@ -1,5 +1,7 @@
+import { fetchReceiptMetadata } from '@depawn/contracts';
 import type { WalletResponse } from '@depawn/contracts';
 import { EmptyState, Page, PageHeader, Skeleton } from '@depawn/ui';
+import { useQuery } from '@tanstack/react-query';
 import { Navigate, createFileRoute } from '@tanstack/react-router';
 import type { ReactElement } from 'react';
 import { useCurrentAccount } from '../current-account';
@@ -107,12 +109,51 @@ function ReceiptCard({
   readonly item: WalletResponse['items'][number];
   readonly decimals: number;
 }): ReactElement {
+  /* The name and photographs live off chain, keyed by the receipt_key the object
+     carries. A receipt issued before this record existed simply has none, and
+     the card falls back to its category and value. */
+  const metadata = useQuery({
+    queryKey: ['chain', 'receipt-metadata', item.receiptKey],
+    queryFn: () => fetchReceiptMetadata(item.receiptKey),
+    enabled: item.receiptKey !== '',
+    retry: false,
+  });
+  const meta = metadata.data;
+
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-edge bg-surface-raised p-4">
-      <span className="font-body text-sm font-semibold text-ink-primary">{item.itemCategory}</span>
-      <span className="font-figure text-lg tabular-nums text-ink-primary">
-        {formatUsdc(BigInt(item.appraisedValueBaseUnits), decimals)}
-      </span>
+    <div className="flex flex-col gap-3 rounded-lg border border-edge bg-surface-raised p-4">
+      {meta === undefined ? (
+        <div className="flex aspect-video items-center justify-center rounded-md bg-surface-sunken font-body text-xs text-ink-secondary">
+          {item.itemCategory}
+        </div>
+      ) : (
+        <img
+          src={meta.mainImage}
+          alt={meta.name}
+          className="aspect-video w-full rounded-md border border-edge object-cover"
+        />
+      )}
+      <div className="flex flex-col gap-1">
+        <span className="font-body text-sm font-semibold text-ink-primary">
+          {meta?.name ?? item.itemCategory}
+        </span>
+        <span className="font-body text-xs text-ink-secondary">{item.itemCategory}</span>
+        <span className="font-figure text-lg tabular-nums text-ink-primary">
+          {formatUsdc(BigInt(item.appraisedValueBaseUnits), decimals)}
+        </span>
+      </div>
+      {meta === undefined || meta.secondaryImages.length === 0 ? null : (
+        <div className="flex flex-wrap gap-2">
+          {meta.secondaryImages.map((source, index) => (
+            <img
+              key={source.slice(0, 24) + String(index)}
+              src={source}
+              alt={`${meta.name} photograph ${String(index + 2)}`}
+              className="h-14 w-14 rounded-md border border-edge object-cover"
+            />
+          ))}
+        </div>
+      )}
       <a
         href={`https://suiscan.xyz/testnet/object/${item.objectId}`}
         target="_blank"

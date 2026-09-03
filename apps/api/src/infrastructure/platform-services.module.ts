@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { isChainDriverEnabled, loadConfiguration } from '../config/configuration';
+import { ID_GENERATOR } from '../domain/shared/id-generator';
 import { AUDIT_PORT } from '../domain/ports/audit.port';
 import { CHAIN_RECONCILIATION_PORT } from '../domain/ports/chain-reconciliation.port';
 import type { ChainReconciliationPort } from '../domain/ports/chain-reconciliation.port';
@@ -16,11 +17,13 @@ import {
   OUTBOX_HANDLER,
   OutboxDrainWorker,
 } from './events/outbox-drain.worker';
+import { UlidIdGeneratorAdapter } from './id/ulid-id-generator.adapter';
 import { FilesystemObjectStorageAdapter } from './storage/filesystem-object-storage.adapter';
 
 @Global()
 @Module({
   providers: [
+    { provide: ID_GENERATOR, useClass: UlidIdGeneratorAdapter },
     { provide: AUDIT_PORT, useClass: PrismaAuditAdapter },
     OutboxDomainEventPublisher,
     {
@@ -47,6 +50,7 @@ import { FilesystemObjectStorageAdapter } from './storage/filesystem-object-stor
     },
   ],
   exports: [
+    ID_GENERATOR,
     AUDIT_PORT,
     DOMAIN_EVENT_PUBLISHER,
     OBJECT_STORAGE_PORT,

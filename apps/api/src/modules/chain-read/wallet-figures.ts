@@ -34,7 +34,7 @@ export interface PledgeTerms {
   readonly parkedBaseUnits: bigint;
 }
 
-function accruedBaseUnits(terms: PledgeTerms, untilMs: number): bigint {
+export function accruedBaseUnits(terms: PledgeTerms, untilMs: number): bigint {
   if (terms.aprBps <= 0) {
     return 0n;
   }

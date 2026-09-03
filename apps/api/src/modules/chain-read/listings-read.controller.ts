@@ -22,6 +22,7 @@ export class ListingsReadController {
           requestedAprBps: listing.requestedAprBps,
           appraisedValueBaseUnits: listing.appraisedValueBaseUnits.toString(),
           itemCategory: listing.itemCategory,
+          receiptKey: listing.receiptKey,
         })),
       };
     } catch (error) {

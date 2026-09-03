@@ -35,29 +35,51 @@ export interface OpenListing {
   readonly requestedAprBps: number;
   readonly appraisedValueBaseUnits: bigint;
   readonly itemCategory: string;
+  readonly receiptKey: string;
 }
 
 type Json = Record<string, unknown>;
 
-/* The pledge ids ListingOpened has ever named, newest first, deduplicated: the
-   discovery set the current reads are filtered down from. */
-export function listingPledgeIds(events: readonly { readonly json: Json | null }[]): string[] {
-  const ids: string[] = [];
+/* The receipt_key rides on the event as base64 bytes; it is the key the item's
+   name and photographs are filed under, so a lender browsing a listing can see
+   the same picture the borrower registered. */
+function decodeReceiptKey(value: unknown): string {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  const text = Buffer.from(value, 'base64').toString('utf8');
+  return /^[\x20-\x7e]+$/.test(text) ? text : value;
+}
+
+export interface ListingSeed {
+  readonly pledgeId: string;
+  readonly receiptKey: string;
+}
+
+/* The pledge ids ListingOpened has ever named with the receipt key each carries,
+   newest first, deduplicated: the discovery set the current reads are filtered
+   down from. */
+export function listingSeeds(events: readonly { readonly json: Json | null }[]): ListingSeed[] {
+  const seeds: ListingSeed[] = [];
   const seen = new Set<string>();
   for (const event of events) {
     const pledgeId = event.json?.pledge_id;
     if (typeof pledgeId === 'string' && !seen.has(pledgeId)) {
       seen.add(pledgeId);
-      ids.push(pledgeId);
+      seeds.push({ pledgeId, receiptKey: decodeReceiptKey(event.json?.receipt_key) });
     }
   }
-  return ids;
+  return seeds;
 }
 
 /* The wrapped receipt is an Option<VaultReceipt> the node renders as the nested
    object while the pledge is open, so its appraisal is read from there; a shape
    that does not carry it still lists, priced by rate alone. */
-export function openListingFromJson(pledgeId: string, json: Json | null): OpenListing | null {
+export function openListingFromJson(
+  pledgeId: string,
+  receiptKey: string,
+  json: Json | null,
+): OpenListing | null {
   if (json === null || Number(json.status ?? -1) !== OPEN_STATUS) {
     return null;
   }
@@ -73,5 +95,6 @@ export function openListingFromJson(pledgeId: string, json: Json | null): OpenLi
     requestedAprBps: Number(json.requested_apr_bps ?? 0),
     appraisedValueBaseUnits: readU64(receiptJson?.appraised_value),
     itemCategory: categoryNameOf(receiptJson?.item_category),
+    receiptKey,
   };
 }

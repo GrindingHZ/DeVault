@@ -3,7 +3,7 @@ import type { ChainClient } from '../../infrastructure/chain/chain-client';
 import { readDeployment } from '../../infrastructure/chain/chain-deployment.registry';
 import { PrismaService } from '../../infrastructure/persistence/prisma.service';
 import { WALLET_READ_CLIENT } from './chain-read.tokens';
-import { listingPledgeIds, openListingFromJson } from './listings-figures';
+import { listingSeeds, openListingFromJson } from './listings-figures';
 import type { OpenListing } from './listings-figures';
 import { DeploymentNotFound } from './wallet-read.service';
 
@@ -30,11 +30,15 @@ export class ListingsReadService {
       limit: 200,
       order: 'descending',
     });
-    const pledgeIds = listingPledgeIds(events.events.map((event) => ({ json: event.json })));
-    if (pledgeIds.length === 0) {
+    const seeds = listingSeeds(events.events.map((event) => ({ json: event.json })));
+    if (seeds.length === 0) {
       return { decimals, listings: [] };
     }
-    const objects = await this.client.core.getObjects({ objectIds: pledgeIds, include: { json: true } });
+    const receiptKeys = new Map(seeds.map((seed) => [seed.pledgeId, seed.receiptKey]));
+    const objects = await this.client.core.getObjects({
+      objectIds: seeds.map((seed) => seed.pledgeId),
+      include: { json: true },
+    });
     const listings: OpenListing[] = [];
     for (const object of objects.objects) {
       const record = object as { objectId?: unknown; json?: unknown; code?: unknown };
@@ -42,7 +46,7 @@ export class ListingsReadService {
         continue;
       }
       const json = record.json === null || record.json === undefined ? null : (record.json as Record<string, unknown>);
-      const listing = openListingFromJson(record.objectId, json);
+      const listing = openListingFromJson(record.objectId, receiptKeys.get(record.objectId) ?? '', json);
       if (listing !== null) {
         listings.push(listing);
       }

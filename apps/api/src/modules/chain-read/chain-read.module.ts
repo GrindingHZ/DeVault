@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common';
 import { readNetworkEndpoints } from '../../config/chain-configuration';
 import { createReadOnlyChainClient } from '../../infrastructure/chain/chain-client';
+import { ReceiptMetadataModule } from '../receipt-metadata/receipt-metadata.module';
 import { ChainDeploymentController } from './chain-deployment.controller';
 import { WALLET_READ_CLIENT } from './chain-read.tokens';
 import { ListingsReadController } from './listings-read.controller';
 import { ListingsReadService } from './listings-read.service';
+import { LoansReadController } from './loans-read.controller';
+import { LoansReadService } from './loans-read.service';
 import { ReleaseReadController } from './release-read.controller';
 import { ReleaseReadService } from './release-read.service';
 import { WalletReadController } from './wallet-read.controller';
@@ -15,16 +18,19 @@ import { WalletReadService } from './wallet-read.service';
    operator key. Its client only reads, so it needs no key; PrismaService and
    the deployment row come from the global persistence module. */
 @Module({
+  imports: [ReceiptMetadataModule],
   controllers: [
     ChainDeploymentController,
     WalletReadController,
     ReleaseReadController,
     ListingsReadController,
+    LoansReadController,
   ],
   providers: [
     WalletReadService,
     ReleaseReadService,
     ListingsReadService,
+    LoansReadService,
     {
       provide: WALLET_READ_CLIENT,
       useFactory: () => createReadOnlyChainClient(readNetworkEndpoints()),

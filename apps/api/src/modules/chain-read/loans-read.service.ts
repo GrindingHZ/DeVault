@@ -1,0 +1,153 @@
+import { Inject, Injectable } from '@nestjs/common';
+import type { LoanResponse, LoanRole } from '@depawn/contracts';
+import type { ChainClient } from '../../infrastructure/chain/chain-client';
+import { readDeployment } from '../../infrastructure/chain/chain-deployment.registry';
+import { PrismaService } from '../../infrastructure/persistence/prisma.service';
+import { ReceiptMetadataStore } from '../receipt-metadata/receipt-metadata.store';
+import { WALLET_READ_CLIENT } from './chain-read.tokens';
+import {
+  accruedBaseUnits,
+  notePledgeIdFromJson,
+  pledgeStatusOf,
+  pledgeTermsFromJson,
+} from './wallet-figures';
+import type { PledgeStatus, PledgeTerms } from './wallet-figures';
+import { DeploymentNotFound } from './wallet-read.service';
+
+interface Json {
+  [key: string]: unknown;
+}
+
+function objectEntry(entry: unknown): { objectId: string; json: Json | null } | null {
+  if (entry !== null && typeof entry === 'object' && !(entry instanceof Error)) {
+    const record = entry as { objectId?: unknown; json?: unknown; code?: unknown };
+    if (typeof record.objectId === 'string' && record.code === undefined) {
+      const json = record.json;
+      return { objectId: record.objectId, json: json === null || json === undefined ? null : (json as Json) };
+    }
+  }
+  return null;
+}
+
+/* The self-custody model has no cents: a settlement coin carries its own
+   decimals, and the loan book counts base units. The web2 ui speaks the money
+   dto, whose minor units are hundredths, so a base-unit amount is scaled down
+   to the coin's last two decimals here at the edge. */
+function toMoneyDto(baseUnits: bigint, decimals: number): { minorUnits: string; currency: string } {
+  const scale = 10n ** BigInt(Math.max(0, decimals - 2));
+  return { minorUnits: (baseUnits / scale).toString(), currency: 'USD' };
+}
+
+function isoOf(ms: number): string {
+  return new Date(ms).toISOString();
+}
+
+function loanStatusOf(status: PledgeStatus): LoanResponse['status'] {
+  switch (status) {
+    case 'repaid':
+      return 'REPAID';
+    case 'defaulted':
+      return 'DEFAULTED';
+    default:
+      return 'ACTIVE';
+  }
+}
+
+function receiptKeyOf(pledgeJson: Json | null): string {
+  const receipt = pledgeJson?.receipt;
+  const key = receipt !== null && typeof receipt === 'object' ? (receipt as Json).receipt_key : undefined;
+  if (typeof key !== 'string') {
+    return '';
+  }
+  const text = Buffer.from(key, 'base64').toString('utf8');
+  return /^[\x20-\x7e]+$/.test(text) ? text : '';
+}
+
+export interface MyLoansResult {
+  readonly items: readonly LoanResponse[];
+  readonly asOfMs: number;
+}
+
+/* The member's loans, read from the chain and shaped into the LoanResponse the
+   restored portfolio speaks. A note the member holds names its pledge; the
+   pledge carries the terms, its status, and the wrapped receipt whose key finds
+   the item's name and photograph. Lender and borrower are the same read against
+   a different note type. */
+@Injectable()
+export class LoansReadService {
+  constructor(
+    @Inject(WALLET_READ_CLIENT) private readonly client: ChainClient,
+    private readonly prisma: PrismaService,
+    private readonly metadata: ReceiptMetadataStore,
+  ) {}
+
+  async read(owner: string, role: LoanRole, nowMs: number): Promise<MyLoansResult> {
+    const deployment = await readDeployment(this.prisma);
+    if (deployment === null) {
+      throw new DeploymentNotFound();
+    }
+    const packageId = deployment.packageId;
+    const decimals = deployment.settlementCoinDecimals;
+    const noteType = `${packageId}::notes::${role === 'lender' ? 'LenderNote' : 'BorrowerNote'}`;
+
+    const notes = await this.client.core.listOwnedObjects({ owner, type: noteType, include: { json: true } });
+    const held = notes.objects
+      .map((object) => objectEntry(object))
+      .filter((entry): entry is { objectId: string; json: Json | null } => entry !== null)
+      .map((entry) => ({ noteId: entry.objectId, pledgeId: notePledgeIdFromJson(entry.json) }))
+      .filter((held): held is { noteId: string; pledgeId: string } => held.pledgeId !== null);
+    if (held.length === 0) {
+      return { items: [], asOfMs: nowMs };
+    }
+
+    const pledgeIds = [...new Set(held.map((one) => one.pledgeId))];
+    const pledges = await this.client.core.getObjects({ objectIds: pledgeIds, include: { json: true } });
+    const pledgeJsonById = new Map<string, Json | null>();
+    const termsById = new Map<string, PledgeTerms>();
+    for (const object of pledges.objects) {
+      const entry = objectEntry(object);
+      if (entry === null) {
+        continue;
+      }
+      pledgeJsonById.set(entry.objectId, entry.json);
+      const terms = pledgeTermsFromJson(entry.objectId, entry.json);
+      if (terms !== null) {
+        termsById.set(entry.objectId, terms);
+      }
+    }
+
+    const items: LoanResponse[] = [];
+    for (const one of held) {
+      const terms = termsById.get(one.pledgeId);
+      if (terms === undefined || pledgeStatusOf(0) === terms.status) {
+        continue;
+      }
+      const pledgeJson = pledgeJsonById.get(one.pledgeId) ?? null;
+      const receiptKey = receiptKeyOf(pledgeJson);
+      const meta = receiptKey === '' ? null : await this.metadata.read(receiptKey);
+      const borrower = typeof pledgeJson?.borrower === 'string' ? pledgeJson.borrower : owner;
+      items.push({
+        id: terms.pledgeId,
+        receiptId: receiptKey === '' ? terms.pledgeId : receiptKey,
+        itemDescription: meta?.name ?? 'Vaulted item',
+        hasPhotograph: meta !== null,
+        borrowerAccountId: borrower,
+        principal: toMoneyDto(terms.principalBaseUnits, decimals),
+        annualPercentageRateBasisPoints: terms.aprBps,
+        startedAt: isoOf(terms.startedAtMs),
+        maturesAt: isoOf(terms.maturesAtMs),
+        graceEndsAt: isoOf(terms.maturesAtMs + terms.gracePeriodMs),
+        lenderNoteHolderAccountId: role === 'lender' ? owner : '',
+        lenderNoteId: role === 'lender' ? one.noteId : '',
+        status: loanStatusOf(terms.status),
+        accruedInterest: toMoneyDto(accruedBaseUnits(terms, nowMs), decimals),
+        originationSettlementRef: {
+          kind: 'chain',
+          reference: terms.pledgeId,
+          settledAt: isoOf(terms.startedAtMs),
+        },
+      });
+    }
+    return { items, asOfMs: nowMs };
+  }
+}

@@ -136,6 +136,7 @@ export type ListingsResponse = z.infer<typeof listingsResponseSchema>;
 
 export const buildOpenPledgeRequestSchema = z.object({
   receiptObjectId: objectId,
+  requestedPrincipalBaseUnits: baseUnits,
   requestedAprBps: z.number().int().nonnegative().max(65_535),
 });
 export type BuildOpenPledgeRequest = z.infer<typeof buildOpenPledgeRequestSchema>;
@@ -148,6 +149,7 @@ export const buildMakeOfferRequestSchema = z.object({
   holdKey: z.string().min(1),
   coinObjectId: objectId,
   amountBaseUnits: baseUnits,
+  aprBps: z.number().int().positive().max(65_535),
   expiresAtMs: z.number().int().positive(),
 });
 export type BuildMakeOfferRequest = z.infer<typeof buildMakeOfferRequestSchema>;
@@ -196,6 +198,10 @@ export type BuildDelistPositionRequest = z.infer<typeof buildDelistPositionReque
    builds. The frontend can no longer read the chain to supply those itself. */
 export const openPledgeActionSchema = z.object({
   receiptKey: z.string().min(1),
+  /* The principal the borrower asks for, capped on chain at the item's ceiling
+     (its appraised value scaled by the category loan-to-value). */
+  requestedPrincipalBaseUnits: baseUnits,
+  /* The most the borrower will pay; lenders compete by offering a lower rate. */
   requestedAprBps: z.number().int().nonnegative().max(65_535),
 });
 export type OpenPledgeAction = z.infer<typeof openPledgeActionSchema>;
@@ -203,6 +209,9 @@ export type OpenPledgeAction = z.infer<typeof openPledgeActionSchema>;
 export const makeOfferActionSchema = z.object({
   pledgeId: objectId,
   amountBaseUnits: baseUnits,
+  /* The rate the lender offers to lend at, at or below the borrower's asked
+     maximum; the loan is charged this rate, not the borrower's. */
+  aprBps: z.number().int().positive().max(65_535),
   expiresAtMs: z.number().int().positive(),
 });
 export type MakeOfferAction = z.infer<typeof makeOfferActionSchema>;

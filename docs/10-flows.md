@@ -242,9 +242,18 @@ Partial repayment is out of scope for v1. Do not accept it silently.
 
 ### Phase 3
 
-`loan::repay(loan, coin, lender_note_id, &clock, ctx)`. Payment goes to the note holder resolved on
-chain. The `VaultReceipt` moves out of the `Loan` and back to the borrower, and the shared `Loan`
-object is destructured and deleted.
+`pledge::repay(pledge, borrower_note, coin, &clock, ctx)`, signed by the borrower. The api reads
+the pledge's terms and splits the borrower's coin to the payoff as it will stand when the quote
+lapses (`payoffCoverBaseUnits`), then passes that split coin, never the whole one. A coin handed in
+by value is what a wallet previews as leaving, so the whole coin would show the member's whole
+balance as the outflow. The contract reprices the payoff per millisecond at execution, parks what
+is due for the note holder to collect, and hands the rest of the split coin back to the borrower.
+The `VaultReceipt` moves out of the pledge and back to the borrower; the pledge stays as the
+record, `REPAID` until the note holder collects.
+
+A signature that lands after the quote window can leave the split short. The contract then aborts
+with `EInsufficientPayment`, surfaced as `INSUFFICIENT_FUNDS`, and the next build carries a fresh
+figure.
 
 ---
 

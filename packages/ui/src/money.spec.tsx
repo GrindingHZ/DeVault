@@ -18,6 +18,15 @@ describe('Money', () => {
     );
   });
 
+  /* The settlement coin is drawn rather than spelled, everywhere a figure
+     carries it. The code stays in the image's name for a screen reader. */
+  it('draws the usdc mark in place of the code', () => {
+    render(<Money value={{ minorUnits: '250', currency: 'USDC' }} locale="en-US" />);
+    expect(screen.getByRole('img', { name: 'USDC' })).toBeTruthy();
+    expect(screen.getByText('2.50')).toBeTruthy();
+    expect(screen.queryByText(/USDC/)).toBeNull();
+  });
+
   it('renders as a span from the wire shape', () => {
     render(<Money value={{ minorUnits: '123456', currency: 'USD' }} />);
     expect(screen.getByText('USD 1,234.56')).toBeTruthy();

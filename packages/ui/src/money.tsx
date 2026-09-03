@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import { CurrencyMark } from './currency-mark';
 
 export interface MoneyValue {
   readonly minorUnits: string;
@@ -103,10 +104,13 @@ function decimalSeparatorFor(locale: string): string {
   return separator;
 }
 
+/* The currency leads the figure, as a mark for the settlement coin and as a
+   code for anything else; `formatMoney` keeps the code for the places that
+   need a string, such as an aria label or a toast. */
 export function Money({ value, locale }: MoneyProps): ReactElement {
   return (
     <span className="font-figure font-semibold tabular-nums text-ink-primary">
-      {formatMoney(value, locale)}
+      <CurrencyMark currency={value.currency} /> {formatAmount(value, locale)}
     </span>
   );
 }

@@ -23,6 +23,7 @@ export * from './skeleton';
 export * from './stepper';
 export * from './toast';
 export * from './money';
+export * from './currency-mark';
 export * from './money-input';
 export * from './rate';
 export * from './status-badge';

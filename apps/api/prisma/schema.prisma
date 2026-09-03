@@ -16,55 +16,17 @@ enum Role {
   @@map("role")
 }
 
-enum LedgerAccountOwnerType {
-  USER
-  PLATFORM
-  HOLD
-
-  @@map("ledger_account_owner_type")
-}
-
-enum LedgerAccountPurpose {
-  USER_AVAILABLE
-  USER_HELD
-  PLATFORM_FEE_REVENUE
-  PLATFORM_ROUNDING
-  PLATFORM_FLOAT
-
-  @@map("ledger_account_purpose")
-}
-
-enum LedgerTransactionKind {
-  DEPOSIT
-  HOLD_FUNDS
-  REFUND_HOLD
-  ORIGINATE_LOAN
-  REPAY_LOAN
-  SELL_NOTE
-  SETTLE_LIQUIDATION
-  WITHDRAW
-
-  @@map("ledger_transaction_kind")
-}
-
-enum EntryDirection {
-  DEBIT
-  CREDIT
-
-  @@map("entry_direction")
-}
-
 model Account {
-  id            String    @id
-  email         String    @unique
-  passwordHash  String    @map("password_hash")
-  walletAddress String?   @unique @map("wallet_address")
+  id            String   @id
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  walletAddress String?  @unique @map("wallet_address")
   roles         Role[]
-  version       Int       @default(0)
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  version       Int      @default(0)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
-  sessions      Session[]
+  sessions Session[]
 
   @@map("account")
 }
@@ -90,425 +52,16 @@ model Session {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  account   Account  @relation(fields: [accountId], references: [id])
+  account Account @relation(fields: [accountId], references: [id])
 
   @@index([accountId])
   @@map("session")
 }
 
-model LedgerAccount {
-  id        String                 @id
-  ownerType LedgerAccountOwnerType @map("owner_type")
-  ownerId   String?                @map("owner_id")
-  purpose   LedgerAccountPurpose
-  currency  String
-  createdAt DateTime               @default(now()) @map("created_at")
-  updatedAt DateTime               @updatedAt @map("updated_at")
-
-  entries   LedgerEntry[]
-
-  @@unique([ownerType, ownerId, purpose, currency])
-  @@map("ledger_account")
-}
-
-model LedgerTransaction {
-  id         String                @id
-  kind       LedgerTransactionKind
-  reference  String
-  occurredAt DateTime              @map("occurred_at")
-  createdAt  DateTime              @default(now()) @map("created_at")
-  updatedAt  DateTime              @updatedAt @map("updated_at")
-
-  entries    LedgerEntry[]
-
-  @@index([kind, reference])
-  @@map("ledger_transaction")
-}
-
-model LedgerEntry {
-  id            String            @id
-  transactionId String            @map("transaction_id")
-  accountId     String            @map("account_id")
-  direction     EntryDirection
-  minorUnits    BigInt            @map("minor_units")
-  currency      String
-  createdAt     DateTime          @default(now()) @map("created_at")
-  updatedAt     DateTime          @updatedAt @map("updated_at")
-
-  transaction   LedgerTransaction @relation(fields: [transactionId], references: [id])
-  account       LedgerAccount     @relation(fields: [accountId], references: [id])
-
-  @@index([accountId, id])
-  @@map("ledger_entry")
-}
-
-enum IntakeStatus {
-  DRAFT
-  SEALED
-
-  @@map("intake_status")
-}
-
-enum ReceiptStatus {
-  IN_VAULT
-  ENCUMBERED
-  RELEASED
-  LIQUIDATED
-
-  @@map("receipt_status")
-}
-
-enum ItemCategory {
-  BULLION
-  WATCH
-  JEWELLERY
-  COLLECTIBLE
-  ART
-
-  @@map("item_category")
-}
-
-model Vault {
-  id                String   @id
-  name              String
-  city              String
-  insuredLimitMinorUnits BigInt @map("insured_limit_minor_units")
-  currency          String
-  version           Int      @default(0)
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
-
-  intakeRecords     IntakeRecord[]
-  custodyReceipts   CustodyReceipt[]
-
-  @@map("vault")
-}
-
-model IntakeRecord {
-  id                String       @id
-  vaultId           String       @map("vault_id")
-  borrowerAccountId String       @map("borrower_account_id")
-  itemCategory      ItemCategory @map("item_category")
-  itemDescription   String       @map("item_description")
-  serialNumbers     String[]     @map("serial_numbers")
-  sealNumber        String?      @map("seal_number")
-  evidence          Json
-  status            IntakeStatus
-  sealedHash        String?      @map("sealed_hash")
-  version           Int          @default(0)
-  createdAt         DateTime     @default(now()) @map("created_at")
-  updatedAt         DateTime     @updatedAt @map("updated_at")
-
-  vault             Vault        @relation(fields: [vaultId], references: [id])
-  appraisals        Appraisal[]
-
-  @@index([vaultId, status])
-  @@map("intake_record")
-}
-
-model Appraisal {
-  id                   String   @id
-  intakeId             String   @map("intake_id")
-  appraiserId          String   @map("appraiser_id")
-  valueMinorUnits      BigInt   @map("value_minor_units")
-  currency             String
-  method               String
-  comparableReferences String   @map("comparable_references")
-  appraisedAt          DateTime @map("appraised_at")
-  createdAt            DateTime @default(now()) @map("created_at")
-  updatedAt            DateTime @updatedAt @map("updated_at")
-
-  intakeRecord         IntakeRecord @relation(fields: [intakeId], references: [id])
-
-  @@index([intakeId])
-  @@map("appraisal")
-}
-
-model CustodyReceipt {
-  id                        String        @id
-  vaultId                   String        @map("vault_id")
-  holderAccountId           String        @map("holder_account_id")
-  intakeRecordHash          String        @map("intake_record_hash")
-  appraisedValueMinorUnits  BigInt        @map("appraised_value_minor_units")
-  currency                  String
-  appraisedAt               DateTime      @map("appraised_at")
-  appraiserId               String        @map("appraiser_id")
-  itemCategory              ItemCategory  @map("item_category")
-  itemDescription           String        @map("item_description")
-  serialNumbers             String[]      @map("serial_numbers")
-  insurancePolicyReference  String        @map("insurance_policy_reference")
-  status                    ReceiptStatus
-  encumberedByLoanId        String?       @map("encumbered_by_loan_id")
-  version                   Int           @default(0)
-  createdAt                 DateTime      @default(now()) @map("created_at")
-  updatedAt                 DateTime      @updatedAt @map("updated_at")
-
-  vault                     Vault         @relation(fields: [vaultId], references: [id])
-
-  @@index([vaultId, status])
-  @@index([holderAccountId, status])
-  // Unique per intake only while the receipt is live, which Prisma cannot
-  // say: a sold item carries a burned receipt and the buyer's new one at
-  // once. The partial index lives in the migration.
-  @@index([intakeRecordHash])
-  @@map("custody_receipt")
-}
-
-enum ListingStatus {
-  DRAFT
-  ACTIVE
-  MATCHED
-  CANCELLED
-  EXPIRED
-
-  @@map("listing_status")
-}
-
-enum OfferStatus {
-  PENDING
-  ACCEPTED
-  WITHDRAWN
-  EXPIRED
-  SUPERSEDED
-
-  @@map("offer_status")
-}
-
-model Listing {
-  id                                 String        @id
-  borrowerAccountId                  String        @map("borrower_account_id")
-  receiptId                          String        @map("receipt_id")
-  requestedPrincipalMinorUnits       BigInt        @map("requested_principal_minor_units")
-  currency                           String
-  maxAnnualPercentageRateBasisPoints Int           @map("max_annual_percentage_rate_basis_points")
-  requestedDurationMs                BigInt        @map("requested_duration_ms")
-  expiresAt                          DateTime      @map("expires_at")
-  status                             ListingStatus
-  version                            Int           @default(0)
-  createdAt                          DateTime      @default(now()) @map("created_at")
-  updatedAt                          DateTime      @updatedAt @map("updated_at")
-
-  offers                             Offer[]
-
-  @@index([status, id])
-  @@index([borrowerAccountId])
-  @@index([receiptId])
-  @@map("listing")
-}
-
-model Offer {
-  id                              String      @id
-  listingId                       String      @map("listing_id")
-  lenderAccountId                 String      @map("lender_account_id")
-  principalMinorUnits             BigInt      @map("principal_minor_units")
-  currency                        String
-  annualPercentageRateBasisPoints Int         @map("annual_percentage_rate_basis_points")
-  durationMs                      BigInt      @map("duration_ms")
-  fundsHoldId                     String      @map("funds_hold_id")
-  expiresAt                       DateTime    @map("expires_at")
-  offeredAt                       DateTime    @map("offered_at")
-  status                          OfferStatus
-  createdAt                       DateTime    @default(now()) @map("created_at")
-  updatedAt                       DateTime    @updatedAt @map("updated_at")
-
-  listing                         Listing     @relation(fields: [listingId], references: [id])
-
-  @@index([listingId])
-  @@index([lenderAccountId, status])
-  @@map("offer")
-}
-
-enum FundsHoldStatus {
-  HELD
-  RELEASED
-  REFUNDED
-
-  @@map("funds_hold_status")
-}
-
-model FundsHold {
-  id                   String          @id
-  accountId            String          @map("account_id")
-  minorUnits           BigInt          @map("minor_units")
-  currency             String
-  status               FundsHoldStatus
-  holdTransactionId    String          @map("hold_transaction_id")
-  settledTransactionId String?         @map("settled_transaction_id")
-  createdAt            DateTime        @default(now()) @map("created_at")
-  updatedAt            DateTime        @updatedAt @map("updated_at")
-
-  @@index([accountId, status])
-  @@map("funds_hold")
-}
-
-enum RedemptionStatus {
-  REQUESTED
-  VERIFIED
-  RELEASED
-
-  @@map("redemption_status")
-}
-
-model RedemptionRequest {
-  id                    String           @id
-  receiptId             String           @map("receipt_id")
-  vaultId               String           @map("vault_id")
-  requestedByAccountId  String           @map("requested_by_account_id")
-  requestedAt           DateTime         @map("requested_at")
-  status                RedemptionStatus
-  verifiedAt            DateTime?        @map("verified_at")
-  verifiedByStaffId     String?          @map("verified_by_staff_id")
-  releasedAt            DateTime?        @map("released_at")
-  releasedByStaffId     String?          @map("released_by_staff_id")
-  sealNumberBroken      String?          @map("seal_number_broken")
-  createdAt             DateTime         @default(now()) @map("created_at")
-  updatedAt             DateTime         @updatedAt @map("updated_at")
-
-  @@index([vaultId, status])
-  @@index([requestedByAccountId])
-  @@map("redemption_request")
-}
-
-enum LoanStatus {
-  ACTIVE
-  REPAID
-  DEFAULTED
-  LIQUIDATED
-
-  @@map("loan_status")
-}
-
-model Loan {
-  id                              String     @id
-  receiptId                       String     @map("receipt_id")
-  borrowerAccountId               String     @map("borrower_account_id")
-  principalMinorUnits             BigInt     @map("principal_minor_units")
-  currency                        String
-  annualPercentageRateBasisPoints Int        @map("annual_percentage_rate_basis_points")
-  startedAt                       DateTime   @map("started_at")
-  maturesAt                       DateTime   @map("matures_at")
-  graceEndsAt                     DateTime   @map("grace_ends_at")
-  liquidationFeeBasisPoints       Int        @map("liquidation_fee_basis_points")
-  lenderNoteId                    String     @unique @map("lender_note_id")
-  borrowerNoteId                  String     @unique @map("borrower_note_id")
-  status                          LoanStatus
-  originationSettlementKind       String     @map("origination_settlement_kind")
-  originationSettlementReference  String     @map("origination_settlement_reference")
-  originationSettledAt            DateTime   @map("origination_settled_at")
-  defaultedAt                     DateTime?  @map("defaulted_at")
-  version                         Int        @default(0)
-  createdAt                       DateTime   @default(now()) @map("created_at")
-  updatedAt                       DateTime   @updatedAt @map("updated_at")
-
-  @@index([receiptId, status])
-  @@index([borrowerAccountId, status])
-  @@map("loan")
-}
-
-model LenderNote {
-  id              String   @id
-  loanId          String   @unique @map("loan_id")
-  holderAccountId String   @map("holder_account_id")
-  transferable    Boolean
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  @@index([holderAccountId])
-  @@map("lender_note")
-}
-
-enum NoteSaleStatus {
-  OPEN
-  SOLD
-  WITHDRAWN
-  VOIDED
-
-  @@map("note_sale_status")
-}
-
-model NoteSale {
-  id                 String         @id
-  lenderNoteId       String         @map("lender_note_id")
-  loanId             String         @map("loan_id")
-  sellerAccountId    String         @map("seller_account_id")
-  askPriceMinorUnits BigInt         @map("ask_price_minor_units")
-  currency           String
-  status             NoteSaleStatus
-  version            Int            @default(0)
-  createdAt          DateTime       @default(now()) @map("created_at")
-  updatedAt          DateTime       @updatedAt @map("updated_at")
-
-  @@index([status])
-  @@index([sellerAccountId, status])
-  @@index([loanId, status])
-  @@map("note_sale")
-}
-
-model BorrowerNote {
-  id              String   @id
-  loanId          String   @unique @map("loan_id")
-  holderAccountId String   @map("holder_account_id")
-  transferable    Boolean
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  @@index([holderAccountId])
-  @@map("borrower_note")
-}
-
-enum LiquidationStatus {
-  SCHEDULED
-  BIDDING
-  SETTLED
-  CANCELLED
-
-  @@map("liquidation_status")
-}
-
-model Liquidation {
-  id                     String            @id
-  loanId                 String            @map("loan_id")
-  receiptId              String            @map("receipt_id")
-  reservePriceMinorUnits BigInt            @map("reserve_price_minor_units")
-  currency               String
-  status                 LiquidationStatus
-  opensAt                DateTime?         @map("opens_at")
-  closesAt               DateTime?         @map("closes_at")
-  winningBidId           String?           @map("winning_bid_id")
-  version                Int               @default(0)
-  createdAt              DateTime          @default(now()) @map("created_at")
-  updatedAt              DateTime          @updatedAt @map("updated_at")
-
-  bids                   LiquidationBid[]
-
-  @@index([status])
-  /* Unique per loan while the sale is live, which Prisma cannot say: the
-     partial index lives in the migration so a cancelled sale gives the loan
-     its slot back. */
-  @@index([loanId])
-  @@map("liquidation")
-}
-
-model LiquidationBid {
-  id               String      @id
-  liquidationId    String      @map("liquidation_id")
-  bidderAccountId  String      @map("bidder_account_id")
-  minorUnits       BigInt      @map("minor_units")
-  currency         String
-  fundsHoldId      String      @map("funds_hold_id")
-  placedAt         DateTime    @map("placed_at")
-  createdAt        DateTime    @default(now()) @map("created_at")
-  updatedAt        DateTime    @updatedAt @map("updated_at")
-
-  liquidation      Liquidation @relation(fields: [liquidationId], references: [id])
-
-  @@index([liquidationId])
-  @@index([bidderAccountId])
-  @@map("liquidation_bid")
-}
-
-/* One row, id fixed, because the system is either paused or it is not. A
-   pause has no effective date, unlike the protocol parameters. */
+/**
+ * One row, id fixed, because the system is either paused or it is not. A
+ * pause has no effective date, unlike the protocol parameters.
+ */
 model SystemState {
   id                String    @id
   pausedAt          DateTime? @map("paused_at")
@@ -520,65 +73,37 @@ model SystemState {
   @@map("system_state")
 }
 
-model ReconciliationRun {
-  id        String               @id
-  vaultId   String?              @map("vault_id")
-  startedAt DateTime             @map("started_at")
-  createdAt DateTime             @default(now()) @map("created_at")
-  updatedAt DateTime             @updatedAt @map("updated_at")
-
-  drift     ReconciliationDrift[]
-
-  @@index([vaultId, startedAt])
-  @@map("reconciliation_run")
-}
-
-/* One row per disagreement, naming what to look at rather than a total,
-   because drift is an incident routed to a human (docs/10 flow 10). */
-model ReconciliationDrift {
-  id        String             @id
-  runId     String             @map("run_id")
-  kind      String
-  subject   String
-  field     String
-  expected  String
-  observed  String
-  createdAt DateTime           @default(now()) @map("created_at")
-  updatedAt DateTime           @updatedAt @map("updated_at")
-
-  run       ReconciliationRun  @relation(fields: [runId], references: [id])
-
-  @@index([runId])
-  @@map("reconciliation_drift")
-}
-
-/* History is the table: a new version is a new row with the instant it takes
-   effect, never an update in place, so what was in force on any past day is
-   always answerable. */
+/**
+ * History is the table: a new version is a new row with the instant it takes
+ * effect, never an update in place, so what was in force on any past day is
+ * always answerable.
+ */
 model ProtocolParameterVersion {
-  id                       String   @id
-  effectiveAt              DateTime @map("effective_at")
-  writtenByAccountId       String   @map("written_by_account_id")
-  parameters               Json
-  createdAt                DateTime @default(now()) @map("created_at")
-  updatedAt                DateTime @updatedAt @map("updated_at")
+  id                 String   @id
+  effectiveAt        DateTime @map("effective_at")
+  writtenByAccountId String   @map("written_by_account_id")
+  parameters         Json
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
   @@index([effectiveAt])
   @@map("protocol_parameter_version")
 }
 
-/* An event the drain could not deliver after every retry. It leaves the
-   queue so the queue keeps moving, and waits for a human. */
+/**
+ * An event the drain could not deliver after every retry. It leaves the
+ * queue so the queue keeps moving, and waits for a human.
+ */
 model DeadLetterEvent {
-  id           String   @id
-  outboxId     String   @map("outbox_id")
-  type         String
-  payload      Json
-  attempts     Int
-  lastError    String   @map("last_error")
+  id             String   @id
+  outboxId       String   @map("outbox_id")
+  type           String
+  payload        Json
+  attempts       Int
+  lastError      String   @map("last_error")
   deadLetteredAt DateTime @map("dead_lettered_at")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   @@map("dead_letter_event")
 }
@@ -590,9 +115,11 @@ model OutboxEvent {
   occurredAt  DateTime  @map("occurred_at")
   publishedAt DateTime? @map("published_at")
   attempts    Int       @default(0)
-  /* Set when a drain takes the row. A row lock only reserves for the life of
-     its transaction, so without this a second drain could take the same
-     event the moment the first committed. */
+  /**
+   * Set when a drain takes the row. A row lock only reserves for the life of
+   * its transaction, so without this a second drain could take the same
+   * event the moment the first committed.
+   */
   claimedAt   DateTime? @map("claimed_at")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
@@ -688,55 +215,6 @@ model ChainWallet {
 
   @@unique([accountId, currency])
   @@map("chain_wallet")
-}
-
-enum ChainFundsHoldStatus {
-  HELD
-  RELEASED
-  REFUNDED
-
-  @@map("chain_funds_hold_status")
-}
-
-model ChainFundsHold {
-  id            String               @id
-  accountId     String               @map("account_id")
-  currency      String
-  minorUnits    BigInt               @map("minor_units")
-  objectId      String?              @unique @map("object_id")
-  status        ChainFundsHoldStatus
-  holdDigest    String?              @map("hold_digest")
-  settledDigest String?              @map("settled_digest")
-  createdAt     DateTime             @default(now()) @map("created_at")
-  updatedAt     DateTime             @updatedAt @map("updated_at")
-
-  @@index([accountId, status])
-  @@map("chain_funds_hold")
-}
-
-model ChainSettlement {
-  id                  String                @id
-  digest              String?
-  kind                LedgerTransactionKind
-  reference           String
-  ledgerTransactionId String                @unique @map("ledger_transaction_id")
-  occurredAt          DateTime              @map("occurred_at")
-  createdAt           DateTime              @default(now()) @map("created_at")
-  updatedAt           DateTime              @updatedAt @map("updated_at")
-
-  @@index([digest])
-  @@map("chain_settlement")
-}
-
-model ChainReceipt {
-  receiptId    String   @id @map("receipt_id")
-  objectId     String?  @unique @map("object_id")
-  issuedDigest String?  @map("issued_digest")
-  burnedDigest String?  @map("burned_digest")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  @@map("chain_receipt")
 }
 
 model ChainEvent {

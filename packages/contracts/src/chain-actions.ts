@@ -39,11 +39,6 @@ export const chainDeploymentResponseSchema = z.object({
 });
 export type ChainDeploymentResponse = z.infer<typeof chainDeploymentResponseSchema>;
 
-/* The testnet faucet answers the digest of the mint, so a member can see the
-   grant land on chain. */
-export const usdcFaucetResponseSchema = z.object({ digest: z.string() });
-export type UsdcFaucetResponse = z.infer<typeof usdcFaucetResponseSchema>;
-
 /* The member's whole money position, computed by the api from the chain over
    gRPC because a full node no longer answers a browser. Every amount is in the
    settlement coin's base units, so the client formats it with the coin's

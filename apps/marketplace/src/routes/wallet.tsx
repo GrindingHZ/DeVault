@@ -1,11 +1,9 @@
-import { requestTestnetUsdc } from '@depawn/contracts';
 import type { WalletResponse } from '@depawn/contracts';
-import { Button, Card, Page, PageHeader, Skeleton } from '@depawn/ui';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Card, Page, PageHeader, Skeleton } from '@depawn/ui';
 import { Navigate, createFileRoute } from '@tanstack/react-router';
 import type { ReactElement } from 'react';
 import { useCurrentAccount } from '../current-account';
-import { MarketShell, useFeedback } from '../market-shell';
+import { MarketShell } from '../market-shell';
 import { formatUsdc } from '../wallet/usdc';
 import { useWallet } from '../wallet/use-wallet';
 
@@ -160,35 +158,21 @@ function ItemsCard({
 }
 
 function GetUsdcCard(): ReactElement {
-  const queryClient = useQueryClient();
-  const feedback = useFeedback();
-  const grant = useMutation({
-    mutationFn: requestTestnetUsdc,
-    onSuccess: async () => {
-      feedback.reportSuccess('Testnet USDC is on its way to your wallet.');
-      await queryClient.invalidateQueries();
-    },
-  });
-
   return (
     <Card title="Get USDC">
       <p className="mb-3 font-body text-sm text-ink-secondary">
-        On testnet the operator mints USDC straight to your wallet, so you can lend and borrow
-        without funding it yourself.
+        This marketplace settles in Circle's testnet USDC. Get some from Circle's faucet to your
+        wallet address, and it appears here.
       </p>
-      <Button
+      <a
+        href="https://faucet.circle.com"
+        target="_blank"
+        rel="noreferrer"
         data-testid="get-usdc"
-        type="button"
-        disabled={grant.isPending}
-        onClick={() => grant.mutate()}
+        className="inline-flex items-center rounded-md bg-accent px-4 py-2 font-body text-sm font-semibold text-surface-base transition-colors duration-control ease-enter hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-status-active"
       >
-        Get testnet USDC
-      </Button>
-      {grant.isError ? (
-        <p role="alert" className="mt-2 font-body text-sm text-status-danger">
-          The mint did not go through. Try again.
-        </p>
-      ) : null}
+        Open Circle's faucet
+      </a>
     </Card>
   );
 }

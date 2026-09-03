@@ -7,7 +7,6 @@ import { OperatorSigner } from '../../infrastructure/chain/operator-signer';
 import { SPONSORED_TRANSACTION_GATEWAY } from '../../infrastructure/chain/sponsored-transaction';
 import { ChainTransactionController } from './chain-transaction.controller';
 import { ChainTransactionService } from './chain-transaction.service';
-import { UsdcFaucetService } from './usdc-faucet.service';
 
 /* The member facing chain write surface. Present only when a chain driver is
    on, because it is the whole of the self-custody flow and has nothing to do
@@ -17,7 +16,6 @@ import { UsdcFaucetService } from './usdc-faucet.service';
   controllers: [ChainTransactionController],
   providers: [
     ChainTransactionService,
-    UsdcFaucetService,
     {
       provide: SPONSORED_TRANSACTION_GATEWAY,
       useFactory: (client: ChainClient, signer: OperatorSigner): GrpcSponsoredTransactionGateway =>

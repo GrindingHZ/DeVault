@@ -26,14 +26,12 @@ import type {
   ChainExecutionResponse,
   ExecuteChainActionRequest,
   SponsoredTransactionResponse,
-  UsdcFaucetResponse,
 } from '@depawn/contracts';
 import type { Account } from '../../domain/accounts/account';
 import { CurrentAccount } from '../shared/http/current-account.decorator';
 import { DomainErrorHttpException } from '../shared/http/domain-error-http.exception';
 import { ZodValidationPipe } from '../shared/http/zod-validation.pipe';
 import { ChainTransactionService } from './chain-transaction.service';
-import { UsdcFaucetService } from './usdc-faucet.service';
 import { WalletNotLinked } from './wallet-not-linked.error';
 
 /* The self-custody write surface. A build endpoint answers the bytes for the
@@ -42,15 +40,7 @@ import { WalletNotLinked } from './wallet-not-linked.error';
    linked wallet the session names. */
 @Controller('chain')
 export class ChainTransactionController {
-  constructor(
-    private readonly transactions: ChainTransactionService,
-    private readonly faucet: UsdcFaucetService,
-  ) {}
-
-  @Post('faucet')
-  requestUsdc(@CurrentAccount() account: Account): Promise<UsdcFaucetResponse> {
-    return this.faucet.grantTo(walletOf(account));
-  }
+  constructor(private readonly transactions: ChainTransactionService) {}
 
   @Post('pledges/build')
   openPledge(

@@ -85,15 +85,12 @@ export async function publishPackage(input: PublishPackageInput): Promise<ChainD
     operatorCapId: objectOfType('::config::OperatorCap'),
     custodianCapId: objectOfType('::config::CustodianCap'),
     treasuryCapId: treasuryCap === undefined ? null : treasuryCap[0],
-    /* The package ships its own six decimal USDC and its treasury, so the
-       platform can mint what a demo member needs rather than routing every
-       tester through Circle's faucet. The stand in is the settlement coin
-       wherever the package published one; Circle's own type is the fallback
-       for a deployment that omits it. */
+    /* Circle's own USDC is the settlement coin on a public network, so a member
+       funds themselves from Circle's faucet and the coin is the same shape it
+       is on mainnet. The local network has no Circle USDC, so there the package
+       settles in its own stand in, which is the only reason it still ships one. */
     settlementCoinType:
-      treasuryCap !== undefined || network === 'localnet'
-        ? `${packageId}::usdc::USDC`
-        : circleUsdcByNetwork[network],
+      network === 'localnet' ? `${packageId}::usdc::USDC` : circleUsdcByNetwork[network],
     settlementCoinDecimals: usdcDecimals,
     publishedAt: new Date(),
     publishedBy: input.signer.address,

@@ -38,6 +38,12 @@ function offerMessageFor(error: unknown): string {
 
 const millisecondsPerDay = 24 * 60 * 60 * 1000;
 
+/* How long an offer stands before the lender can reclaim the hold. A listing
+   has no deadline of its own on chain, so the offer carries the only clock:
+   a week is long enough for a borrower to weigh it and short enough that
+   money is not parked indefinitely against a listing nobody accepts. */
+const offerLifetimeMs = 7 * millisecondsPerDay;
+
 /* The smallest rate the contract accepts. Anything below it is not a cheap
    offer, it is a rejected one. */
 const smallestRateBasisPoints = 1;
@@ -124,7 +130,7 @@ export function PlaceOfferForm({
           pledgeId: detail.id,
           amountBaseUnits: (BigInt(detail.requestedPrincipal.minorUnits) * 10_000n).toString(),
           aprBps: rateBasisPoints,
-          expiresAtMs: Date.parse(detail.expiresAt),
+          expiresAtMs: Date.now() + offerLifetimeMs,
         }),
       ),
     onSuccess: async () => {

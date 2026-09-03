@@ -21,7 +21,7 @@ export class MarketReadController {
   @Get('listings')
   async browse(): Promise<ListingsPageResponse> {
     try {
-      const { items } = await this.market.browse(Date.now());
+      const { items } = await this.market.browse();
       return { items, nextCursor: null };
     } catch (error) {
       throw this.mapped(error);
@@ -45,7 +45,7 @@ export class MarketReadController {
   async mine(@CurrentAccount() account: Account): Promise<MyListingsResponse> {
     const address = this.addressOf(account);
     try {
-      const { items } = await this.market.mine(address, Date.now());
+      const { items } = await this.market.mine(address);
       return { items, asOf: new Date().toISOString() };
     } catch (error) {
       throw this.mapped(error);

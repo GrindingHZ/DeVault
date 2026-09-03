@@ -194,7 +194,17 @@ function photographOf(receiptId: string, hasPhotograph: boolean): string | null 
 }
 
 /* A deadline with no start to measure from: the words, and no bar. */
-function closesIn(expiresAtIso: string, asOf: number): TermProgress {
+function closesIn(expiresAtIso: string | null, asOf: number): TermProgress {
+  /* An open pledge has no deadline on chain; it stands until the borrower
+     takes it down or accepts a lender. */
+  if (expiresAtIso === null) {
+    return {
+      elapsedBasisPoints: null,
+      note: 'open until you take it down',
+      caption: null,
+      tone: 'active',
+    };
+  }
   const expiresAt = Date.parse(expiresAtIso);
   if (!Number.isFinite(expiresAt)) {
     return { elapsedBasisPoints: null, note: 'no closing date', caption: null, tone: 'neutral' };
@@ -375,7 +385,7 @@ export function positionOfListing(listing: MyListingResponse, asOf: number): Pos
     /* Nothing expires a listing on a timer, so one past its date sits ACTIVE
        with the date behind it. Acceptance refuses it (LISTING_EXPIRED), so
        offering the button anyway is offering one that fails. */
-    const hasRunOut = Date.parse(listing.expiresAt) < asOf;
+    const hasRunOut = listing.expiresAt !== null && Date.parse(listing.expiresAt) < asOf;
     return {
       ...base,
       ...staged(hasRunOut ? 'Expired' : 'Taking offers', 'borrowing'),

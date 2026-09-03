@@ -32,7 +32,7 @@ export const listingResponseSchema = z.object({
   requestedPrincipal: moneySchema,
   maxAnnualPercentageRateBasisPoints: z.number().int(),
   requestedDurationMs: z.number().int(),
-  expiresAt: z.string(),
+  expiresAt: z.string().nullable(),
   status: listingStatusSchema,
 });
 

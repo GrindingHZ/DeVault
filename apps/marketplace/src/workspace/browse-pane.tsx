@@ -59,7 +59,12 @@ const nothingHere: Record<BrowseScope, { readonly title: string; readonly descri
 
    Two figures only when they change a decision. Inside a day the hour does,
    which is the one case that keeps a time. */
-export function closesOn(expiresAt: string, nowEpochMs: number): ClosingTime {
+export function closesOn(expiresAt: string | null, nowEpochMs: number): ClosingTime {
+  /* An open pledge on chain has no deadline: it stands until the borrower
+     takes it down or a lender is accepted. Said plainly rather than dated. */
+  if (expiresAt === null) {
+    return { lead: '', value: 'open until taken down' };
+  }
   const epochMs = Date.parse(expiresAt);
   if (!Number.isFinite(epochMs)) {
     return { lead: '', value: 'no closing date' };
@@ -88,7 +93,10 @@ export function closesOn(expiresAt: string, nowEpochMs: number): ClosingTime {
    enough that saying so is not crying wolf on every row. */
 const closingSoonMs = 7 * 24 * 60 * 60 * 1000;
 
-export function isClosingSoon(expiresAt: string, nowEpochMs: number): boolean {
+export function isClosingSoon(expiresAt: string | null, nowEpochMs: number): boolean {
+  if (expiresAt === null) {
+    return false;
+  }
   const remaining = Date.parse(expiresAt) - nowEpochMs;
   return Number.isFinite(remaining) && remaining > 0 && remaining < closingSoonMs;
 }

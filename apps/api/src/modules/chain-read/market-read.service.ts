@@ -55,17 +55,17 @@ export class MarketReadService {
   /* Every open listing, the reader's own included. The workspace filters by tab
      client-side -- browse hides your own, the listings tab shows only them -- so
      stripping them here would leave a borrower's own listings tab always empty. */
-  async browse(nowMs: number): Promise<{ items: ListingSummary[] }> {
+  async browse(): Promise<{ items: ListingSummary[] }> {
     const { decimals, listings, offersByPledge } = await this.listings.read();
     const items: ListingSummary[] = [];
     for (const listing of listings) {
       const offers = offersByPledge.get(listing.pledgeId) ?? [];
-      items.push(await this.toSummary(listing, decimals, offers, nowMs));
+      items.push(await this.toSummary(listing, decimals, offers));
     }
     return { items };
   }
 
-  async mine(viewerAddress: string, nowMs: number): Promise<{ items: MyListingResponse[] }> {
+  async mine(viewerAddress: string): Promise<{ items: MyListingResponse[] }> {
     const { decimals, listings, offerCountByPledge } = await this.listings.read();
     const items: MyListingResponse[] = [];
     for (const listing of listings) {
@@ -80,7 +80,7 @@ export class MarketReadService {
         requestedPrincipal: toMoneyDto(listing.requestedPrincipalBaseUnits, decimals),
         maxAnnualPercentageRateBasisPoints: listing.requestedAprBps,
         requestedDurationMs: DEFAULT_DURATION_MS,
-        expiresAt: new Date(nowMs + DEFAULT_EXPIRY_MS).toISOString(),
+        expiresAt: null,
         status: 'ACTIVE',
         itemDescription: item.itemDescription,
         itemCategory: categoryOf(listing.itemCategory),
@@ -99,7 +99,7 @@ export class MarketReadService {
       return null;
     }
     const offers = offersByPledge.get(pledgeId) ?? [];
-    const summary = await this.toSummary(listing, decimals, offers, nowMs);
+    const summary = await this.toSummary(listing, decimals, offers);
     const offerBook = offers.map((offer): RankedOfferResponse => {
       const principal = toMoneyDto(offer.amountBaseUnits, decimals);
       /* The whole-term cost at the offer's own rate: lenders compete by
@@ -138,7 +138,6 @@ export class MarketReadService {
     listing: OpenListing,
     decimals: number,
     offers: readonly PledgeOffer[],
-    nowMs: number,
   ): Promise<ListingSummary> {
     const item = await this.itemOf(listing);
     const category = categoryOf(listing.itemCategory);
@@ -156,7 +155,7 @@ export class MarketReadService {
       requestedPrincipal: toMoneyDto(listing.requestedPrincipalBaseUnits, decimals),
       maxAnnualPercentageRateBasisPoints: listing.requestedAprBps,
       requestedDurationMs: DEFAULT_DURATION_MS,
-      expiresAt: new Date(nowMs + DEFAULT_EXPIRY_MS).toISOString(),
+      expiresAt: null,
       status: 'ACTIVE',
       appraisedValue: toMoneyDto(listing.appraisedValueBaseUnits, decimals),
       itemCategory: category,

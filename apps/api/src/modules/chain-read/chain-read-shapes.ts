@@ -30,7 +30,7 @@ export function toMoneyDto(
   decimals: number,
 ): { minorUnits: string; currency: string } {
   const scale = 10n ** BigInt(Math.max(0, decimals - 2));
-  return { minorUnits: (baseUnits / scale).toString(), currency: 'USD' };
+  return { minorUnits: (baseUnits / scale).toString(), currency: 'USDC' };
 }
 
 export function isoOf(ms: number): string {
@@ -53,4 +53,31 @@ export function receiptKeyOf(pledgeJson: Json | null): string {
   const key =
     receipt !== null && typeof receipt === 'object' ? (receipt as Json).receipt_key : undefined;
   return decodeBytes(key);
+}
+
+/* The name a receipt shows when nobody registered one off chain: the category
+   it was issued under, said as a thing rather than as a code, so a list of
+   several bare receipts still tells a watch from a gold bar. */
+const categoryWords: Record<string, string> = {
+  BULLION: 'bullion',
+  WATCH: 'watch',
+  JEWELLERY: 'jewellery',
+  COLLECTIBLE: 'collectible',
+  ART: 'artwork',
+};
+
+export function fallbackNameFor(category: string): string {
+  return `Unnamed ${categoryWords[category] ?? 'item'}`;
+}
+
+/* The category code the receipt a pledge wraps was issued with, as its name. */
+const categoryNames = ['BULLION', 'WATCH', 'JEWELLERY', 'COLLECTIBLE', 'ART'] as const;
+
+export function categoryOfPledgeJson(pledgeJson: Json | null): string {
+  const receipt = pledgeJson?.receipt;
+  const value =
+    receipt !== null && typeof receipt === 'object' ? (receipt as Json).item_category : undefined;
+  return typeof value === 'number' && value >= 0 && value < categoryNames.length
+    ? (categoryNames[value] ?? 'COLLECTIBLE')
+    : 'COLLECTIBLE';
 }

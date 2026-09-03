@@ -28,7 +28,7 @@ export function SellPositionDialog({
   const [inputError, setInputError] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
 
-  const currency = loan?.principal.currency ?? 'USD';
+  const currency = loan?.principal.currency ?? 'USDC';
 
   const list = useMutation({
     /* Listing sells the note of a specific loan; the api finds the note from the

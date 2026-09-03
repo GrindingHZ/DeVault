@@ -140,7 +140,7 @@ function PortfolioBody(): ReactElement {
     positions: ofSide,
     side,
   });
-  const currency = totals.currency ?? 'USD';
+  const currency = totals.currency ?? 'USDC';
   const amount = (minorUnits: bigint): string =>
     formatMoney({ minorUnits: minorUnits.toString(), currency });
 

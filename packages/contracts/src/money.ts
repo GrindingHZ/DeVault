@@ -4,7 +4,9 @@ import { z } from 'zod';
    safely (docs/03-ledger-and-money.md). */
 export const moneySchema = z.object({
   minorUnits: z.string().regex(/^-?\d+$/),
-  currency: z.string().length(3),
+  /* Three letters for a fiat code, four for the settlement coin's ticker: the
+     chain build settles in USDC and names it so. */
+  currency: z.string().min(3).max(4),
 });
 
 export type MoneyDto = z.infer<typeof moneySchema>;

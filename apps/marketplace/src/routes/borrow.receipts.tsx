@@ -226,7 +226,7 @@ function Holdings(): ReactElement {
     );
   }
 
-  const currency = receipts[0]?.appraisedValue.currency ?? 'USD';
+  const currency = receipts[0]?.appraisedValue.currency ?? 'USDC';
   /* Three buckets that add up to the appraisal. An item on the market is not
      free to borrow against, it is already asking, so it gets its own figure
      rather than padding the free one. */

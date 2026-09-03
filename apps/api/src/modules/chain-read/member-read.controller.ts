@@ -2,7 +2,6 @@ import { Controller, Get, NotFoundException } from '@nestjs/common';
 import type {
   MarketTapeResponse,
   MyBidsResponse,
-  MyNoteSalesResponse,
   ReceiptListResponse,
   RedemptionRequestListResponse,
 } from '@depawn/contracts';
@@ -39,11 +38,6 @@ export class MemberReadController {
     } catch (error) {
       throw this.mapped(error);
     }
-  }
-
-  @Get('me/note-sales')
-  noteSales(): MyNoteSalesResponse {
-    return { items: [], asOf: new Date().toISOString() };
   }
 
   @Get('me/bids')

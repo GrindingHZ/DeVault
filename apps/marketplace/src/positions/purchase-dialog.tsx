@@ -1,4 +1,4 @@
-import { messageForError, purchaseNoteSale } from '@depawn/contracts';
+import { buyPositionAction, messageForError } from '@depawn/contracts';
 import type { NoteSaleSummary } from '@depawn/contracts';
 import { Button, Dialog, formatInstant, formatMoney } from '@depawn/ui';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -6,6 +6,7 @@ import { useState } from 'react';
 import type { ReactElement } from 'react';
 import { marketKeys } from '../market-keys';
 import { useFeedback } from '../market-shell';
+import { useSponsoredWrite } from '../wallet/use-sponsored-write';
 import { walletKeys } from '../wallet-keys';
 
 export interface PurchaseDialogProps {
@@ -19,15 +20,24 @@ export interface PurchaseDialogProps {
 export function PurchaseDialog({ sale, onClose }: PurchaseDialogProps): ReactElement | null {
   const queryClient = useQueryClient();
   const feedback = useFeedback();
-  /* Rotated on success so a retry after a network fault replays and a second
-     deliberate purchase does not (docs/05-frontend.md). */
-  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
+  const sign = useSponsoredWrite();
   const [failure, setFailure] = useState<string | null>(null);
 
   const purchase = useMutation({
-    mutationFn: (noteSaleId: string) => purchaseNoteSale(noteSaleId, { idempotencyKey }),
+    /* A fixed-price trade: the buyer pays exactly the ask, which the api splits
+       from their coin. */
+    mutationFn: (noteSaleId: string) => {
+      if (sale === null) {
+        return Promise.reject(new Error('No sale to buy.'));
+      }
+      return sign(() =>
+        buyPositionAction({
+          listingObjectId: noteSaleId,
+          askBaseUnits: (BigInt(sale.askPrice.minorUnits) * 10_000n).toString(),
+        }),
+      );
+    },
     onSuccess: async () => {
-      setIdempotencyKey(crypto.randomUUID());
       setFailure(null);
       await queryClient.invalidateQueries({ queryKey: marketKeys.noteSalesBrowse });
       await queryClient.invalidateQueries({ queryKey: marketKeys.myNoteSales });

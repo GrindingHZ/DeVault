@@ -12,6 +12,8 @@ import { MarketReadController } from './market-read.controller';
 import { MarketReadService } from './market-read.service';
 import { MemberReadController } from './member-read.controller';
 import { MemberReadService } from './member-read.service';
+import { NoteSalesReadController } from './note-sales-read.controller';
+import { NoteSalesReadService } from './note-sales-read.service';
 import { OffersReadController } from './offers-read.controller';
 import { OffersReadService } from './offers-read.service';
 import { PayoffReadController } from './payoff-read.controller';
@@ -35,6 +37,7 @@ import { WalletReadService } from './wallet-read.service';
     OffersReadController,
     MarketReadController,
     MemberReadController,
+    NoteSalesReadController,
     PayoffReadController,
   ],
   providers: [
@@ -45,6 +48,7 @@ import { WalletReadService } from './wallet-read.service';
     OffersReadService,
     MarketReadService,
     MemberReadService,
+    NoteSalesReadService,
     {
       provide: WALLET_READ_CLIENT,
       useFactory: () => createReadOnlyChainClient(readNetworkEndpoints()),

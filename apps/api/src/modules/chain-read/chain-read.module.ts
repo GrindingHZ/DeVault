@@ -17,6 +17,7 @@ import { NoteSalesReadService } from './note-sales-read.service';
 import { OffersReadController } from './offers-read.controller';
 import { OffersReadService } from './offers-read.service';
 import { PayoffReadController } from './payoff-read.controller';
+import { TapeReadService } from './tape-read.service';
 import { ReleaseReadController } from './release-read.controller';
 import { ReleaseReadService } from './release-read.service';
 import { WalletReadController } from './wallet-read.controller';
@@ -49,6 +50,7 @@ import { WalletReadService } from './wallet-read.service';
     MarketReadService,
     MemberReadService,
     NoteSalesReadService,
+    TapeReadService,
     {
       provide: WALLET_READ_CLIENT,
       useFactory: () => createReadOnlyChainClient(readNetworkEndpoints()),

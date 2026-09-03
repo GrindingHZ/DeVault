@@ -10,6 +10,7 @@ import { WalletNotLinked } from '../chain/wallet-not-linked.error';
 import { CurrentAccount } from '../shared/http/current-account.decorator';
 import { DomainErrorHttpException } from '../shared/http/domain-error-http.exception';
 import { MemberReadService } from './member-read.service';
+import { TapeReadService } from './tape-read.service';
 import { DeploymentNotFound } from './wallet-read.service';
 
 /* The rest of the member's chain reads in the web2 shapes. Receipts and
@@ -18,7 +19,10 @@ import { DeploymentNotFound } from './wallet-read.service';
    not wired, so those answer empty rather than erroring the screens that ask. */
 @Controller()
 export class MemberReadController {
-  constructor(private readonly member: MemberReadService) {}
+  constructor(
+    private readonly member: MemberReadService,
+    private readonly tapeReader: TapeReadService,
+  ) {}
 
   @Get('me/receipts')
   async receipts(@CurrentAccount() account: Account): Promise<ReceiptListResponse> {
@@ -46,8 +50,12 @@ export class MemberReadController {
   }
 
   @Get('market/tape')
-  tape(): MarketTapeResponse {
-    return { events: [] };
+  async tape(): Promise<MarketTapeResponse> {
+    try {
+      return { events: await this.tapeReader.read(Date.now(), 20) };
+    } catch (error) {
+      throw this.mapped(error);
+    }
   }
 
   private addressOf(account: Account): string {

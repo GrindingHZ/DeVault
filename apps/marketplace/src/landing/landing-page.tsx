@@ -9,8 +9,8 @@ import { SignInDialog } from './landing-sign-in';
 
 export interface LandingPageProps {
   /* `/login` renders this page with the dialog already open, so an old link,
-     a bookmark or a redirect still lands somewhere that asks for a password
-     rather than on a route that no longer exists. */
+     a bookmark or a redirect still lands somewhere that asks you to connect a
+     wallet rather than on a route that no longer exists. */
   readonly opensSignIn?: boolean;
 }
 

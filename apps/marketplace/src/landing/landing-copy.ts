@@ -73,5 +73,5 @@ export const footer = {
 
 export const signIn = {
   title: 'Sign in',
-  lede: 'Borrowers and lenders use the same account.',
+  lede: 'Borrowers and lenders use one Sui wallet. Connect yours to continue.',
 } as const;

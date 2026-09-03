@@ -98,6 +98,13 @@ export class ChainActionService {
     return this.transactions.redeem(member, { receiptObjectId });
   }
 
+  /* Take an open listing off the market. The contract unwraps the receipt back
+     to the borrower and refuses once an offer has been accepted, so a listing
+     that has become a loan cannot be cancelled here; it is settled by repaying. */
+  cancelPledge(member: string, action: PledgeAction): Promise<SponsoredTransaction> {
+    return this.transactions.cancelPledge(member, { pledgeObjectId: action.pledgeId });
+  }
+
   async listPosition(member: string, action: ListPositionAction): Promise<SponsoredTransaction> {
     const lenderNoteObjectId = await this.resolver.lenderNoteForPledge(member, action.pledgeId);
     return this.transactions.listPosition(member, {

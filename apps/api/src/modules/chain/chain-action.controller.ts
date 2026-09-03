@@ -131,4 +131,12 @@ export class ChainActionController {
   ): Promise<SponsoredTransactionResponse> {
     return this.actions.reclaimHold(walletOf(account), body);
   }
+
+  @Post('cancel-pledge')
+  cancelPledge(
+    @CurrentAccount() account: Account,
+    @Body(new ZodValidationPipe(pledgeActionSchema)) body: PledgeAction,
+  ): Promise<SponsoredTransactionResponse> {
+    return this.actions.cancelPledge(walletOf(account), body);
+  }
 }

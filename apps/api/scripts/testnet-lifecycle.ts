@@ -7,7 +7,6 @@ import { loadChainConfiguration } from '../src/config/chain-configuration';
 import { loadConfiguration } from '../src/config/configuration';
 import type { ChainExecution } from '../src/infrastructure/chain/chain-execution';
 import { createChainClient } from '../src/infrastructure/chain/chain-client';
-import type { ChainDeployment } from '../src/infrastructure/chain/chain-deployment';
 import { readDeployment } from '../src/infrastructure/chain/chain-deployment.registry';
 import { executionOf, failureOf } from '../src/infrastructure/chain/chain-result';
 import { GrpcSponsoredTransactionGateway } from '../src/infrastructure/chain/grpc-sponsored-transaction';

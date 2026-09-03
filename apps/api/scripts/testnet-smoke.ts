@@ -1,7 +1,6 @@
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { Transaction } from '@mysten/sui/transactions';
 import { PrismaClient } from '@prisma/client';
-import path from 'node:path';
 import { loadChainConfiguration } from '../src/config/chain-configuration';
 import { loadConfiguration } from '../src/config/configuration';
 import { createChainClient } from '../src/infrastructure/chain/chain-client';

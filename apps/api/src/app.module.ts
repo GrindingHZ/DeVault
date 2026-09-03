@@ -7,14 +7,11 @@ import { ChainModule } from './infrastructure/chain/chain.module';
 import { ChainReadModule } from './modules/chain-read/chain-read.module';
 import { ChainTransactionModule } from './modules/chain/chain-transaction.module';
 import { ClockModule } from './infrastructure/clock/clock.module';
-import { CustodyModule } from './infrastructure/custody/custody.module';
 import { ProtocolParametersModule } from './infrastructure/parameters/protocol-parameters.module';
 import { PlatformServicesModule } from './infrastructure/platform-services.module';
 import { PersistenceModule } from './infrastructure/persistence/persistence.module';
-import { SettlementModule } from './infrastructure/settlement/settlement.module';
 import { SystemStateModule } from './infrastructure/system-state/system-state.module';
 import { AccountsModule } from './modules/accounts/accounts.module';
-import { CustodyApiModule } from './modules/custody/custody-api.module';
 import { HealthModule } from './modules/health/health.module';
 import { SharedHttpModule } from './modules/shared/shared-http.module';
 import { TestSupportModule } from './modules/test-support/test-support.module';
@@ -42,14 +39,11 @@ export class AppModule implements NestModule {
       imports: [
         ClockModule,
         PersistenceModule,
-        SettlementModule,
         SystemStateModule,
-        CustodyModule,
         PlatformServicesModule,
         ProtocolParametersModule,
         SharedHttpModule,
         AccountsModule,
-        CustodyApiModule,
         HealthModule,
         ChainReadModule,
         ...testOnlyModules,

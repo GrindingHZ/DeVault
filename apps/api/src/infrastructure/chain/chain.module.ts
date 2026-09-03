@@ -1,12 +1,10 @@
 import { Global, Module } from '@nestjs/common';
 import { loadChainConfiguration } from '../../config/chain-configuration';
 import type { ChainConfiguration } from '../../config/chain-configuration';
-import { SuiCustodyAdapter } from '../custody/sui-custody.adapter';
 import { SuiDomainEventPublisher } from '../events/sui-domain-event-publisher';
 import { SuiProtocolParametersAdapter } from '../parameters/sui-protocol-parameters.adapter';
 import { SuiSystemStateAdapter } from '../system-state/sui-system-state.adapter';
 import { PersistenceModule } from '../persistence/persistence.module';
-import { SuiSettlementAdapter } from '../settlement/sui-settlement.adapter';
 import { ACCOUNT_REPOSITORY } from '../../domain/accounts/account-repository';
 import { PrismaAccountRepository } from '../persistence/repositories/prisma-account.repository';
 import { AccountAddressDirectory } from './account-address.directory';
@@ -50,8 +48,6 @@ import { WalletDirectory } from './wallet.directory';
     AccountAddressDirectory,
     WalletDirectory,
     SuiUnitOfWork,
-    SuiSettlementAdapter,
-    SuiCustodyAdapter,
     SuiSystemStateAdapter,
     SuiProtocolParametersAdapter,
     SuiDomainEventPublisher,
@@ -67,8 +63,6 @@ import { WalletDirectory } from './wallet.directory';
     AccountAddressDirectory,
     WalletDirectory,
     SuiUnitOfWork,
-    SuiSettlementAdapter,
-    SuiCustodyAdapter,
     SuiSystemStateAdapter,
     SuiProtocolParametersAdapter,
     SuiDomainEventPublisher,

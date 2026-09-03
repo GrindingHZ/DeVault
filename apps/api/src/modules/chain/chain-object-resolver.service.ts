@@ -34,6 +34,20 @@ function balanceOf(json: Json | null): bigint {
   return 0n;
 }
 
+function readU64(value: unknown): bigint {
+  if (typeof value === 'string' && /^\d+$/.test(value)) {
+    return BigInt(value);
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return BigInt(Math.trunc(value));
+  }
+  return 0n;
+}
+
+/* The receipt stores its category as the u8 code custody.move issued it with,
+   in the order the code assigns (BULLION 0 through ART 4). */
+const itemCategoryNames = ['BULLION', 'WATCH', 'JEWELLERY', 'COLLECTIBLE', 'ART'] as const;
+
 /* Resolves the on-chain object ids a build call needs from what the member can
    name. The frontend can no longer read the chain itself, so the ids it once
    passed are looked up here over gRPC: the settlement coin that funds a payment,
@@ -105,6 +119,25 @@ export class ChainObjectResolver {
     const entry = entryOf(objects.objects[0]);
     const status = Number(entry?.json?.status ?? 0);
     return { matched: status !== 0, acceptedHoldKey: decodeBytes(entry?.json?.accepted_hold_key) };
+  }
+
+  /* The appraised value and category of the item a pledge wraps, read from the
+     receipt nested inside it. The offer build uses this to hold an offer to the
+     item's lending ceiling; a pledge whose receipt cannot be read answers a zero
+     appraisal, which the caller treats as no ceiling rather than as a refusal. */
+  async pledgeAppraisal(
+    pledgeId: string,
+  ): Promise<{ appraisedValueBaseUnits: bigint; category: string }> {
+    const objects = await this.client.core.getObjects({ objectIds: [pledgeId], include: { json: true } });
+    const entry = entryOf(objects.objects[0]);
+    const receipt = entry?.json?.receipt;
+    const receiptJson = receipt !== null && typeof receipt === 'object' ? (receipt as Json) : null;
+    const categoryCode = Number(receiptJson?.item_category ?? -1);
+    const category =
+      categoryCode >= 0 && categoryCode < itemCategoryNames.length
+        ? itemCategoryNames[categoryCode] ?? ''
+        : '';
+    return { appraisedValueBaseUnits: readU64(receiptJson?.appraised_value), category };
   }
 
   async receiptForKey(owner: string, receiptKey: string): Promise<string> {

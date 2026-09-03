@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { maxLendBaseUnits } from '../../config/loan-to-value';
 import type {
   AcceptOfferAction,
   BuyPositionAction,
@@ -35,7 +36,18 @@ export class ChainActionService {
   }
 
   async makeOffer(member: string, action: MakeOfferAction): Promise<SponsoredTransaction> {
-    const coinObjectId = await this.resolver.coinForAmount(member, BigInt(action.amountBaseUnits));
+    const amountBaseUnits = BigInt(action.amountBaseUnits);
+    /* Rule M5: an offer may not lend above the item's ceiling, its appraised
+       value scaled by the category's loan-to-value. The contract does not know
+       the appraisal in base units, so the ceiling is held here, at the last
+       point before the money is committed. A pledge whose appraisal cannot be
+       read answers zero, which is treated as no ceiling rather than a refusal. */
+    const appraisal = await this.resolver.pledgeAppraisal(action.pledgeId);
+    const ceiling = maxLendBaseUnits(appraisal.appraisedValueBaseUnits, appraisal.category);
+    if (ceiling > 0n && amountBaseUnits > ceiling) {
+      throw new BadRequestException('This offer is above the lending ceiling for this item.');
+    }
+    const coinObjectId = await this.resolver.coinForAmount(member, amountBaseUnits);
     return this.transactions.makeOffer(member, {
       pledgeObjectId: action.pledgeId,
       holdKey: randomUUID(),

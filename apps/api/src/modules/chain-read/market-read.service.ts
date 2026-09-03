@@ -5,6 +5,7 @@ import type {
   MyListingResponse,
   RankedOfferResponse,
 } from '@depawn/contracts';
+import { loanToValueBasisPointsFor, maxLendBaseUnits } from '../../config/loan-to-value';
 import { ReceiptMetadataStore } from '../receipt-metadata/receipt-metadata.store';
 import { ListingsReadService } from './listings-read.service';
 import type { OpenListing } from './listings-figures';
@@ -13,11 +14,11 @@ import { toMoneyDto } from './chain-read-shapes';
 /* Self-custody has no requested principal, term, or expiry on an open listing:
    a borrower opens a pledge at a rate and lenders compete on amount. The web2
    listing dtos carry all three, so they are filled with sensible stand-ins the
-   ui can render: the appraisal is the ceiling a lender could lend to, the term
-   is the platform default, and an open pledge does not lapse. */
+   ui can render: the principal is the lending ceiling (the appraisal scaled by
+   the category's loan-to-value), the term is the platform default, and an open
+   pledge does not lapse. */
 const DEFAULT_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
 const DEFAULT_EXPIRY_MS = 90 * 24 * 60 * 60 * 1000;
-const CATEGORY_MAX_LOAN_TO_VALUE_BPS = 7_500;
 
 const categories = ['BULLION', 'WATCH', 'JEWELLERY', 'COLLECTIBLE', 'ART'] as const;
 type ItemCategory = (typeof categories)[number];
@@ -60,11 +61,15 @@ export class MarketReadService {
         continue;
       }
       const item = await this.itemOf(listing);
+      const category = categoryOf(listing.itemCategory);
       items.push({
         id: listing.pledgeId,
         borrowerAccountId: listing.borrower,
         receiptId: listing.receiptKey === '' ? listing.pledgeId : listing.receiptKey,
-        requestedPrincipal: toMoneyDto(listing.appraisedValueBaseUnits, decimals),
+        requestedPrincipal: toMoneyDto(
+          maxLendBaseUnits(listing.appraisedValueBaseUnits, category),
+          decimals,
+        ),
         maxAnnualPercentageRateBasisPoints: listing.requestedAprBps,
         requestedDurationMs: DEFAULT_DURATION_MS,
         expiresAt: new Date(nowMs + DEFAULT_EXPIRY_MS).toISOString(),
@@ -110,7 +115,10 @@ export class MarketReadService {
     });
     return {
       ...summary,
-      maxPrincipal: toMoneyDto(listing.appraisedValueBaseUnits, decimals),
+      maxPrincipal: toMoneyDto(
+        maxLendBaseUnits(listing.appraisedValueBaseUnits, categoryOf(listing.itemCategory)),
+        decimals,
+      ),
       offerBook,
     };
   }
@@ -122,22 +130,27 @@ export class MarketReadService {
     nowMs: number,
   ): Promise<ListingSummary> {
     const item = await this.itemOf(listing);
+    const category = categoryOf(listing.itemCategory);
+    const loanToValueBasisPoints = loanToValueBasisPointsFor(category);
     return {
       id: listing.pledgeId,
       borrowerAccountId: listing.borrower,
       receiptId: listing.receiptKey === '' ? listing.pledgeId : listing.receiptKey,
-      requestedPrincipal: toMoneyDto(listing.appraisedValueBaseUnits, decimals),
+      requestedPrincipal: toMoneyDto(
+        maxLendBaseUnits(listing.appraisedValueBaseUnits, category),
+        decimals,
+      ),
       maxAnnualPercentageRateBasisPoints: listing.requestedAprBps,
       requestedDurationMs: DEFAULT_DURATION_MS,
       expiresAt: new Date(nowMs + DEFAULT_EXPIRY_MS).toISOString(),
       status: 'ACTIVE',
       appraisedValue: toMoneyDto(listing.appraisedValueBaseUnits, decimals),
-      itemCategory: categoryOf(listing.itemCategory),
+      itemCategory: category,
       itemDescription: item.itemDescription,
       hasPhotograph: item.hasPhotograph,
-      loanToValueBasisPoints: CATEGORY_MAX_LOAN_TO_VALUE_BPS,
+      loanToValueBasisPoints,
       bestOfferRateBasisPoints: null,
-      categoryMaxLoanToValueBasisPoints: CATEGORY_MAX_LOAN_TO_VALUE_BPS,
+      categoryMaxLoanToValueBasisPoints: loanToValueBasisPoints,
     };
   }
 

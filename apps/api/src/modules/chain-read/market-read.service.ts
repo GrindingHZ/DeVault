@@ -118,7 +118,10 @@ export class MarketReadService {
         expiresAt: new Date(nowMs + DEFAULT_EXPIRY_MS).toISOString(),
         createdAt: new Date(nowMs).toISOString(),
         status: 'PENDING',
-        totalCostToBorrower: toMoneyDto(offer.amountBaseUnits + interest, decimals),
+        /* The interest alone, not the whole repayment: the ui labels this the
+           interest and adds the principal itself to show the total repayable,
+           so including the principal here would count it twice. */
+        totalCostToBorrower: toMoneyDto(interest, decimals),
       };
     });
     return {

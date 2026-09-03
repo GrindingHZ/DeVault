@@ -2,6 +2,7 @@ import { AppBoundary, AppShell, ToastRegion, useMutationFeedback } from '@depawn
 import { createContext, useContext } from 'react';
 import type { ReactElement, ReactNode } from 'react';
 import { AccountMenu } from './header/account-menu';
+import { AttentionBell } from './header/attention-bell';
 import { BalanceMenu } from './header/balance-menu';
 import { MarketRail } from './market-rail';
 
@@ -52,6 +53,7 @@ export function MarketShell({
          rail beside the destinations. */
       actions={
         <>
+          <AttentionBell />
           <BalanceMenu />
           <AccountMenu />
         </>

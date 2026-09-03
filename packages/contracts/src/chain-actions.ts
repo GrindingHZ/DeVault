@@ -128,6 +128,7 @@ export const listingsResponseSchema = z.object({
       requestedAprBps: z.number().int().nonnegative(),
       appraisedValueBaseUnits: baseUnits,
       itemCategory: z.string(),
+      receiptKey: z.string(),
     }),
   ),
 });

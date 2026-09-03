@@ -1,5 +1,6 @@
 import {
   BrowseIcon,
+  ExchangeIcon,
   NavRail,
   NavRailItem,
   PortfolioIcon,
@@ -26,6 +27,7 @@ const destinations: readonly {
   readonly icon: ReactNode;
 }[] = [
   { to: '/listings', label: 'Browse', icon: <BrowseIcon /> },
+  { to: '/secondary-market', label: 'Secondary Market', icon: <ExchangeIcon /> },
   { to: '/portfolio', label: 'Portfolio', icon: <PortfolioIcon /> },
   { to: '/borrow/receipts', label: 'My items', icon: <ReceiptIcon /> },
   { to: '/wallet', label: 'Wallet', icon: <WalletIcon /> },

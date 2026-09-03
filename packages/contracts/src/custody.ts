@@ -105,6 +105,12 @@ export const receiptResponseSchema = z.object({
   insurancePolicyReference: z.string(),
   status: receiptStatusSchema,
   encumberedByLoanId: z.string().nullable(),
+  /* The lending ceiling for this item's category, in basis points of its
+     appraised value. The borrower cannot ask for more than this against it, and
+     the list screen shows and caps to it. The authority is the protocol
+     parameters the contract enforces at open; this carries the real number so
+     the screen need not hold its own copy. */
+  categoryMaxLoanToValueBasisPoints: z.number().int().nonnegative(),
 });
 
 export type ReceiptResponse = z.infer<typeof receiptResponseSchema>;

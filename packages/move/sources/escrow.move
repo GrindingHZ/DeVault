@@ -1,258 +1,130 @@
-/// The settlement port as objects. A `Wallet` is an account's available
-/// balance, a `FundsHold` is money committed to an offer or a bid, and a
-/// `Payout` is a hold being distributed: it has no abilities, so a transaction
-/// that opens one and does not empty and finish it does not compile. That is
-/// the ledger's balance invariant with the compiler as the trigger
-/// (docs/superpowers/specs/2026-08-25-web3-migration-design.md).
+/// An offer is the lender's own USDC, locked in a shared hold against one
+/// pledge until it wins, loses, or expires. The lender makes it with their
+/// own signature, and it can only ever go two places: into the loan the
+/// borrower accepts, or back to the lender. No capability appears here, and a
+/// pause blocks a new offer but never a refund, so the exit the lender
+/// controls can never be locked
+/// (docs/superpowers/specs/2026-08-26-self-custody-loan-book-design.md).
 module depawn::escrow;
 
-use depawn::config::{Config, OperatorCap};
-use sui::balance::{Self, Balance};
+use depawn::config::Config;
+use sui::balance::Balance;
+use sui::clock::Clock;
 use sui::coin::{Self, Coin};
 use sui::event;
 
-const EInsufficientFunds: u64 = 0;
-const EWrongOwner: u64 = 1;
-const EPayoutNotEmpty: u64 = 2;
-const EZeroAmount: u64 = 3;
-const EEmptyKey: u64 = 4;
+const EEmptyKey: u64 = 0;
+const EZeroAmount: u64 = 1;
+const EOfferTooShort: u64 = 2;
+const ENotExpired: u64 = 3;
+const EStillOpen: u64 = 4;
+const EWon: u64 = 5;
 
-/// The available balance of one account in one coin. Shared, so the operator
-/// can move it under the api's authorisation; `withdraw` can only ever send
-/// its funds to `owner`, which is the exit right the object exists to keep.
-public struct Wallet<phantom T> has key {
-    id: UID,
-    owner: address,
-    funds: Balance<T>,
-}
-
-/// Money committed to an offer or a bid, out of the wallet until it wins,
-/// loses, or is pulled back. `hold_key` is the api's funds hold id. Every
-/// amount in this module is in the coin's own base units, as the deployment
-/// records them, and the api's codec scales its minor units to match.
+/// `hold_key` is the api's funds hold id, `pledge_id` the pledge this offer
+/// funds, `expires_at` the instant past which it can only be refunded.
 public struct FundsHold<phantom T> has key {
     id: UID,
     hold_key: vector<u8>,
     owner: address,
     funds: Balance<T>,
-    reference: vector<u8>,
+    pledge_id: ID,
+    expires_at: u64,
 }
 
-/// A hold being distributed. No abilities: it must be paid out and finished
-/// in the transaction that began it.
-public struct Payout<phantom T> {
-    hold_key: vector<u8>,
-    funds: Balance<T>,
-    reason: u8,
-}
-
-public struct WalletOpened has copy, drop { wallet_id: ID, owner: address }
-
-public struct FundsDeposited has copy, drop {
-    wallet_id: ID,
-    owner: address,
-    amount: u64,
-    reference: vector<u8>,
-}
-
-public struct FundsWithdrawn has copy, drop {
-    wallet_id: ID,
-    owner: address,
-    amount: u64,
-    reference: vector<u8>,
-}
-
-public struct FundsHeld has copy, drop {
+public struct OfferMade has copy, drop {
     hold_id: ID,
     hold_key: vector<u8>,
     owner: address,
     amount: u64,
-    reference: vector<u8>,
+    pledge_id: ID,
 }
 
-public struct HoldRefunded has copy, drop {
+public struct OfferAccepted has copy, drop {
+    hold_id: ID,
+    hold_key: vector<u8>,
+    owner: address,
+    amount: u64,
+    pledge_id: ID,
+}
+
+public struct OfferRefunded has copy, drop {
     hold_id: ID,
     hold_key: vector<u8>,
     owner: address,
     amount: u64,
 }
 
-public struct HoldReleased has copy, drop {
-    hold_id: ID,
-    hold_key: vector<u8>,
-    owner: address,
-    amount: u64,
-    reason: u8,
-}
-
-public struct Paid has copy, drop {
-    hold_key: vector<u8>,
-    recipient: address,
-    amount: u64,
-    reason: u8,
-}
-
-public struct FundsTransferred has copy, drop {
-    from: address,
-    to: address,
-    amount: u64,
-    reference: vector<u8>,
-    reason: u8,
-}
-
-public fun open_wallet<T>(_: &OperatorCap, owner: address, ctx: &mut TxContext) {
-    share_wallet(Wallet<T> { id: object::new(ctx), owner, funds: balance::zero() });
-}
-
-/// Open to anyone: paying money into somebody's wallet harms nobody, and it
-/// is how a member's own wallet puts USDC into the book.
-public fun deposit<T>(wallet: &mut Wallet<T>, payment: Coin<T>, reference: vector<u8>) {
-    let amount = payment.value();
-    assert!(amount > 0, EZeroAmount);
-    wallet.funds.join(payment.into_balance());
-    event::emit(FundsDeposited { wallet_id: object::id(wallet), owner: wallet.owner, amount, reference });
-}
-
-public fun deposit_new<T>(
-    _: &OperatorCap,
-    owner: address,
-    payment: Coin<T>,
-    reference: vector<u8>,
-    ctx: &mut TxContext,
-) {
-    let mut wallet = Wallet<T> { id: object::new(ctx), owner, funds: balance::zero() };
-    event::emit(WalletOpened { wallet_id: object::id(&wallet), owner });
-    deposit(&mut wallet, payment, reference);
-    transfer::share_object(wallet);
-}
-
-/// The one way funds leave the book, and they can only go to the owner.
-public fun withdraw<T>(
-    _: &OperatorCap,
-    wallet: &mut Wallet<T>,
-    amount: u64,
-    reference: vector<u8>,
-    ctx: &mut TxContext,
-) {
-    let funds = take(wallet, amount);
-    event::emit(FundsWithdrawn { wallet_id: object::id(wallet), owner: wallet.owner, amount, reference });
-    transfer::public_transfer(coin::from_balance(funds, ctx), wallet.owner);
-}
-
-/// The only entrance a pause closes (docs/10-flows.md flow 11).
-public fun hold<T>(
-    _: &OperatorCap,
+/// The one entrance a pause closes. The lender's coin becomes the hold's
+/// balance; the expiry must clear the minimum offer lifetime so a lender
+/// cannot bait a borrower and yank the money before the minimum.
+public fun make_offer<T>(
     config: &Config,
-    wallet: &mut Wallet<T>,
+    pledge_id: ID,
     hold_key: vector<u8>,
-    amount: u64,
-    reference: vector<u8>,
+    payment: Coin<T>,
+    expires_at: u64,
+    clock: &Clock,
     ctx: &mut TxContext,
 ) {
     config.assert_not_paused();
     assert!(!hold_key.is_empty(), EEmptyKey);
-    let funds = take(wallet, amount);
+    let amount = payment.value();
+    assert!(amount > 0, EZeroAmount);
+    let minimum = config.parameters().minimum_offer_lifetime_ms();
+    assert!(expires_at >= clock.timestamp_ms() + minimum, EOfferTooShort);
     let hold = FundsHold<T> {
         id: object::new(ctx),
         hold_key,
-        owner: wallet.owner,
-        funds,
-        reference,
+        owner: ctx.sender(),
+        funds: payment.into_balance(),
+        pledge_id,
+        expires_at,
     };
-    event::emit(FundsHeld {
+    event::emit(OfferMade {
         hold_id: object::id(&hold),
         hold_key: hold.hold_key,
         owner: hold.owner,
         amount,
-        reference: hold.reference,
+        pledge_id,
     });
     transfer::share_object(hold);
 }
 
-/// Pull, not push (rule M8): the owner asks, the money comes home, the hold
-/// is gone. Only the owner's own wallet can receive it.
-public fun refund_hold<T>(_: &OperatorCap, hold: FundsHold<T>, wallet: &mut Wallet<T>) {
-    assert!(wallet.owner == hold.owner, EWrongOwner);
-    let (hold_id, hold_key, owner, funds) = open(hold);
-    let amount = funds.value();
-    wallet.funds.join(funds);
-    event::emit(HoldRefunded { hold_id, hold_key, owner, amount });
+/// Pull, not push: anyone may trigger it once the offer has expired, and the
+/// money can only ever go home to its owner.
+public fun refund_expired<T>(hold: FundsHold<T>, clock: &Clock, ctx: &mut TxContext) {
+    assert!(clock.timestamp_ms() >= hold.expires_at, ENotExpired);
+    refund(hold, ctx);
 }
 
-/// Starts a distribution. The returned payout has to be emptied with `pay`
-/// and consumed with `finish_release` in this same transaction.
-public fun begin_release<T>(_: &OperatorCap, hold: FundsHold<T>, reason: u8): Payout<T> {
-    let (hold_id, hold_key, owner, funds) = open(hold);
-    event::emit(HoldReleased { hold_id, hold_key, owner, amount: funds.value(), reason });
-    Payout { hold_key, funds, reason }
+/// A loser reclaims the moment the pledge matches another hold. The caller
+/// reads the pledge's status and accepted key and passes them, so this module
+/// stays free of a dependency on `pledge`.
+public fun refund_losing<T>(
+    hold: FundsHold<T>,
+    pledge_matched: bool,
+    accepted_hold_key: vector<u8>,
+    ctx: &mut TxContext,
+) {
+    assert!(pledge_matched, EStillOpen);
+    assert!(accepted_hold_key != hold.hold_key, EWon);
+    refund(hold, ctx);
 }
 
-/// A zero share is not a payment, so the caller drops the waterfall's empty
-/// lines before paying; the api's close use case already does (Q-019).
-public fun pay<T>(payout: &mut Payout<T>, wallet: &mut Wallet<T>, amount: u64) {
-    assert!(amount > 0, EZeroAmount);
-    assert!(payout.funds.value() >= amount, EInsufficientFunds);
-    wallet.funds.join(payout.funds.split(amount));
-    event::emit(Paid {
-        hold_key: payout.hold_key,
-        recipient: wallet.owner,
-        amount,
-        reason: payout.reason,
+/// Consumes the winning hold into its principal, for the pledge module to
+/// disburse. Announces the acceptance so the indexer can mark the offer won.
+public(package) fun into_principal<T>(hold: FundsHold<T>): (Balance<T>, vector<u8>, address) {
+    let FundsHold { id, hold_key, owner, funds, pledge_id, expires_at: _ } = hold;
+    event::emit(OfferAccepted {
+        hold_id: id.to_inner(),
+        hold_key,
+        owner,
+        amount: funds.value(),
+        pledge_id,
     });
+    id.delete();
+    (funds, hold_key, owner)
 }
-
-/// A recipient with no wallet yet gets one holding their share.
-public fun pay_new<T>(
-    _: &OperatorCap,
-    payout: &mut Payout<T>,
-    owner: address,
-    amount: u64,
-    ctx: &mut TxContext,
-) {
-    let mut wallet = Wallet<T> { id: object::new(ctx), owner, funds: balance::zero() };
-    event::emit(WalletOpened { wallet_id: object::id(&wallet), owner });
-    pay(payout, &mut wallet, amount);
-    transfer::share_object(wallet);
-}
-
-/// Aborts unless every unit of the hold went somewhere.
-public fun finish_release<T>(payout: Payout<T>) {
-    let Payout { hold_key: _, funds, reason: _ } = payout;
-    assert!(funds.value() == 0, EPayoutNotEmpty);
-    funds.destroy_zero();
-}
-
-public fun transfer<T>(
-    _: &OperatorCap,
-    from: &mut Wallet<T>,
-    to: &mut Wallet<T>,
-    amount: u64,
-    reference: vector<u8>,
-    reason: u8,
-) {
-    let funds = take(from, amount);
-    to.funds.join(funds);
-    event::emit(FundsTransferred { from: from.owner, to: to.owner, amount, reference, reason });
-}
-
-public fun transfer_new<T>(
-    _: &OperatorCap,
-    from: &mut Wallet<T>,
-    to_owner: address,
-    amount: u64,
-    reference: vector<u8>,
-    reason: u8,
-    ctx: &mut TxContext,
-) {
-    let funds = take(from, amount);
-    let to = Wallet<T> { id: object::new(ctx), owner: to_owner, funds };
-    event::emit(FundsTransferred { from: from.owner, to: to_owner, amount, reference, reason });
-    share_wallet(to);
-}
-
-public fun owner<T>(wallet: &Wallet<T>): address { wallet.owner }
-
-public fun balance<T>(wallet: &Wallet<T>): u64 { wallet.funds.value() }
 
 public fun hold_key<T>(hold: &FundsHold<T>): &vector<u8> { &hold.hold_key }
 
@@ -260,27 +132,19 @@ public fun hold_owner<T>(hold: &FundsHold<T>): address { hold.owner }
 
 public fun hold_amount<T>(hold: &FundsHold<T>): u64 { hold.funds.value() }
 
-public fun hold_reference<T>(hold: &FundsHold<T>): &vector<u8> { &hold.reference }
+public fun hold_pledge_id<T>(hold: &FundsHold<T>): ID { hold.pledge_id }
 
-public fun payout_remaining<T>(payout: &Payout<T>): u64 { payout.funds.value() }
+public fun hold_expires_at<T>(hold: &FundsHold<T>): u64 { hold.expires_at }
 
-#[test_only]
-public fun opened_wallet_id(event: &WalletOpened): ID { event.wallet_id }
-
-fun share_wallet<T>(wallet: Wallet<T>) {
-    event::emit(WalletOpened { wallet_id: object::id(&wallet), owner: wallet.owner });
-    transfer::share_object(wallet);
-}
-
-fun take<T>(wallet: &mut Wallet<T>, amount: u64): Balance<T> {
-    assert!(amount > 0, EZeroAmount);
-    assert!(wallet.funds.value() >= amount, EInsufficientFunds);
-    wallet.funds.split(amount)
-}
-
-fun open<T>(hold: FundsHold<T>): (ID, vector<u8>, address, Balance<T>) {
-    let FundsHold { id, hold_key, owner, funds, reference: _ } = hold;
-    let hold_id = id.to_inner();
+fun refund<T>(hold: FundsHold<T>, ctx: &mut TxContext) {
+    let FundsHold { id, hold_key, owner, funds, pledge_id: _, expires_at: _ } = hold;
+    let amount = funds.value();
+    event::emit(OfferRefunded {
+        hold_id: id.to_inner(),
+        hold_key,
+        owner,
+        amount,
+    });
     id.delete();
-    (hold_id, hold_key, owner, funds)
+    transfer::public_transfer(coin::from_balance(funds, ctx), owner);
 }

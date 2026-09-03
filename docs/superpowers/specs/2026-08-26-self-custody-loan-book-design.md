@@ -118,10 +118,16 @@ Pledge<phantom T> has key            // shared
 |---|---|---|---|
 | `open` | borrower | receipt owned by sender | wraps the receipt, shares an OPEN Pledge, `ListingOpened` |
 | `cancel` | borrower | OPEN, sender is borrower | unwraps the receipt back to the borrower, CANCELLED, `ListingCancelled` |
-| `accept` | borrower | OPEN, hold matches this Pledge, not expired, within LTV and APR caps | consumes the chosen `FundsHold`, disburses principal to the borrower, mints both notes, sets ACTIVE, `LoanOriginated` |
+| `offer` | lender | OPEN, sender is not the borrower, coin equals the requested principal, rate at or below the asked maximum | locks the lender's USDC in a shared `FundsHold` against this Pledge, `OfferMade` |
+| `refund_losing` | anyone | the hold names this Pledge, Pledge not OPEN, the hold is not the accepted one | returns the hold's funds to its owner, `OfferRefunded` |
+| `accept` | borrower | OPEN, sender is borrower, hold matches this Pledge, hold not expired, rate at or below the asked maximum | consumes the chosen `FundsHold`, disburses principal to the borrower, mints both notes, sets ACTIVE, `LoanOriginated` |
 | `repay` | BorrowerNote holder | ACTIVE, now < matures + grace, coin covers amount due | parks the payoff, releases the receipt to the sender, burns the BorrowerNote, REPAID, `LoanRepaid` |
 | `collect` | LenderNote holder | REPAID | withdraws the parked payoff to the sender, burns the LenderNote, CLOSED, `LoanSettled` |
 | `claim_default` | LenderNote holder | ACTIVE, now >= matures + grace | releases the receipt to the sender, burns the LenderNote, DEFAULTED, `CollateralClaimed` |
+
+A Pledge is never deleted. CANCELLED and CLOSED are terminal records rather than a missing object,
+so a hold made before the close can always prove its loss against the status and be refunded at
+once; an object that was gone would leave the hold waiting for its own expiry.
 
 `accept` is the whole origination in one transaction signed once by the borrower: this is "one
 signature starts the loan", the reason the offer is a shared object and not a lender-owned one.
@@ -136,8 +142,8 @@ FundsHold<phantom T> has key         // shared
 
 | Function | Signer | Guard | Effect |
 |---|---|---|---|
-| `make_offer` | lender | not paused, amount > 0, expiry >= now + minimum lifetime | takes the lender's USDC coin, shares a `FundsHold` against the Pledge, `OfferMade` |
-| `refund_losing` | anyone | Pledge not OPEN and this hold is not the accepted one | returns the funds to `owner`, `OfferRefunded` |
+| `make_offer` | package only, through `pledge::offer` | not paused, amount > 0, expiry >= now + minimum lifetime | takes the lender's USDC coin, shares a `FundsHold` against the Pledge, `OfferMade` |
+| `refund_losing` | package only, through `pledge::refund_losing` | Pledge not OPEN and this hold is not the accepted one, both read off the Pledge | returns the funds to `owner`, `OfferRefunded` |
 | `refund_expired` | anyone | now >= expires_at | returns the funds to `owner`, `OfferRefunded` |
 
 Both refunds are pull, not push, and neither is ever blocked by a pause. The exit door the lender
@@ -195,13 +201,14 @@ blocks new offers and blocks nothing else.
    capability. The claim is self-custodial; the physical handover is the one thing that still
    depends on staff, because it is atoms.
 3. **List.** Borrower signs. `pledge::open` wraps the receipt into a shared OPEN Pledge.
-4. **Offer.** Lender signs. `escrow::make_offer` locks the lender's USDC in a shared `FundsHold`
-   against the Pledge, with an expiry.
+4. **Offer.** Lender signs. `pledge::offer` reads the Pledge, refuses one that is not OPEN, and
+   locks the lender's USDC in a shared `FundsHold` against it, with an expiry.
 5. **Cancel.** Borrower signs. `pledge::cancel` returns the receipt; live offers become refundable.
 6. **Accept.** Borrower signs once. `pledge::accept` consumes the chosen hold, sends the principal
    to the borrower minus the origination fee, mints the `LenderNote` to the lender and the
    `BorrowerNote` to the borrower, and turns the Pledge ACTIVE with the receipt still wrapped.
-7. **Losing offers.** Each losing lender, or anyone on their behalf, calls `refund_losing`. No wait
+7. **Losing offers.** Each losing lender, or anyone on their behalf, calls `pledge::refund_losing`
+   with the Pledge. No wait
    and no permission, because the Pledge's matched status is public.
 8. **Repay.** The BorrowerNote holder signs, before the cliff, presenting the note and a USDC coin
    that covers principal plus accrued interest. The payoff parks in the Pledge, the receipt returns

@@ -205,6 +205,50 @@ reads like a bug and is not: the burn is the entitlement proof and the counter v
 verification (flow 6). A receipt reading RELEASED with a request still REQUESTED is therefore
 correct, and the two are merged before anything is shown.
 
+## Pledge and hold (Phase 3, on chain)
+
+The self-custody contract folds Listing, Offer, and Loan into two shared objects: the `Pledge`
+that wraps the receipt from listing to settlement, and one `FundsHold` per offer. Their graphs, as
+coded in `packages/move/sources/pledge.move` and `escrow.move`:
+
+```
+Pledge:  OPEN ──accept──▶ ACTIVE ──repay──▶ REPAID ──collect──▶ CLOSED
+           │                 │
+           └──cancel──▶ CANCELLED      └──claim_default──▶ DEFAULTED
+
+hold:    HELD ──accept (the chosen one)──▶ consumed into the loan
+           ├──refund_losing (Pledge not OPEN, not the accepted key)──▶ REFUNDED
+           └──refund_expired (past expires_at)──▶ REFUNDED
+```
+
+| Event | From, to | Guard | Effects | Signer |
+|---|---|---|---|---|
+| `open` | receipt owned, to OPEN | rate at or under the protocol cap, principal at or under the item's category ceiling | wraps the receipt, `ListingOpened` | borrower |
+| `offer` | hold HELD | Pledge OPEN, sender is not the borrower, coin equals the requested principal, rate at or under the asked maximum | shares a `FundsHold` against this Pledge, `OfferMade` | lender |
+| `cancel` | OPEN to CANCELLED | sender is the borrower | receipt back to the borrower; the Pledge stays as the record, `ListingCancelled` | borrower |
+| `accept` | OPEN to ACTIVE | sender is the borrower, hold names this Pledge, hold not expired | principal minus the fee to the borrower, both notes minted, `LoanOriginated` | borrower |
+| `refund_losing` | hold to REFUNDED | hold names this Pledge, Pledge not OPEN, hold key is not the accepted one | funds to the hold's owner, `OfferRefunded` | anyone |
+| `refund_expired` | hold to REFUNDED | past the hold's expiry | funds to the hold's owner, `OfferRefunded` | anyone |
+| `repay` | ACTIVE to REPAID | borrower note presented, before the grace cliff, coin covers the amount due | payoff parked, receipt to the payer, `LoanRepaid` | borrower note holder |
+| `collect` | REPAID to CLOSED | lender note presented | parked payoff to the sender; the Pledge stays as the record, `LoanSettled` | lender note holder |
+| `claim_default` | ACTIVE to DEFAULTED | lender note presented, past the grace cliff | receipt to the sender, `CollateralClaimed` | lender note holder |
+
+A Pledge is never deleted, and that is the whole reason CANCELLED and CLOSED exist as states. A
+hold can only prove it lost by reading the Pledge it was made against; a Pledge that had been
+deleted would leave the hold with nothing to read and its money waiting for its own expiry. That
+was the bug this section replaced: `make_offer` used to take a bare pledge id and never read the
+object, so an offer against a listing that had just been taken down went through and locked the
+lender's money for a week. `offer` now takes the Pledge itself, and a listing that is not OPEN
+refuses on chain whatever the screen believed.
+
+The api reads the same object before it builds a transaction and refuses with the code the screen
+can explain (`LISTING_NOT_ACTIVE`, `LISTING_ALREADY_MATCHED`, `OFFER_EXPIRED`,
+`CANNOT_OFFER_ON_OWN_LISTING`, `HOLD_NOT_RECLAIMABLE`, `LOAN_NOT_ACTIVE`). The chain refuses the
+same things on its own, and a Move abort that slips between the api's read and the signed
+execution is mapped back to the same code in `chain-abort-codes.ts`, so a screen that fell behind
+hears why either way. Every marketplace write refreshes every chain read afterwards, refused or
+not, which is what takes the stale listing off the screen.
+
 ## What this audit found
 
 Ordered by what it costs.

@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { useMutationFeedback } from './use-mutation-feedback';
 
 describe('useMutationFeedback', () => {
@@ -42,5 +42,22 @@ describe('useMutationFeedback', () => {
     });
     expect(result.current.messages).toHaveLength(1);
     expect(result.current.messages[0]?.text).toBe('Second.');
+  });
+
+  /* A success is read once and then is in the way; a failure has to stay
+     until the person has read what went wrong. */
+  it('lets a success leave on its own and keeps a failure', () => {
+    vi.useFakeTimers();
+    const { result } = renderHook(() => useMutationFeedback());
+    act(() => {
+      result.current.reportSuccess('Done.');
+      result.current.reportFailure('Refused.');
+    });
+    expect(result.current.messages).toHaveLength(2);
+    act(() => {
+      vi.advanceTimersByTime(6_000);
+    });
+    expect(result.current.messages.map((message) => message.tone)).toEqual(['danger']);
+    vi.useRealTimers();
   });
 });

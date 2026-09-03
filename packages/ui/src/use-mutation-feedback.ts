@@ -15,6 +15,10 @@ export interface MutationFeedback {
   readonly dismiss: (id: string) => void;
 }
 
+/* Long enough to read a sentence twice, short enough that the next action's
+   report is not sitting under the last one's. */
+const successLifetimeMs = 6_000;
+
 export function useMutationFeedback(): MutationFeedback {
   const [messages, setMessages] = useState<readonly ToastMessage[]>([]);
 
@@ -30,6 +34,15 @@ export function useMutationFeedback(): MutationFeedback {
     const id = `feedback-${String(nextId.current)}`;
     nextId.current += 1;
     setMessages((current) => [...current, { id, tone, text }]);
+    /* A success is read at a glance and then in the way: three actions in a
+       row left three green bars stacked until each was clicked shut. It
+       leaves on its own. A failure stays until dismissed, because a person
+       has to be able to read what went wrong for as long as that takes. */
+    if (tone === 'success') {
+      window.setTimeout(() => {
+        setMessages((current) => current.filter((message) => message.id !== id));
+      }, successLifetimeMs);
+    }
   }, []);
 
   const reportSuccess = useCallback((text: string) => report('success', text), [report]);

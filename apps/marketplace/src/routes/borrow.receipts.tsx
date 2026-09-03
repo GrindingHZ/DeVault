@@ -436,9 +436,6 @@ function ListReceiptDialog({
           </p>
         )}
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
           <Button type="submit" disabled={listMutation.isPending}>
             List for a loan
           </Button>

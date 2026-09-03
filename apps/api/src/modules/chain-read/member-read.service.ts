@@ -181,6 +181,7 @@ export class MemberReadService {
       status,
       encumberedByLoanId,
       categoryMaxLoanToValueBasisPoints: loanToValueBasisPointsFor(category),
+      chainObjectId: item.objectId,
     };
   }
 

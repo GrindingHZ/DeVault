@@ -11,6 +11,7 @@ import { useSponsoredWrite } from '../wallet/use-sponsored-write';
 import type { ListingDetailResponse, MoneyDto } from '@depawn/contracts';
 import {
   Button,
+  ChainLink,
   Explain,
   ImageCarousel,
   ItemPhotograph,
@@ -188,6 +189,12 @@ function DetailBody({
             {liquidityNoteForCategory(detail.itemCategory) === null
               ? null
               : `. ${liquidityNoteForCategory(detail.itemCategory) ?? ''}`}
+          </p>
+          {/* The listing is a shared pledge object; the id links to the
+              explorer so the reader can see the escrow for themselves. */}
+          <p className="mt-2 flex items-center gap-2 font-body text-xs text-ink-secondary">
+            <span>On chain</span>
+            <ChainLink value={detail.id} kind="object" testId="listing-chain-object" />
           </p>
           {bestRate === null ? null : (
             <div className="mt-3">

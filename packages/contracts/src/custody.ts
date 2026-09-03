@@ -111,6 +111,11 @@ export const receiptResponseSchema = z.object({
      parameters the contract enforces at open; this carries the real number so
      the screen need not hold its own copy. */
   categoryMaxLoanToValueBasisPoints: z.number().int().nonnegative(),
+  /* The object that holds this item on chain: the receipt itself while it is
+     loose in the wallet, the pledge that wraps it while it is listed or on
+     loan. A link to the explorer, so the record is provable, not just shown.
+     Null on a receipt the chain does not know. */
+  chainObjectId: z.string().nullable(),
 });
 
 export type ReceiptResponse = z.infer<typeof receiptResponseSchema>;

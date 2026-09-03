@@ -1,6 +1,7 @@
 import { liquidityNoteForCategory, nameForCategory } from '@depawn/contracts';
 import type { ReceiptResponse, RedemptionRequestResponse } from '@depawn/contracts';
 import {
+  ChainLink,
   DateTime,
   Dialog,
   Explain,
@@ -133,8 +134,27 @@ export function HoldingDetail({
             <Record
               label="Intake record hash"
               value={receipt.intakeRecordHash}
-              short={`${receipt.intakeRecordHash.slice(0, 12)}...`}
+              short={
+                receipt.intakeRecordHash.length > 16
+                  ? `${receipt.intakeRecordHash.slice(0, 12)}...`
+                  : receipt.intakeRecordHash
+              }
             />
+            {/* The proof. The object that holds the item right now, opened on
+                the explorer, so a reader can see custody rather than trust
+                the screen's word for it. */}
+            {receipt.chainObjectId === null ? null : (
+              <div className="min-w-0">
+                <dt className="font-body text-xs text-ink-secondary">On chain</dt>
+                <dd className="mt-0.5">
+                  <ChainLink
+                    value={receipt.chainObjectId}
+                    kind="object"
+                    testId={`chain-object-${receipt.id}`}
+                  />
+                </dd>
+              </div>
+            )}
             {/* What separates this one from another of the same model, so it
                 is shown whole rather than shortened: a borrower checking that
                 the watch coming back is the watch they left needs the digits,

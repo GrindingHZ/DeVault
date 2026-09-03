@@ -5,16 +5,11 @@ import {
   useSignPersonalMessage,
   useWallets,
 } from '@mysten/dapp-kit';
-import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
+import type { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { useMutation } from '@tanstack/react-query';
 import type { UseMutationResult } from '@tanstack/react-query';
 
-/* A wallet whose key lives in the app, used only when VITE_TEST_WALLET is
-   set, so a browser test can sign without driving a real extension
-   (docs/06-testing.md). The seed is fixed so the same test wallet comes back
-   every run. */
-const testWalletEnabled = import.meta.env.VITE_TEST_WALLET === '1';
-const testKeypair = testWalletEnabled ? Ed25519Keypair.deriveKeypairFromSeed('7'.repeat(64)) : null;
+import { testKeypair } from './test-wallet';
 
 async function signInWithKeypair(keypair: Ed25519Keypair): Promise<void> {
   const address = keypair.toSuiAddress();

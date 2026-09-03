@@ -1,6 +1,8 @@
 import { useSignTransaction } from '@mysten/dapp-kit';
+import { fromBase64 } from '@mysten/sui/utils';
 import type { ChainExecutionResponse, SponsoredTransactionResponse } from '@depawn/contracts';
 import { executeChainAction } from '@depawn/contracts';
+import { testKeypair } from './test-wallet';
 
 /* The member's half of a sponsored write. The api builds a transaction with the
    sponsor as gas owner and hands back its bytes; the wallet signs exactly those
@@ -19,6 +21,13 @@ export function useSponsoredWrite(): (
 
   return async function run(build) {
     const { transactionBytes } = await build();
+    /* The in-app test wallet signs the sponsor's bytes itself, as it signs
+       the login challenge, so a browser test can list, offer and accept
+       without a wallet extension in the loop. */
+    if (testKeypair !== null) {
+      const { signature } = await testKeypair.signTransaction(fromBase64(transactionBytes));
+      return executeChainAction({ transactionBytes, signature });
+    }
     const signed = await signTransaction({ transaction: transactionBytes });
     /* Post the bytes the wallet actually signed, so the signature and the
        sponsor's cover the same transaction. */

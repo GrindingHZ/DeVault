@@ -4,6 +4,7 @@ export * from './chain-actions';
 export * from './client/admin-client';
 export * from './client/api-error';
 export * from './client/auth-client';
+export * from './client/chain-client';
 export * from './client/http';
 export * from './client/custody-client';
 export * from './client/lending-client';

@@ -4,6 +4,7 @@ import { APP_FILTER } from '@nestjs/core';
 import { isChainDriverEnabled, loadConfiguration } from './config/configuration';
 import { hasAdvanceableClock } from './config/runtime-mode';
 import { ChainModule } from './infrastructure/chain/chain.module';
+import { ChainReadModule } from './modules/chain-read/chain-read.module';
 import { ChainTransactionModule } from './modules/chain/chain-transaction.module';
 import { ClockModule } from './infrastructure/clock/clock.module';
 import { CustodyModule } from './infrastructure/custody/custody.module';
@@ -58,6 +59,7 @@ export class AppModule implements NestModule {
         MarketplaceApiModule,
         LendingApiModule,
         HealthModule,
+        ChainReadModule,
         ...testOnlyModules,
         ...chainModules,
       ],

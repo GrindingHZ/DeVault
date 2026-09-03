@@ -27,6 +27,18 @@ export const chainExecutionResponseSchema = z.object({
 });
 export type ChainExecutionResponse = z.infer<typeof chainExecutionResponseSchema>;
 
+/* What the wallet needs to read a member's money straight from the chain: the
+   package that types the notes and the receipt, and the coin the balance is
+   denominated in. The frontend names these in getBalance and getOwnedObjects,
+   so it can resolve a whole position with no read model in the path. */
+export const chainDeploymentResponseSchema = z.object({
+  packageId: z.string(),
+  settlementCoinType: z.string(),
+  settlementCoinDecimals: z.number().int().nonnegative(),
+  network: z.enum(['localnet', 'testnet', 'mainnet']),
+});
+export type ChainDeploymentResponse = z.infer<typeof chainDeploymentResponseSchema>;
+
 export const buildOpenPledgeRequestSchema = z.object({
   receiptObjectId: objectId,
   requestedAprBps: z.number().int().nonnegative().max(65_535),

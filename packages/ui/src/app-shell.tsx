@@ -60,8 +60,12 @@ export function AppShell({
       {rail}
       {/* The rail owns the full height and the header sits inside the column
           beside it, so a page that scrolls does not take the destinations
-          with it. */}
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          with it. On a phone the rail is a bar along the bottom, so the
+          column pads its foot by the bar's height rather than losing the last
+          row of every page under it. */}
+      <div
+        className={`flex min-h-0 min-w-0 flex-1 flex-col ${rail === undefined ? '' : 'max-md:pb-16'}`}
+      >
         {header}
         {body}
       </div>

@@ -28,7 +28,7 @@ describe('NavRail', () => {
     const { container } = render(<NavRailItem icon={<BrowseIcon />} label="Browse" isActive />);
     const item = container.querySelector('[data-active="true"]');
     expect(item).toBeTruthy();
-    expect(item?.className).toContain('border-l-accent');
+    expect(item?.className).toContain('border-accent');
     expect(item?.className).toContain('font-semibold');
   });
 

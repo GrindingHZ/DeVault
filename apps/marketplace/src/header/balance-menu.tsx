@@ -34,7 +34,7 @@ export function BalanceMenu(): ReactElement | null {
           </span>
           <span
             data-testid="header-available"
-            className="font-figure text-sm font-semibold tabular-nums text-ink-primary"
+            className="whitespace-nowrap font-figure text-sm font-semibold tabular-nums text-ink-primary"
           >
             {available}
           </span>

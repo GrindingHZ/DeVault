@@ -99,7 +99,10 @@ export function BrandLockup({ productName, size = 24 }: BrandLockupProps): React
   return (
     <span className="flex min-w-0 items-center gap-2 text-accent">
       <VaultMark size={size} />
-      <span className="truncate font-heading text-base font-semibold text-ink-primary">
+      {/* On a phone the header has room for the mark, the balance and the
+          account, not a name as well: a name truncated to its first letter
+          said less than the mark alone. It stays in the accessible name. */}
+      <span className="truncate font-heading text-base font-semibold text-ink-primary max-sm:sr-only">
         {productName}
       </span>
     </span>

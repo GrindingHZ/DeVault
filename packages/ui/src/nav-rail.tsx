@@ -11,11 +11,19 @@ export interface NavRailProps {
   readonly label?: string;
 }
 
+/* A column down the left from the medium breakpoint up. Below it the same
+   five destinations become a bar along the bottom, where a thumb reaches
+   them: a fixed 80px column on a phone took a fifth of the screen and left
+   the content to wrap around it. The shell pads the page bottom to match. */
 export function NavRail({ children, label = 'Primary' }: NavRailProps): ReactElement {
   return (
     <nav
       aria-label={label}
-      className="flex w-20 shrink-0 flex-col gap-1 overflow-y-auto border-r border-edge bg-surface-sunken py-2"
+      className={[
+        'flex shrink-0 border-edge bg-surface-sunken',
+        'max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-30 max-md:h-16 max-md:flex-row max-md:justify-around max-md:border-t',
+        'md:w-20 md:flex-col md:gap-1 md:overflow-y-auto md:border-r md:py-2',
+      ].join(' ')}
     >
       {children}
     </nav>
@@ -38,11 +46,15 @@ export function NavRailItem({ icon, label, isActive = false }: NavRailItemProps)
     <span
       data-active={isActive ? 'true' : undefined}
       className={[
-        'flex min-h-16 flex-col items-center justify-center gap-1 border-l-2 px-1 py-2 text-center',
+        'flex flex-col items-center justify-center gap-1 px-1 py-2 text-center',
+        'md:min-h-16 md:border-l-2',
+        /* Along the bottom the selection edge sits on top, and each item
+           takes an equal share of the bar so the targets stay thumb sized. */
+        'max-md:h-full max-md:min-w-16 max-md:flex-1 max-md:border-t-2',
         'transition-colors duration-control ease-enter',
         isActive
-          ? 'border-l-accent bg-surface-raised font-semibold text-accent'
-          : 'border-l-transparent text-ink-secondary hover:bg-surface-raised hover:text-ink-primary',
+          ? 'border-accent bg-surface-raised font-semibold text-accent'
+          : 'border-transparent text-ink-secondary hover:bg-surface-raised hover:text-ink-primary',
       ].join(' ')}
     >
       {icon}

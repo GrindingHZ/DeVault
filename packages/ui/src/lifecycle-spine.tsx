@@ -133,7 +133,7 @@ export function LifecycleSpine({ role, stages, onSelectStage }: LifecycleSpinePr
       aria-label={
         role === 'borrower' ? 'Your item, stage by stage' : 'Your position, stage by stage'
       }
-      className="flex items-center gap-1 overflow-x-auto bg-surface-sunken px-4 py-2"
+      className="flex flex-wrap items-center gap-1 bg-surface-sunken px-4 py-2"
     >
       {stages.map((stage, index) => (
         <span key={stage.key} className="flex items-center gap-1">

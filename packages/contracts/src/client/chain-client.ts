@@ -1,5 +1,14 @@
-import { chainDeploymentResponseSchema, walletResponseSchema } from '../chain-actions';
-import type { ChainDeploymentResponse, WalletResponse } from '../chain-actions';
+import {
+  chainDeploymentResponseSchema,
+  issueVaultReceiptResponseSchema,
+  walletResponseSchema,
+} from '../chain-actions';
+import type {
+  ChainDeploymentResponse,
+  IssueVaultReceiptRequest,
+  IssueVaultReceiptResponse,
+  WalletResponse,
+} from '../chain-actions';
 import { requestJson } from './http';
 
 const basePath = '/api/v1';
@@ -21,5 +30,15 @@ export function fetchWallet(): Promise<WalletResponse> {
     method: 'GET',
     path: `${basePath}/chain/wallet`,
     responseSchema: walletResponseSchema,
+  });
+}
+
+/* Vault staff issue a receipt on chain to a member's wallet. */
+export function issueVaultReceipt(body: IssueVaultReceiptRequest): Promise<IssueVaultReceiptResponse> {
+  return requestJson({
+    method: 'POST',
+    path: `${basePath}/chain/receipts/issue`,
+    body,
+    responseSchema: issueVaultReceiptResponseSchema,
   });
 }

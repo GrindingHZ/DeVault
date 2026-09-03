@@ -120,3 +120,24 @@ export type BuildBuyPositionRequest = z.infer<typeof buildBuyPositionRequestSche
 
 export const buildDelistPositionRequestSchema = z.object({ listingObjectId: objectId });
 export type BuildDelistPositionRequest = z.infer<typeof buildDelistPositionRequestSchema>;
+
+/* The custodian issues a receipt on chain to a member's wallet. This is the one
+   custodial step: a person confirms a physical item exists, appraises it, and
+   takes custody, which no on-chain code can attest. Operator-signed, because
+   the CustodianCap is the platform's; every later step is the member's own. */
+export const issueVaultReceiptRequestSchema = z.object({
+  holder: z.string().min(3),
+  receiptKey: z.string().min(1).max(64),
+  vault: z.string().min(1).max(64),
+  intakeHash: z.string().min(1).max(200),
+  appraisedValueBaseUnits: baseUnits,
+  itemCategory: z.enum(['BULLION', 'WATCH', 'JEWELLERY', 'COLLECTIBLE', 'ART']),
+  insuranceReference: z.string().max(120),
+});
+export type IssueVaultReceiptRequest = z.infer<typeof issueVaultReceiptRequestSchema>;
+
+export const issueVaultReceiptResponseSchema = z.object({
+  receiptObjectId: z.string(),
+  digest: z.string(),
+});
+export type IssueVaultReceiptResponse = z.infer<typeof issueVaultReceiptResponseSchema>;

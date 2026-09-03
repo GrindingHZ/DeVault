@@ -7,15 +7,18 @@ import { OperatorSigner } from '../../infrastructure/chain/operator-signer';
 import { SPONSORED_TRANSACTION_GATEWAY } from '../../infrastructure/chain/sponsored-transaction';
 import { ChainTransactionController } from './chain-transaction.controller';
 import { ChainTransactionService } from './chain-transaction.service';
+import { CustodianReceiptController } from './custodian-receipt.controller';
+import { CustodianReceiptService } from './custodian-receipt.service';
 
 /* The member facing chain write surface. Present only when a chain driver is
    on, because it is the whole of the self-custody flow and has nothing to do
    in a database only process. */
 @Module({
   imports: [ChainModule],
-  controllers: [ChainTransactionController],
+  controllers: [ChainTransactionController, CustodianReceiptController],
   providers: [
     ChainTransactionService,
+    CustodianReceiptService,
     {
       provide: SPONSORED_TRANSACTION_GATEWAY,
       useFactory: (client: ChainClient, signer: OperatorSigner): GrpcSponsoredTransactionGateway =>

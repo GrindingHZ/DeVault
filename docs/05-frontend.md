@@ -114,11 +114,13 @@ borrower cost, and the LTV cap as a hard ceiling on the offer form. The form mus
 requested principal as the default and make the rate the thing the lender competes on. Disable submit
 above the cap client-side and let the server reject it too.
 
-Under the best rate sits what the chain holds for the listing, each record named and linked to the
-explorer: the pledge, the vault receipt wrapped inside it, and the borrower's address. The offer
-book carries a column for each offer's hold, so the money behind a rate can be seen locked rather
-than taken on the book's word. The rate slider moves in half percent notches; the box beside it
-takes any rate the contract accepts.
+Under the best rate sits what the chain holds for the listing, each record named in words and by
+its Move object, and linked to the explorer: the pledge (`pledge::Pledge`), the vault receipt
+wrapped inside it (`custody::VaultReceipt`), and the borrower's address. Each offer in the book is
+two lines: the figures, and under them its escrow hold (`escrow::FundsHold`) linked the same way,
+so the money behind a rate can be seen locked rather than taken on the book's word. A line rather
+than a column, because a fifth column made the book scroll sideways. The rate slider moves in half
+percent notches; the box beside it takes any rate the contract accepts.
 
 **Payoff and repay.** Fetch the quote, show a countdown to `validUntil`, refetch on expiry. Submitting
 sends `quotedAt`. If the server returns `PAYOFF_QUOTE_STALE`, refetch and show the new figure rather

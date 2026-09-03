@@ -41,7 +41,10 @@ function LoginPage(): ReactElement {
           </Button>
           {wallet.mutation.isError ? (
             <p role="alert" className="mt-3 font-body text-sm text-status-danger">
-              {messageForError(wallet.mutation.error, 'Could not sign in with your wallet. Try again.')}
+              {messageForError(
+                wallet.mutation.error,
+                'Could not sign in with your wallet. Try again.',
+              )}
             </p>
           ) : null}
         </Card>

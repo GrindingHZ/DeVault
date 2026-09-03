@@ -173,7 +173,9 @@ function IssueCard(): ReactElement {
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="font-body text-sm text-ink-secondary">Extra photographs (up to two)</span>
+          <span className="font-body text-sm text-ink-secondary">
+            Extra photographs (up to two)
+          </span>
           <input
             type="file"
             accept="image/*"
@@ -186,14 +188,16 @@ function IssueCard(): ReactElement {
 
         {mainImage === null && secondaryImages.length === 0 ? null : (
           <div className="flex flex-wrap gap-2">
-            {(mainImage === null ? [] : [mainImage]).concat(secondaryImages).map((source, index) => (
-              <img
-                key={source.slice(0, 32) + String(index)}
-                src={source}
-                alt={index === 0 ? 'Main item photograph' : 'Item photograph'}
-                className="h-20 w-20 rounded-md border border-edge object-cover"
-              />
-            ))}
+            {(mainImage === null ? [] : [mainImage])
+              .concat(secondaryImages)
+              .map((source, index) => (
+                <img
+                  key={source.slice(0, 32) + String(index)}
+                  src={source}
+                  alt={index === 0 ? 'Main item photograph' : 'Item photograph'}
+                  className="h-20 w-20 rounded-md border border-edge object-cover"
+                />
+              ))}
           </div>
         )}
 
@@ -219,7 +223,9 @@ function IssueCard(): ReactElement {
 function IssuedReceipt({ result }: { readonly result: IssueVaultReceiptResponse }): ReactElement {
   return (
     <div className="flex flex-col gap-1 rounded-md border border-edge bg-surface-sunken p-3">
-      <p className="font-body text-sm text-status-success">Issued on chain and sent to the wallet.</p>
+      <p className="font-body text-sm text-status-success">
+        Issued on chain and sent to the wallet.
+      </p>
       <a
         href={`https://suiscan.xyz/testnet/object/${result.receiptObjectId}`}
         target="_blank"

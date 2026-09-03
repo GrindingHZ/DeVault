@@ -1,46 +1,15 @@
-import {
-  ApiError,
-  fetchBalance,
-  fetchLedgerEntries,
-  messageForError,
-  nameForBalancePurpose,
-  nameForEntryDirection,
-  nameForLedgerKind,
-  withdraw,
-} from '@depawn/contracts';
-import type { LedgerEntryResponse } from '@depawn/contracts';
-import {
-  Button,
-  Card,
-  DataTable,
-  DateTime,
-  Explain,
-  Field,
-  Money,
-  Page,
-  PageHeader,
-  Skeleton,
-  toMinorUnits,
-} from '@depawn/ui';
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Card, Page, PageHeader, Skeleton } from '@depawn/ui';
 import { Navigate, createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
 import type { ReactElement } from 'react';
-import { currentAccountKeys, useCurrentAccount } from '../current-account';
-import { MarketShell, useFeedback } from '../market-shell';
-import { CapitalCard } from '../wallet/capital-card';
-import { walletKeys } from '../wallet-keys';
+import { useCurrentAccount } from '../current-account';
+import { MarketShell } from '../market-shell';
+import { formatUsdc } from '../wallet/usdc';
+import { useWalletMoney } from '../wallet/use-wallet-money';
+import type { ReceiptSummary } from '../wallet/chain-objects';
 
 export const Route = createFileRoute('/wallet')({
   component: WalletPage,
 });
-
-function withdrawalMessageFor(error: unknown): string {
-  if (error instanceof ApiError && error.code === 'INSUFFICIENT_FUNDS') {
-    return 'The available balance is below the requested amount.';
-  }
-  return messageForError(error, 'The request failed. Try again.');
-}
 
 function WalletPage(): ReactElement | null {
   const currentAccount = useCurrentAccount();
@@ -61,210 +30,144 @@ function WalletPage(): ReactElement | null {
       <Page>
         <PageHeader
           title="Wallet"
-          description="Everything you own, where it is working, and every movement so far."
+          description="Your USDC and your positions, read straight from the chain."
         />
-        <CapitalCard />
-        <BalanceCards />
-        <WithdrawCard />
-        <HistoryCard />
+        <WalletBody />
       </Page>
     </MarketShell>
   );
 }
 
-function BalanceCards(): ReactElement {
-  const balanceQuery = useQuery({ queryKey: walletKeys.balance, queryFn: fetchBalance });
+function WalletBody(): ReactElement {
+  /* Testnet time is real time, so the chain clock and the browser agree; there
+     is no demo clock running ahead of the wall clock on a public network. */
+  const money = useWalletMoney(Date.now());
+
+  if (!money.hasWallet) {
+    return (
+      <Card title="Balance">
+        <p className="font-body text-sm text-ink-secondary">
+          Sign in with a wallet to see your USDC and your positions.
+        </p>
+      </Card>
+    );
+  }
+  if (money.isLoading) {
+    return (
+      <Card title="Balance">
+        <Skeleton lineCount={3} />
+      </Card>
+    );
+  }
+  if (money.isError) {
+    return (
+      <Card title="Balance">
+        <p role="alert" className="font-body text-sm text-status-danger">
+          Your wallet could not be read from the chain.
+        </p>
+      </Card>
+    );
+  }
+
+  const decimals = money.decimals;
+  const owed = money.totals.owedNowBaseUnits;
 
   return (
-    <Card title="Balance">
-      {balanceQuery.isPending ? (
-        <Skeleton lineCount={2} />
-      ) : balanceQuery.isError || balanceQuery.data === undefined ? (
-        <p role="alert" className="font-body text-sm text-status-danger">
-          The balance could not be loaded.
-        </p>
-      ) : (
-        <dl className="flex gap-10">
-          <div>
-            <dt className="font-body text-sm text-ink-secondary">Available</dt>
-            <dd
-              data-testid="available-balance"
-              className="font-figure text-lg font-semibold tabular-nums"
-            >
-              <Money value={balanceQuery.data.available} />
-            </dd>
-            <dd className="mt-0.5 font-body text-xs text-ink-secondary">
-              Yours to offer or withdraw
-            </dd>
-          </div>
-          <div>
-            <dt className="flex items-center font-body text-sm text-ink-secondary">
-              Held for offers
-              <Explain termId="heldFunds" audience="lender" />
-            </dt>
-            <dd data-testid="held-balance" className="font-figure text-lg tabular-nums">
-              <Money value={balanceQuery.data.held} />
-            </dd>
-            <dd className="mt-0.5 font-body text-xs text-ink-secondary">
-              Still yours, committed to offers you have placed
-            </dd>
-          </div>
+    <>
+      <Card title="Balance">
+        <div className="flex flex-col gap-1">
+          <span className="font-body text-sm text-ink-secondary">Available to spend</span>
+          <span
+            data-testid="available-balance"
+            className="font-figure text-2xl font-semibold tabular-nums text-ink-primary"
+          >
+            {formatUsdc(money.availableBaseUnits, decimals)}
+          </span>
+        </div>
+        <dl className="mt-5 flex flex-wrap gap-x-10 gap-y-4">
+          <Figure
+            label="Ready to collect"
+            value={formatUsdc(money.totals.collectableBaseUnits, decimals)}
+            note="Payoff on loans you funded that have been repaid. Collect it on the loan."
+          />
+          <Figure
+            label="Lent out"
+            value={formatUsdc(money.totals.lentPrincipalBaseUnits, decimals)}
+            note="Principal at work on your active loans."
+          />
+          <Figure
+            label="Interest earned"
+            value={formatUsdc(money.totals.interestEarnedBaseUnits, decimals)}
+            note="Accrued so far on those loans, to this moment."
+          />
         </dl>
+      </Card>
+
+      {owed > 0n ? (
+        <Card title="You owe">
+          <div className="flex flex-col gap-1">
+            <span className="font-body text-sm text-ink-secondary">Owed today</span>
+            <span
+              data-testid="owed-balance"
+              className="font-figure text-xl font-semibold tabular-nums text-status-warning"
+            >
+              {formatUsdc(owed, decimals)}
+            </span>
+            <span className="font-body text-xs text-ink-secondary">
+              Across {money.borrower.length} active{' '}
+              {money.borrower.length === 1 ? 'loan' : 'loans'}. Repay before the grace cliff to keep
+              your item.
+            </span>
+          </div>
+        </Card>
+      ) : null}
+
+      <ItemsCard receipts={money.receipts} decimals={decimals} />
+    </>
+  );
+}
+
+function ItemsCard({
+  receipts,
+  decimals,
+}: {
+  readonly receipts: readonly ReceiptSummary[];
+  readonly decimals: number;
+}): ReactElement {
+  return (
+    <Card title="Items">
+      {receipts.length === 0 ? (
+        <p className="font-body text-sm text-ink-secondary">No items in your name.</p>
+      ) : (
+        <ul className="flex flex-col gap-3" data-testid="wallet-items">
+          {receipts.map((receipt) => (
+            <li key={receipt.objectId} className="flex items-baseline justify-between gap-4">
+              <span className="font-body text-sm text-ink-primary">{receipt.itemCategory}</span>
+              <span className="font-figure text-sm tabular-nums text-ink-secondary">
+                {formatUsdc(receipt.appraisedValueBaseUnits, decimals)}
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
     </Card>
   );
 }
 
-function WithdrawCard(): ReactElement {
-  const queryClient = useQueryClient();
-  const feedback = useFeedback();
-  const [amountInput, setAmountInput] = useState('');
-  const [inputError, setInputError] = useState<string | null>(null);
-  // Generated on mount, not on submit, so a double click sends the same key
-  // twice and the server deduplicates (docs/05-frontend.md).
-  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
-
-  const withdrawMutation = useMutation({
-    mutationFn: (minorUnits: string) =>
-      withdraw({ amount: { minorUnits, currency: 'USD' } }, { idempotencyKey }),
-    onSuccess: async () => {
-      feedback.reportSuccess('The withdrawal went through.');
-      setAmountInput('');
-      setIdempotencyKey(crypto.randomUUID());
-      await queryClient.invalidateQueries({ queryKey: walletKeys.all });
-      await queryClient.invalidateQueries({ queryKey: currentAccountKeys.me });
-    },
-  });
-
+function Figure({
+  label,
+  value,
+  note,
+}: {
+  readonly label: string;
+  readonly value: string;
+  readonly note: string;
+}): ReactElement {
   return (
-    <Card title="Withdraw">
-      <form
-        /* Wraps. The amount field and the button together are wider than a
-           phone, and without this the button hung off the side and took the
-           whole page into a horizontal scroll. */
-        className="flex flex-wrap items-end gap-3"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const minorUnits = toMinorUnits(amountInput);
-          if (minorUnits === null) {
-            setInputError('Enter an amount like 25 or 25.00.');
-            return;
-          }
-          setInputError(null);
-          withdrawMutation.mutate(minorUnits);
-        }}
-      >
-        <Field
-          label="Amount (USD)"
-          data-testid="withdraw-amount"
-          value={amountInput}
-          onChange={(event) => setAmountInput(event.target.value)}
-          errorMessage={inputError ?? undefined}
-        />
-        <Button data-testid="withdraw-submit" type="submit" disabled={withdrawMutation.isPending}>
-          Withdraw
-        </Button>
-      </form>
-      {withdrawMutation.isError ? (
-        <p role="alert" className="mt-2 font-body text-sm text-status-danger">
-          {withdrawalMessageFor(withdrawMutation.error)}
-        </p>
-      ) : null}
-    </Card>
-  );
-}
-
-function HistoryCard(): ReactElement {
-  const entriesQuery = useInfiniteQuery({
-    queryKey: walletKeys.entries,
-    queryFn: ({ pageParam }) => fetchLedgerEntries(pageParam ?? undefined, 25),
-    initialPageParam: null as string | null,
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
-  });
-
-  if (entriesQuery.isPending) {
-    return (
-      <Card title="History">
-        <Skeleton lineCount={4} />
-      </Card>
-    );
-  }
-  if (entriesQuery.isError || entriesQuery.data === undefined) {
-    return (
-      <Card title="History">
-        <p role="alert" className="font-body text-sm text-status-danger">
-          The ledger history could not be loaded.
-        </p>
-      </Card>
-    );
-  }
-
-  const entries = entriesQuery.data.pages.flatMap((page) => page.items);
-
-  return (
-    <Card title="History">
-      <div data-testid="ledger-history">
-        <DataTable
-          columns={[
-            {
-              key: 'occurredAt',
-              header: 'When',
-              render: (entry: LedgerEntryResponse) => <DateTime iso={entry.occurredAt} />,
-            },
-            /* HOLD_FUNDS and DEBIT are the right names for a ledger and the
-               wrong ones for somebody looking at their own money. */
-            {
-              key: 'kind',
-              header: 'What happened',
-              render: (entry: LedgerEntryResponse) => nameForLedgerKind(entry.kind),
-            },
-            /* A hold moves money between the reader's own two balances, so
-               it is two entries with the same amount. Naming the balance is
-               what stops that reading as the money moving twice. */
-            {
-              key: 'purpose',
-              header: 'Balance',
-              render: (entry: LedgerEntryResponse) => nameForBalancePurpose(entry.purpose),
-            },
-            {
-              key: 'direction',
-              header: 'Direction',
-              render: (entry: LedgerEntryResponse) => nameForEntryDirection(entry.direction),
-            },
-            {
-              key: 'amount',
-              header: 'Amount',
-              render: (entry: LedgerEntryResponse) => <Money value={entry.amount} />,
-            },
-            {
-              key: 'reference',
-              header: 'Reference',
-              /* The proof the movement happened, which becomes a chain
-                 digest in Phase 3. Shortened for the same reason as a
-                 receipt reference, and whole in the title. */
-              render: (entry: LedgerEntryResponse) => (
-                <span title={entry.reference} className="font-mono text-xs text-ink-secondary">
-                  {entry.reference.slice(-8).toUpperCase()}
-                </span>
-              ),
-            },
-          ]}
-          rows={entries}
-          rowKey={(entry) => entry.id}
-          emptyTitle="No movements yet"
-        />
-      </div>
-      {entriesQuery.hasNextPage ? (
-        <div className="mt-3">
-          <Button
-            variant="secondary"
-            onClick={() => void entriesQuery.fetchNextPage()}
-            disabled={entriesQuery.isFetchingNextPage}
-          >
-            Load more
-          </Button>
-        </div>
-      ) : null}
-    </Card>
+    <div className="flex max-w-xs flex-col gap-1">
+      <dt className="font-body text-sm text-ink-secondary">{label}</dt>
+      <dd className="font-figure text-lg font-semibold tabular-nums text-ink-primary">{value}</dd>
+      <dd className="font-body text-xs leading-relaxed text-ink-secondary">{note}</dd>
+    </div>
   );
 }

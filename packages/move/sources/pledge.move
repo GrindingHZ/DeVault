@@ -7,15 +7,24 @@
 /// (docs/superpowers/specs/2026-08-26-self-custody-loan-book-design.md).
 module depawn::pledge;
 
+use depawn::config::Config;
 use depawn::custody::VaultReceipt;
+use depawn::escrow::{Self, FundsHold};
+use depawn::notes;
 use sui::balance::{Self, Balance};
+use sui::clock::Clock;
+use sui::coin;
 use sui::event;
 
 const OPEN: u8 = 0;
 const ACTIVE: u8 = 1;
 
+const BASIS_POINTS_IN_WHOLE: u128 = 10_000;
+
 const ENotBorrower: u64 = 0;
 const ENotOpen: u64 = 1;
+const EWrongPledge: u64 = 2;
+const ERateTooHigh: u64 = 3;
 
 /// `receipt` is an `Option` so a later transition can take the item out
 /// without leaving a sentinel behind. `parked` is empty until a repayment
@@ -46,6 +55,14 @@ public struct ListingOpened has copy, drop {
 public struct ListingCancelled has copy, drop {
     pledge_id: ID,
     receipt_key: vector<u8>,
+}
+
+public struct LoanOriginated has copy, drop {
+    pledge_id: ID,
+    borrower: address,
+    lender: address,
+    principal: u64,
+    matures_at_ms: u64,
 }
 
 public fun open<T>(receipt: VaultReceipt, requested_apr_bps: u16, ctx: &mut TxContext) {
@@ -88,7 +105,73 @@ public fun cancel<T>(pledge: Pledge<T>, ctx: &mut TxContext) {
     transfer::public_transfer(item, borrower);
 }
 
+/// The whole of origination, in one transaction the borrower signs once. The
+/// chosen offer is shared, so no second lender signature is needed: the
+/// lender committed when they made the offer, and the module guarantees the
+/// funds can only reach the borrower here or return to the lender on a
+/// refund. Loan to value is checked by the api before this is built; the
+/// appraisal is not read a second time on chain.
+public fun accept<T>(
+    pledge: &mut Pledge<T>,
+    hold: FundsHold<T>,
+    config: &Config,
+    term_ms: u64,
+    clock: &Clock,
+    ctx: &mut TxContext,
+) {
+    assert!(pledge.status == OPEN, ENotOpen);
+    assert!(pledge.borrower == ctx.sender(), ENotBorrower);
+    assert!(escrow::hold_pledge_id(&hold) == object::id(pledge), EWrongPledge);
+    let params = config.parameters();
+    assert!(pledge.requested_apr_bps <= params.max_annual_percentage_rate_bps(), ERateTooHigh);
+
+    let (funds, hold_key, lender) = escrow::into_principal(hold);
+    let principal = funds.value();
+    let now = clock.timestamp_ms();
+    let matures_at = now + term_ms;
+
+    let mut proceeds = coin::from_balance(funds, ctx);
+    let fee = mul_bps(principal, params.origination_fee_bps());
+    if (fee > 0) {
+        transfer::public_transfer(proceeds.split(fee, ctx), config.fee_recipient());
+    };
+    transfer::public_transfer(proceeds, pledge.borrower);
+
+    let lender_note = notes::mint_lender_note(
+        object::id(pledge), principal, pledge.requested_apr_bps, now, matures_at, lender, ctx,
+    );
+    let borrower_note = notes::mint_borrower_note(object::id(pledge), principal, pledge.borrower, ctx);
+
+    pledge.lender_note_id = option::some(lender_note.lender_note_id());
+    pledge.borrower_note_id = option::some(borrower_note.borrower_note_id());
+    pledge.status = ACTIVE;
+    pledge.accepted_hold_key = hold_key;
+    pledge.principal = principal;
+    pledge.apr_bps = pledge.requested_apr_bps;
+    pledge.started_at_ms = now;
+    pledge.matures_at_ms = matures_at;
+    pledge.grace_period_ms = params.grace_period_ms();
+
+    event::emit(LoanOriginated {
+        pledge_id: object::id(pledge),
+        borrower: pledge.borrower,
+        lender,
+        principal,
+        matures_at_ms: matures_at,
+    });
+    transfer::public_transfer(lender_note, lender);
+    transfer::public_transfer(borrower_note, pledge.borrower);
+}
+
 public fun borrower<T>(pledge: &Pledge<T>): address { pledge.borrower }
+
+public fun principal<T>(pledge: &Pledge<T>): u64 { pledge.principal }
+
+public fun accepted_hold_key<T>(pledge: &Pledge<T>): &vector<u8> { &pledge.accepted_hold_key }
+
+fun mul_bps(amount: u64, bps: u16): u64 {
+    (((amount as u128) * (bps as u128)) / BASIS_POINTS_IN_WHOLE) as u64
+}
 
 public fun status<T>(pledge: &Pledge<T>): u8 { pledge.status }
 

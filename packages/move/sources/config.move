@@ -40,6 +40,7 @@ public struct Config has key {
     paused: bool,
     paused_at_ms: u64,
     parameters: Parameters,
+    fee_recipient: address,
 }
 
 public struct SystemPaused has copy, drop { at_ms: u64 }
@@ -63,6 +64,7 @@ fun publish(ctx: &mut TxContext) {
         paused: false,
         paused_at_ms: 0,
         parameters: demo_parameters(),
+        fee_recipient: publisher,
     });
 }
 
@@ -134,11 +136,16 @@ public fun set_parameters(_: &AdminCap, config: &mut Config, parameters: Paramet
     event::emit(ParametersUpdated { parameters });
 }
 
-/// Rule S2 as a call graph: only `escrow::hold` calls this. Refunds, releases
-/// and custody moves never do, so a pause cannot trap money or collateral.
+/// Rule S2 as a call graph: only `escrow::make_offer` calls this. Refunds,
+/// acceptances and redemptions never do, so a pause cannot trap money or
+/// collateral.
 public fun assert_not_paused(config: &Config) {
     assert!(!config.paused, EPaused);
 }
+
+/// Where the origination fee lands. Set to the publisher at genesis; a
+/// transfer to a treasury multisig later is a parameter change, not a rewrite.
+public fun fee_recipient(config: &Config): address { config.fee_recipient }
 
 public fun is_paused(config: &Config): bool { config.paused }
 

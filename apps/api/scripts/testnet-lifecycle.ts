@@ -135,7 +135,8 @@ async function main(): Promise<void> {
       pledgeObjectId: pledge,
       holdKey: `HOLD-${stamp}`,
       payment: tx.object(lenderCoin) as TransactionObjectArgument,
-      aprBps: 3600,
+      /* Undercut the borrower's asked 3600: the loan should be charged 3000. */
+      aprBps: 3000,
       expiresAtMs: BigInt(Date.now() + 700_000),
     });
   });

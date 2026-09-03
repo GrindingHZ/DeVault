@@ -2,6 +2,7 @@ import {
   claimAction,
   collectAction,
   delistPositionAction,
+  messageForError,
   reclaimHoldAction,
 } from '@depawn/contracts';
 import type { ChainExecutionResponse, SponsoredTransactionResponse } from '@depawn/contracts';
@@ -112,7 +113,10 @@ export function usePositionActions(handlers: PositionActionHandlers): {
       await queryClient.invalidateQueries({ queryKey: marketKeys.noteSalesBrowse });
       await queryClient.invalidateQueries({ queryKey: marketKeys.browse });
     },
-    onError: () => feedback.reportFailure('That could not be completed. Nothing has changed.'),
+    onError: (error) =>
+      feedback.reportFailure(
+        messageForError(error, 'That could not be completed. Nothing has changed.'),
+      ),
   });
 
   function actOn(position: Position): void {

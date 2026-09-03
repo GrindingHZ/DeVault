@@ -439,6 +439,9 @@ function acceptMessageFor(error: unknown): string {
     if (error.code === 'LISTING_ALREADY_MATCHED') {
       return 'This listing already took an offer. Refresh to see the loan.';
     }
+    if (error.code === 'LISTING_NOT_ACTIVE') {
+      return 'This listing was taken down. The item is back in your vault.';
+    }
     if (error.code === 'OFFER_NOT_PENDING' || error.code === 'OFFER_EXPIRED') {
       return 'That offer is no longer available. Refresh the offer book.';
     }

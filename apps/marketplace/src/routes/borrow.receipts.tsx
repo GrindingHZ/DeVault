@@ -3,6 +3,7 @@ import {
   fetchMyListings,
   fetchMyReceipts,
   fetchMyRedemptionRequests,
+  messageForError,
   openPledgeAction,
   redeemAction,
 } from '@depawn/contracts';
@@ -123,8 +124,10 @@ function Holdings(): ReactElement {
       await queryClient.invalidateQueries({ queryKey: marketKeys.myListings });
       await queryClient.invalidateQueries({ queryKey: marketKeys.browse });
     },
-    onError: () =>
-      feedback.reportFailure('The listing could not be taken down. Nothing has changed.'),
+    onError: (error) =>
+      feedback.reportFailure(
+        messageForError(error, 'The listing could not be taken down. Nothing has changed.'),
+      ),
   });
 
   function openItem(receiptId: string | undefined): void {

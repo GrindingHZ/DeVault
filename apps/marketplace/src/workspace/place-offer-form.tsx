@@ -32,6 +32,15 @@ function offerMessageFor(error: unknown): string {
     if (error.code === 'SYSTEM_PAUSED') {
       return 'Trading is paused. Repayments and redemptions are unaffected.';
     }
+    /* The listing on the screen is not the listing on the chain: it was
+       taken down or funded while this was being read. The refresh that
+       follows a refused write will take the pane with it. */
+    if (error.code === 'LISTING_NOT_ACTIVE') {
+      return 'This listing was taken down while you were reading it. Nothing was placed.';
+    }
+    if (error.code === 'LISTING_ALREADY_MATCHED') {
+      return 'This listing just took another offer. Nothing was placed.';
+    }
   }
   return messageForError(error, 'The offer could not be placed.');
 }

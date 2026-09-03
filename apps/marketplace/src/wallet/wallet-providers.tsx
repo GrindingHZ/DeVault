@@ -10,13 +10,27 @@ const { networkConfig } = createNetworkConfig({
   mainnet: { url: 'https://fullnode.mainnet.sui.io:443', network: 'mainnet' },
 });
 
+type WalletNetwork = 'localnet' | 'testnet' | 'mainnet';
+
+/* Testnet is the default so a connected wallet and the api agree without any
+   local setup; a wallet told the dapp is on a network its account is not on
+   fails the signing handshake. VITE_SUI_NETWORK points the app at localnet
+   when a developer runs one. */
+function walletNetwork(): WalletNetwork {
+  const configured = String(import.meta.env.VITE_SUI_NETWORK ?? '');
+  if (configured === 'localnet' || configured === 'mainnet') {
+    return configured;
+  }
+  return 'testnet';
+}
+
 /* dapp-kit's providers, so a real wallet like Slush is detected and can sign.
    autoConnect brings a previously approved wallet back on reload. The test
    sign in path does not go through these; it signs with a fixture key in the
    app's own code (docs/06-testing.md), so the providers are inert there. */
 export function WalletProviders({ children }: { readonly children: ReactNode }): ReactElement {
   return (
-    <SuiClientProvider networks={networkConfig} defaultNetwork="localnet">
+    <SuiClientProvider networks={networkConfig} defaultNetwork={walletNetwork()}>
       <WalletProvider autoConnect>{children}</WalletProvider>
     </SuiClientProvider>
   );

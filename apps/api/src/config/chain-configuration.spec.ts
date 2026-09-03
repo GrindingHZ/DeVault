@@ -31,18 +31,19 @@ describe('loadChainConfiguration', () => {
     }
   });
 
-  it('defaults to a local network with its faucet', () => {
+  it('defaults to the public test network, which has no faucet', () => {
+    const configuration = loadChainConfiguration();
+    expect(configuration.network).toBe('testnet');
+    expect(configuration.grpcUrl).toBe('https://fullnode.testnet.sui.io:443');
+    expect(configuration.faucetUrl).toBeNull();
+  });
+
+  it('still knows the local network and its faucet', () => {
+    process.env.SUI_NETWORK = 'localnet';
     const configuration = loadChainConfiguration();
     expect(configuration.network).toBe('localnet');
     expect(configuration.grpcUrl).toBe('http://127.0.0.1:9000');
     expect(configuration.faucetUrl).toBe('http://127.0.0.1:9123');
-  });
-
-  it('knows the public endpoints and that they have no faucet', () => {
-    process.env.SUI_NETWORK = 'testnet';
-    const configuration = loadChainConfiguration();
-    expect(configuration.grpcUrl).toBe('https://fullnode.testnet.sui.io:443');
-    expect(configuration.faucetUrl).toBeNull();
   });
 
   it('lets an explicit endpoint and an emptied faucet override the defaults', () => {

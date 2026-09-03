@@ -28,7 +28,7 @@ const endpointsByNetwork: Record<SuiNetwork, { grpcUrl: string; faucetUrl: strin
 
 function networkFrom(raw: string | undefined): SuiNetwork {
   if (raw === undefined || raw === '') {
-    return 'localnet';
+    return 'testnet';
   }
   if (raw === 'localnet' || raw === 'testnet' || raw === 'mainnet') {
     return raw;

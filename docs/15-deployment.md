@@ -106,10 +106,17 @@ else. Never put it in a front end, where anyone could read it out of the bundle.
 | `STORAGE_DRIVER` | `supabase` | no |
 | `SUPABASE_URL` | the project URL from Step 1 | no |
 | `SUPABASE_SERVICE_ROLE_KEY` | the `service_role` key from Step 1 | yes |
+| `PUBLIC_BASE_URL` | `https://devault-marketplace.vercel.app` | no |
 
 Both drivers have to be set. `configuration.ts` defaults them to `ledger` and `database`, and the
 adapters behind those defaults were removed in the web3 migration, so a service without them will
 not boot.
+
+`PUBLIC_BASE_URL` is the one variable that cannot be corrected later. It is written into every
+`VaultReceipt` as the url of the item's photograph, which is what lets a wallet render the item
+rather than a bare object. Point it at the marketplace origin, not the Render origin: the front end
+domain is the stable one, and the rewrite carries `/api/*` through to Render anyway. A receipt
+minted while this is wrong keeps the wrong url for good.
 
 8. Select **Create Web Service** and watch the log. A first deploy takes several minutes, most of it
    the pnpm install.

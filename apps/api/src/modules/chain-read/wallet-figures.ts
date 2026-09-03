@@ -240,6 +240,21 @@ export interface WalletItem {
   readonly itemCategory: string;
 }
 
+/* The receipt stores its category as the u8 code custody.move was issued with,
+   in the order the code assigns (BULLION 0 through ART 4), so the read names it
+   back rather than showing a bare number or a generic word. */
+const itemCategoryNames = ['BULLION', 'WATCH', 'JEWELLERY', 'COLLECTIBLE', 'ART'] as const;
+
+function categoryNameOf(value: unknown): string {
+  if (typeof value === 'number' && value >= 0 && value < itemCategoryNames.length) {
+    return itemCategoryNames[value] ?? 'item';
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  return 'item';
+}
+
 export function itemFromJson(objectId: string, json: Json | null): WalletItem | null {
   if (json === null) {
     return null;
@@ -247,6 +262,6 @@ export function itemFromJson(objectId: string, json: Json | null): WalletItem | 
   return {
     objectId,
     appraisedValueBaseUnits: readU64(json.appraised_value),
-    itemCategory: typeof json.item_category === 'string' ? json.item_category : 'item',
+    itemCategory: categoryNameOf(json.item_category),
   };
 }

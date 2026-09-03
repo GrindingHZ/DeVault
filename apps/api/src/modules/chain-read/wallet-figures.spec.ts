@@ -133,5 +133,7 @@ describe('gRPC json parsers', () => {
       appraisedValueBaseUnits: 800_000_000n,
       itemCategory: 'BULLION',
     });
+    /* On chain the category is the u8 code, not the name. */
+    expect(itemFromJson('0xr', { appraised_value: '1', item_category: 1 })?.itemCategory).toBe('WATCH');
   });
 });

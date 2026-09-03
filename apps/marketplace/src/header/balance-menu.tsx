@@ -1,7 +1,7 @@
-import { ChevronDownIcon, Popover, WalletIcon } from '@depawn/ui';
+import { ChevronDownIcon, CurrencyMark, Popover } from '@depawn/ui';
 import { useNavigate } from '@tanstack/react-router';
 import type { ReactElement } from 'react';
-import { formatUsdc } from '../wallet/usdc';
+import { formatUsdc, formatUsdcAmount } from '../wallet/usdc';
 import { useWallet } from '../wallet/use-wallet';
 
 /* The one number a lender needs before deciding whether to offer: the USDC free
@@ -16,6 +16,10 @@ export function BalanceMenu(): ReactElement | null {
   }
 
   const available = formatUsdc(BigInt(wallet.data.availableBaseUnits), wallet.data.decimals);
+  const availableAmount = formatUsdcAmount(
+    BigInt(wallet.data.availableBaseUnits),
+    wallet.data.decimals,
+  );
 
   return (
     <Popover
@@ -29,14 +33,13 @@ export function BalanceMenu(): ReactElement | null {
       ].join(' ')}
       trigger={
         <>
-          <span className="text-ink-secondary">
-            <WalletIcon />
-          </span>
+          {/* The coin is the icon. A wallet glyph beside a figure that already
+              names its coin was saying the same thing twice. */}
           <span
             data-testid="header-available"
             className="whitespace-nowrap font-figure text-sm font-semibold tabular-nums text-ink-primary"
           >
-            {available}
+            <CurrencyMark currency="USDC" /> {availableAmount}
           </span>
           <span className="text-ink-secondary">
             <ChevronDownIcon />
@@ -48,7 +51,7 @@ export function BalanceMenu(): ReactElement | null {
         <div className="border-b border-edge px-4 py-3">
           <p className="font-body text-xs text-ink-secondary">Available to spend</p>
           <p className="font-figure text-lg font-semibold tabular-nums text-ink-primary">
-            {available}
+            <CurrencyMark currency="USDC" /> {availableAmount}
           </p>
         </div>
         <MenuItem label="Open wallet" onSelect={() => void navigate({ to: '/wallet' })} />

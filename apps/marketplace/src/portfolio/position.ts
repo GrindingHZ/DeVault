@@ -1,5 +1,5 @@
-import { formatAmount, formatMoney, formatRate, interestOver } from '@depawn/ui';
-import type { StatusTone } from '@depawn/ui';
+import { formatAmount, formatRate, interestOver } from '@depawn/ui';
+import type { MoneyValue, StatusTone } from '@depawn/ui';
 import type {
   LoanResponse,
   MyBidResponse,
@@ -41,7 +41,9 @@ export interface PositionAction {
 
 export interface PositionFigure {
   readonly label: string;
-  readonly value: string;
+  /* Money when it is money, so the coin can be drawn on it; words when it is
+     a rate or a state. */
+  readonly value: string | MoneyValue;
 }
 
 export interface TermProgress {
@@ -155,7 +157,7 @@ export interface Position {
      every other kind of row. */
   readonly lenderNoteId: string | null;
   /* The open sale on this position, when one is standing. */
-  readonly noteSale: { readonly id: string; readonly askPrice: string } | null;
+  readonly noteSale: { readonly id: string; readonly askPrice: MoneyValue } | null;
   /* The bid this row is, and the sale it was placed on. Reclaiming needs
      both, because a bid is addressed under its liquidation. */
   readonly bid: { readonly id: string; readonly liquidationId: string } | null;
@@ -327,11 +329,11 @@ function metricsOf(loan: LoanResponse, asOf: number, side: PositionSide): Positi
       side === 'borrowing'
         ? {
             label: 'Owed today',
-            value: formatMoney({ minorUnits: (principal + soFar).toString(), currency }),
+            value: { minorUnits: (principal + soFar).toString(), currency },
           }
         : {
             label: 'Value at maturity',
-            value: formatMoney({ minorUnits: (principal + wholeTerm).toString(), currency }),
+            value: { minorUnits: (principal + wholeTerm).toString(), currency },
           },
     settlementAmount: amount(principal + (side === 'borrowing' ? soFar : wholeTerm), currency),
   };
@@ -375,7 +377,7 @@ export function positionOfListing(listing: MyListingResponse, asOf: number): Pos
       ...staged('Draft', 'borrowing'),
       term: null,
       caption: 'Nobody can see this until you publish it',
-      figure: { label: 'Asking', value: formatMoney(listing.requestedPrincipal) },
+      figure: { label: 'Asking', value: listing.requestedPrincipal },
       action: { label: 'Publish', kind: 'publish' },
       needsAttention: false,
     };
@@ -497,7 +499,7 @@ export function positionOfOffer(offer: MyOfferResponse, asOf: number): Position 
       ...staged(stage, 'lending'),
       term: null,
       caption: 'Your money is still held, and earning nothing',
-      figure: { label: 'Held', value: formatMoney(offer.principal) },
+      figure: { label: 'Held', value: offer.principal },
       action: { label: 'Reclaim funds', kind: 'reclaim' },
       needsAttention: true,
     };
@@ -555,7 +557,7 @@ export function positionOfBid(bid: MyBidResponse, asOf: number): Position {
       ...staged('Bidding', 'lending'),
       term: bid.closesAt === null ? null : closesIn(bid.closesAt, asOf),
       caption: 'Yours is the high bid, and your money is held against it',
-      figure: { label: 'Your bid', value: formatMoney(bid.amount) },
+      figure: { label: 'Your bid', value: bid.amount },
       action: null,
       needsAttention: false,
     };
@@ -596,7 +598,7 @@ export function positionOfBid(bid: MyBidResponse, asOf: number): Position {
     ...staged('Outbid', 'lending'),
     term: null,
     caption: 'Your money is still held, and earning nothing',
-    figure: { label: 'Held', value: formatMoney(bid.amount) },
+    figure: { label: 'Held', value: bid.amount },
     action: { label: 'Reclaim funds', kind: 'reclaim' },
     needsAttention: true,
   };
@@ -718,7 +720,7 @@ export function positionOfBorrowedLoan(
       ...staged('Defaulted', 'borrowing'),
       term: termOf(loan, asOf),
       caption: 'You did not repay in time, and the lender may claim the item',
-      figure: { label: 'Principal', value: formatMoney(loan.principal) },
+      figure: { label: 'Principal', value: loan.principal },
       action: null,
       /* Bad news, and nothing the borrower can do about it: the lender takes
          the collateral or the item goes to sale, and neither is a control on
@@ -733,7 +735,7 @@ export function positionOfBorrowedLoan(
     ...staged('Sold', 'borrowing'),
     term: null,
     caption: 'The item was sold to cover the loan',
-    figure: { label: 'Principal', value: formatMoney(loan.principal) },
+    figure: { label: 'Principal', value: loan.principal },
     action: null,
     needsAttention: false,
   };
@@ -757,8 +759,7 @@ export function positionOfLentLoan(
     loanId: loan.id,
     offerId: null,
     lenderNoteId: loan.lenderNoteId,
-    noteSale:
-      openSale === null ? null : { id: openSale.id, askPrice: formatMoney(openSale.askPrice) },
+    noteSale: openSale === null ? null : { id: openSale.id, askPrice: openSale.askPrice },
     bid: null,
     metrics: metricsOf(loan, asOf, 'lending'),
     amount: formatAmount(loan.principal),
@@ -777,7 +778,7 @@ export function positionOfLentLoan(
         ...staged('Past grace', 'lending'),
         term: termOf(loan, asOf),
         caption: 'The borrower did not repay, and grace has run out',
-        figure: { label: 'At risk', value: formatMoney(loan.principal) },
+        figure: { label: 'At risk', value: loan.principal },
         action: { label: 'Mark defaulted', kind: 'default' },
         needsAttention: true,
       };
@@ -798,7 +799,7 @@ export function positionOfLentLoan(
       ...staged('Earning', 'lending'),
       term: termOf(loan, asOf),
       caption: `${rateOf(loan.annualPercentageRateBasisPoints)} p.a.`,
-      figure: { label: 'Earned so far', value: formatMoney(loan.accruedInterest) },
+      figure: { label: 'Earned so far', value: loan.accruedInterest },
       action: { label: 'Sell position', kind: 'sell' },
       needsAttention: false,
     };
@@ -827,7 +828,7 @@ export function positionOfLentLoan(
       ...staged('Defaulted', 'lending'),
       term: termOf(loan, asOf),
       caption: 'The item is yours to claim',
-      figure: { label: 'At risk', value: formatMoney(loan.principal) },
+      figure: { label: 'At risk', value: loan.principal },
       action: { label: 'Claim the collateral', kind: 'claim' },
       needsAttention: true,
     };
@@ -843,7 +844,7 @@ export function positionOfLentLoan(
       ...staged('Settled', 'lending'),
       term: null,
       caption: 'The borrower paid in full. Collect the payoff into your balance.',
-      figure: { label: 'To collect', value: formatMoney(loan.principal) },
+      figure: { label: 'To collect', value: loan.principal },
       action: { label: 'Collect your money', kind: 'collectPayout' },
       needsAttention: true,
     };

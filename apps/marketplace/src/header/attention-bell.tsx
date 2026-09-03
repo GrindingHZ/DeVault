@@ -1,4 +1,4 @@
-import { BellIcon, Button, Popover, StatusBadge } from '@depawn/ui';
+import { BellIcon, Button, Money, Popover, StatusBadge } from '@depawn/ui';
 import { useNavigate } from '@tanstack/react-router';
 import type { ReactElement } from 'react';
 import { usePositions } from '../portfolio/use-positions';
@@ -112,7 +112,11 @@ function AttentionItem({
           <span />
         ) : (
           <span className="font-figure text-sm tabular-nums text-ink-primary">
-            {position.figure.value}
+            {typeof position.figure.value === 'string' ? (
+              position.figure.value
+            ) : (
+              <Money value={position.figure.value} />
+            )}
           </span>
         )}
         {position.action === null ? null : (

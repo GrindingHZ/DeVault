@@ -165,7 +165,7 @@ describe('an offer as a position', () => {
     const position = offerPosition(offer({ status }));
     expect(position.action?.kind).toBe('reclaim');
     expect(position.needsAttention).toBe(true);
-    expect(position.figure).toEqual({ label: 'Held', value: 'USD 4,000.00' });
+    expect(position.figure).toEqual({ label: 'Held', value: money('400000') });
   });
 
   /* Reclaiming refunds the hold and deliberately leaves the offer
@@ -240,7 +240,7 @@ describe('a bid as a position', () => {
     expect(position.stage).toBe('Outbid');
     expect(position.action?.kind).toBe('reclaim');
     expect(position.needsAttention).toBe(true);
-    expect(position.figure).toEqual({ label: 'Held', value: 'USD 3,000.00' });
+    expect(position.figure).toEqual({ label: 'Held', value: money('300000') });
   });
 
   /* Reclaiming refunds the hold and writes nothing back to the bid, the same
@@ -307,7 +307,7 @@ describe('a loan the reader owes', () => {
   it('shows what settling today would cost', () => {
     const position = positionOfBorrowedLoan(loan(), now);
     expect(position.stage).toBe('Running');
-    expect(position.figure).toEqual({ label: 'Owed today', value: 'USD 4,059.17' });
+    expect(position.figure).toEqual({ label: 'Owed today', value: money('405917') });
     expect(position.action?.kind).toBe('repay');
   });
 
@@ -396,11 +396,11 @@ describe('what a loan is worth', () => {
   it('settles a borrower at today and a lender at maturity', () => {
     expect(positionOfBorrowedLoan(sixtyDays, now).metrics?.settlement).toEqual({
       label: 'Owed today',
-      value: 'USD 4,059.17',
+      value: money('405917'),
     });
     expect(positionOfLentLoan(sixtyDays, now).metrics?.settlement).toEqual({
       label: 'Value at maturity',
-      value: 'USD 4,118.35',
+      value: money('411835'),
     });
   });
 
@@ -506,7 +506,7 @@ describe('a loan the reader is owed', () => {
   it('shows what it has earned so far', () => {
     const position = positionOfLentLoan(loan(), now);
     expect(position.stage).toBe('Earning');
-    expect(position.figure).toEqual({ label: 'Earned so far', value: 'USD 59.17' });
+    expect(position.figure).toEqual({ label: 'Earned so far', value: money('5917') });
     expect(position.needsAttention).toBe(false);
   });
 
@@ -549,7 +549,7 @@ describe('a loan the reader is owed', () => {
     });
     expect(position.stage).toBe('Listed for sale');
     expect(position.action).toEqual({ label: 'Withdraw sale', kind: 'withdrawSale' });
-    expect(position.figure).toEqual({ label: 'Ask', value: 'USD 3,800.00' });
+    expect(position.figure).toEqual({ label: 'Ask', value: money('380000') });
     expect(position.noteSale?.id).toBe('SALE1');
   });
 

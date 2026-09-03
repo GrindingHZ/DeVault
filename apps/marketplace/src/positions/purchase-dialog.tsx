@@ -1,6 +1,6 @@
 import { buyPositionAction, messageForError } from '@depawn/contracts';
 import type { NoteSaleSummary } from '@depawn/contracts';
-import { Button, Dialog, formatInstant, formatMoney } from '@depawn/ui';
+import { Button, Dialog, Money, formatInstant } from '@depawn/ui';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import type { ReactElement } from 'react';
@@ -66,7 +66,7 @@ export function PurchaseDialog({ sale, onClose }: PurchaseDialogProps): ReactEle
           <div className="flex items-baseline justify-between gap-3">
             <dt className="font-body text-sm text-ink-secondary">You pay now</dt>
             <dd className="font-figure text-sm font-semibold tabular-nums text-ink-primary">
-              {formatMoney(sale.askPrice)}
+              <Money value={sale.askPrice} />
             </dd>
           </div>
           <div className="flex items-baseline justify-between gap-3">
@@ -74,7 +74,7 @@ export function PurchaseDialog({ sale, onClose }: PurchaseDialogProps): ReactEle
               Owed to you at maturity, {formatInstant(sale.maturesAt, 'date')}
             </dt>
             <dd className="font-figure text-sm font-semibold tabular-nums text-ink-primary">
-              {formatMoney(sale.maturityValue)}
+              <Money value={sale.maturityValue} />
             </dd>
           </div>
         </dl>
@@ -88,7 +88,7 @@ export function PurchaseDialog({ sale, onClose }: PurchaseDialogProps): ReactEle
           onClick={() => purchase.mutate(sale.id)}
           disabled={purchase.isPending}
         >
-          Pay {formatMoney(sale.askPrice)}
+          Pay <Money value={sale.askPrice} />
         </Button>
       </div>
     </Dialog>

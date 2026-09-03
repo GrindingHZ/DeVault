@@ -1,5 +1,5 @@
 import type { NoteSaleSummary } from '@depawn/contracts';
-import { ValueScale } from '@depawn/ui';
+import { CurrencyMark, Money, ValueScale, formatAmount } from '@depawn/ui';
 import type { ReactElement } from 'react';
 import { scaleOf, tradeOf } from './sale-figures';
 
@@ -33,7 +33,7 @@ export function SaleTradeFigures({
             data-testid="figure-pay"
             className={`font-figure ${amount} font-semibold tabular-nums text-ink-primary`}
           >
-            {trade.pay}
+            <Money value={sale.askPrice} />
           </p>
         </div>
 
@@ -49,7 +49,7 @@ export function SaleTradeFigures({
             data-testid="figure-receive"
             className={`font-figure ${amount} font-semibold tabular-nums text-ink-primary`}
           >
-            {trade.receive}
+            <Money value={sale.maturityValue} />
           </p>
           {/* The gain sits under the figure it is a gain on, in the one
               colour spent on this card. It was a bordered chip below, which
@@ -60,7 +60,14 @@ export function SaleTradeFigures({
               trade.isProfitable ? 'text-market-favourable' : 'text-market-adverse'
             }`}
           >
-            {trade.profit} · {trade.profitShare}
+            {trade.profitMinorUnits < 0n ? '' : '+'}
+            <CurrencyMark currency={trade.currency} />{' '}
+            {formatAmount({
+              minorUnits: trade.profitMinorUnits.toString(),
+              currency: trade.currency,
+            })}
+            {' \u00b7 '}
+            {trade.profitShare}
           </p>
         </div>
       </div>

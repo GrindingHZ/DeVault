@@ -1,6 +1,6 @@
 import { fetchMyListings, fetchMyReceipts } from '@depawn/contracts';
 import type { ReceiptResponse } from '@depawn/contracts';
-import { Card, Money, Page, PageHeader, Skeleton } from '@depawn/ui';
+import { Card, CurrencyMark, Money, Page, PageHeader, Skeleton } from '@depawn/ui';
 import { useQuery } from '@tanstack/react-query';
 import { Link, Navigate, createFileRoute } from '@tanstack/react-router';
 import type { ReactElement } from 'react';
@@ -8,7 +8,7 @@ import { useCurrentAccount } from '../current-account';
 import { marketKeys } from '../market-keys';
 import { MarketShell } from '../market-shell';
 import { ActivityLog } from '../wallet/activity-log';
-import { formatUsdc } from '../wallet/usdc';
+import { formatUsdcAmount } from '../wallet/usdc';
 import { useWallet } from '../wallet/use-wallet';
 
 export const Route = createFileRoute('/wallet')({
@@ -76,34 +76,35 @@ function WalletBody(): ReactElement {
             data-testid="available-balance"
             className="font-figure text-2xl font-semibold tabular-nums text-ink-primary"
           >
-            {formatUsdc(BigInt(money.availableBaseUnits), decimals)}
+            <CurrencyMark currency="USDC" />{' '}
+            {formatUsdcAmount(BigInt(money.availableBaseUnits), decimals)}
           </span>
         </div>
         <dl className="mt-5 flex flex-wrap gap-x-10 gap-y-4">
           <Figure
             label="Committed to offers"
-            value={formatUsdc(BigInt(money.committedBaseUnits), decimals)}
+            value={formatUsdcAmount(BigInt(money.committedBaseUnits), decimals)}
             note="Locked in offers you have standing. It comes back if an offer is not taken."
           />
           <Figure
             label="Reclaimable"
-            value={formatUsdc(reclaimable, decimals)}
+            value={formatUsdcAmount(reclaimable, decimals)}
             note="In offers that lost or expired. Reclaim it on the offer to return it here."
             tone={reclaimable > 0n ? 'warning' : 'default'}
           />
           <Figure
             label="Ready to collect"
-            value={formatUsdc(BigInt(money.collectableBaseUnits), decimals)}
+            value={formatUsdcAmount(BigInt(money.collectableBaseUnits), decimals)}
             note="Payoff on loans you funded that have been repaid. Collect it on the loan."
           />
           <Figure
             label="Lent out"
-            value={formatUsdc(BigInt(money.lentPrincipalBaseUnits), decimals)}
+            value={formatUsdcAmount(BigInt(money.lentPrincipalBaseUnits), decimals)}
             note="Principal at work on your active loans."
           />
           <Figure
             label="Interest earned"
-            value={formatUsdc(BigInt(money.interestEarnedBaseUnits), decimals)}
+            value={formatUsdcAmount(BigInt(money.interestEarnedBaseUnits), decimals)}
             note="Accrued so far on those loans, to this moment."
           />
         </dl>
@@ -117,7 +118,7 @@ function WalletBody(): ReactElement {
               data-testid="owed-balance"
               className="font-figure text-xl font-semibold tabular-nums text-status-warning"
             >
-              {formatUsdc(owed, decimals)}
+              <CurrencyMark currency="USDC" /> {formatUsdcAmount(owed, decimals)}
             </span>
             <span className="font-body text-xs text-ink-secondary">
               Across {money.activeBorrowCount} active{' '}
@@ -236,7 +237,7 @@ function Figure({
           tone === 'warning' ? 'text-status-warning' : 'text-ink-primary'
         }`}
       >
-        {value}
+        <CurrencyMark currency="USDC" /> {value}
       </dd>
       <dd className="font-body text-xs leading-relaxed text-ink-secondary">{note}</dd>
     </div>

@@ -20,6 +20,10 @@ export interface SaleTrade {
   readonly receive: string;
   readonly receiveOn: string;
   readonly profit: string;
+  /* The same gain as a figure and its coin, for the card to draw the mark on
+     rather than spell the code. */
+  readonly profitMinorUnits: bigint;
+  readonly currency: string;
   readonly profitShare: string;
   readonly isProfitable: boolean;
   /* Where the price sits against what the position is worth right now, which
@@ -47,6 +51,8 @@ export function tradeOf(sale: NoteSaleSummary): SaleTrade {
     receive: formatMoney(sale.maturityValue),
     receiveOn: formatInstant(sale.maturesAt, 'date'),
     profit: signed(profit, currency),
+    profitMinorUnits: profit,
+    currency,
     profitShare: ask === 0n ? '0.0%' : shareOf(Number((profit * 10_000n) / ask)),
     isProfitable: profit >= 0n,
     discount: signed(discount, currency),

@@ -26,6 +26,16 @@ const displayFractionDigits = 2;
    shown as more than the wallet holds. The value keeps its full precision; only
    the reading is shortened. */
 export function formatUsdc(baseUnits: bigint, decimals: number, locale = readerLocale()): string {
+  return `USDC ${formatUsdcAmount(baseUnits, decimals, locale)}`;
+}
+
+/* The figure alone, for the coin mark to stand in front of on a screen. The
+   code stays on the string above for anywhere that reads it out. */
+export function formatUsdcAmount(
+  baseUnits: bigint,
+  decimals: number,
+  locale = readerLocale(),
+): string {
   const negative = baseUnits < 0n;
   const magnitude = negative ? -baseUnits : baseUnits;
   const divisor = 10n ** BigInt(decimals);
@@ -35,5 +45,5 @@ export function formatUsdc(baseUnits: bigint, decimals: number, locale = readerL
   const sign = negative ? '-' : '';
   const wholeText = grouping(locale).format(whole);
   const fractionText = fraction.toString().padStart(displayFractionDigits, '0');
-  return `USDC ${sign}${wholeText}.${fractionText}`;
+  return `${sign}${wholeText}.${fractionText}`;
 }

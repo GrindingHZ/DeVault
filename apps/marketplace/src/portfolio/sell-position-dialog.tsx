@@ -1,6 +1,6 @@
 import { listPositionAction, messageForError } from '@depawn/contracts';
 import type { LoanResponse } from '@depawn/contracts';
-import { Button, Dialog, Field, formatMoney, toMinorUnits } from '@depawn/ui';
+import { Button, Dialog, Field, Money, toMinorUnits } from '@depawn/ui';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import type { ReactElement } from 'react';
@@ -100,7 +100,7 @@ export function SellPositionDialog({
             data-testid="sale-cap"
             className="font-figure text-sm font-semibold tabular-nums text-ink-primary"
           >
-            {formatMoney({ minorUnits: worthToday.toString(), currency })}
+            <Money value={{ minorUnits: worthToday.toString(), currency }} />
           </span>
         </div>
         <Field

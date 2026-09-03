@@ -1,13 +1,14 @@
 import {
   Card,
+  CurrencyMark,
   DataTable,
+  Money,
   Page,
   PageHeader,
   Skeleton,
   SummaryStrip,
   Tab,
   TabStrip,
-  formatMoney,
 } from '@depawn/ui';
 import { Navigate, createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
@@ -141,8 +142,9 @@ function PortfolioBody(): ReactElement {
     side,
   });
   const currency = totals.currency ?? 'USDC';
-  const amount = (minorUnits: bigint): string =>
-    formatMoney({ minorUnits: minorUnits.toString(), currency });
+  const amount = (minorUnits: bigint): ReactElement => (
+    <Money value={{ minorUnits: minorUnits.toString(), currency }} />
+  );
 
   const handlers = { onAct: actOn, openerFor };
 
@@ -246,7 +248,7 @@ function PortfolioBody(): ReactElement {
             </TabStrip>
             {/* The currency, once for the whole table. */}
             <span className="ml-auto font-body text-xs text-ink-secondary">
-              {`Amounts in ${currency}`}
+              Amounts in <CurrencyMark currency={currency} />
             </span>
           </div>
 

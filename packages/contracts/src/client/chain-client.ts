@@ -53,34 +53,48 @@ function buildSponsored(path: string, body: unknown): Promise<SponsoredTransacti
   });
 }
 
-export function buildOpenPledge(body: BuildOpenPledgeRequest): Promise<SponsoredTransactionResponse> {
+export function buildOpenPledge(
+  body: BuildOpenPledgeRequest,
+): Promise<SponsoredTransactionResponse> {
   return buildSponsored('/chain/pledges/build', body);
 }
-export function buildCancelPledge(body: BuildCancelPledgeRequest): Promise<SponsoredTransactionResponse> {
+export function buildCancelPledge(
+  body: BuildCancelPledgeRequest,
+): Promise<SponsoredTransactionResponse> {
   return buildSponsored('/chain/pledges/cancel/build', body);
 }
 export function buildMakeOffer(body: BuildMakeOfferRequest): Promise<SponsoredTransactionResponse> {
   return buildSponsored('/chain/offers/build', body);
 }
-export function buildAcceptOffer(body: BuildAcceptOfferRequest): Promise<SponsoredTransactionResponse> {
+export function buildAcceptOffer(
+  body: BuildAcceptOfferRequest,
+): Promise<SponsoredTransactionResponse> {
   return buildSponsored('/chain/offers/accept/build', body);
 }
 export function buildRepay(body: BuildRepayRequest): Promise<SponsoredTransactionResponse> {
   return buildSponsored('/chain/loans/repay/build', body);
 }
-export function buildCollect(body: BuildSettlePledgeRequest): Promise<SponsoredTransactionResponse> {
+export function buildCollect(
+  body: BuildSettlePledgeRequest,
+): Promise<SponsoredTransactionResponse> {
   return buildSponsored('/chain/loans/collect/build', body);
 }
-export function buildClaimDefault(body: BuildSettlePledgeRequest): Promise<SponsoredTransactionResponse> {
+export function buildClaimDefault(
+  body: BuildSettlePledgeRequest,
+): Promise<SponsoredTransactionResponse> {
   return buildSponsored('/chain/loans/claim/build', body);
 }
 export function buildRedeem(body: BuildRedeemRequest): Promise<SponsoredTransactionResponse> {
   return buildSponsored('/chain/receipts/redeem/build', body);
 }
-export function buildListPosition(body: BuildListPositionRequest): Promise<SponsoredTransactionResponse> {
+export function buildListPosition(
+  body: BuildListPositionRequest,
+): Promise<SponsoredTransactionResponse> {
   return buildSponsored('/chain/positions/build', body);
 }
-export function buildBuyPosition(body: BuildBuyPositionRequest): Promise<SponsoredTransactionResponse> {
+export function buildBuyPosition(
+  body: BuildBuyPositionRequest,
+): Promise<SponsoredTransactionResponse> {
   return buildSponsored('/chain/positions/buy/build', body);
 }
 export function buildDelistPosition(
@@ -112,13 +126,17 @@ export function claimAction(body: PledgeAction): Promise<SponsoredTransactionRes
 export function redeemAction(body: RedeemAction): Promise<SponsoredTransactionResponse> {
   return buildSponsored('/chain/actions/redeem', body);
 }
-export function listPositionAction(body: ListPositionAction): Promise<SponsoredTransactionResponse> {
+export function listPositionAction(
+  body: ListPositionAction,
+): Promise<SponsoredTransactionResponse> {
   return buildSponsored('/chain/actions/list-position', body);
 }
 export function buyPositionAction(body: BuyPositionAction): Promise<SponsoredTransactionResponse> {
   return buildSponsored('/chain/actions/buy-position', body);
 }
-export function delistPositionAction(body: DelistPositionAction): Promise<SponsoredTransactionResponse> {
+export function delistPositionAction(
+  body: DelistPositionAction,
+): Promise<SponsoredTransactionResponse> {
   return buildSponsored('/chain/actions/delist-position', body);
 }
 export function reclaimHoldAction(body: ReclaimHoldAction): Promise<SponsoredTransactionResponse> {
@@ -127,7 +145,9 @@ export function reclaimHoldAction(body: ReclaimHoldAction): Promise<SponsoredTra
 
 /* The member posts the signed transaction bytes back; the api sponsor-signs and
    submits, and answers with the digest and the objects the action created. */
-export function executeChainAction(body: ExecuteChainActionRequest): Promise<ChainExecutionResponse> {
+export function executeChainAction(
+  body: ExecuteChainActionRequest,
+): Promise<ChainExecutionResponse> {
   return requestJson({
     method: 'POST',
     path: `${basePath}/chain/execute`,
@@ -179,7 +199,9 @@ export function fetchReleaseQueue(): Promise<ReleaseQueueResponse> {
 }
 
 /* Vault staff issue a receipt on chain to a member's wallet. */
-export function issueVaultReceipt(body: IssueVaultReceiptRequest): Promise<IssueVaultReceiptResponse> {
+export function issueVaultReceipt(
+  body: IssueVaultReceiptRequest,
+): Promise<IssueVaultReceiptResponse> {
   return requestJson({
     method: 'POST',
     path: `${basePath}/chain/receipts/issue`,

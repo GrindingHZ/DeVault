@@ -223,7 +223,10 @@ export type RedeemAction = z.infer<typeof redeemActionSchema>;
 export const listPositionActionSchema = z.object({ pledgeId: objectId, askBaseUnits: baseUnits });
 export type ListPositionAction = z.infer<typeof listPositionActionSchema>;
 
-export const buyPositionActionSchema = z.object({ listingObjectId: objectId, askBaseUnits: baseUnits });
+export const buyPositionActionSchema = z.object({
+  listingObjectId: objectId,
+  askBaseUnits: baseUnits,
+});
 export type BuyPositionAction = z.infer<typeof buyPositionActionSchema>;
 
 export const delistPositionActionSchema = z.object({ listingObjectId: objectId });

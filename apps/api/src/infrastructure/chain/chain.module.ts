@@ -14,7 +14,6 @@ import { ChainDeploymentRegistry } from './chain-deployment.registry';
 import { GrpcChainSubmitter } from './chain-submitter';
 import { CHAIN_CLIENT, CHAIN_CONFIGURATION, CHAIN_SUBMITTER } from './chain.tokens';
 import { ChainEventIndexer } from './indexer/chain-event.indexer';
-import { ChainReconciliation } from './indexer/chain-reconciliation';
 import { OperatorSigner } from './operator-signer';
 import { SuiUnitOfWork } from './sui-unit-of-work';
 import { WalletDirectory } from './wallet.directory';
@@ -52,7 +51,6 @@ import { WalletDirectory } from './wallet.directory';
     SuiProtocolParametersAdapter,
     SuiDomainEventPublisher,
     ChainEventIndexer,
-    ChainReconciliation,
   ],
   exports: [
     CHAIN_CONFIGURATION,
@@ -67,7 +65,6 @@ import { WalletDirectory } from './wallet.directory';
     SuiProtocolParametersAdapter,
     SuiDomainEventPublisher,
     ChainEventIndexer,
-    ChainReconciliation,
   ],
 })
 export class ChainModule {}

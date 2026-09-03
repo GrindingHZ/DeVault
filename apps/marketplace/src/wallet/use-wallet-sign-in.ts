@@ -57,10 +57,16 @@ export function useWalletSignIn(options: { onSuccess: () => Promise<void> | void
       }
       const address = account.address;
       const challenge = await beginWalletSignIn({ address });
-      const { signature } = await signPersonalMessage({
-        message: new TextEncoder().encode(challenge.message),
-        account,
-      });
+      /* Sign on whatever chain the wallet already holds this account on.
+         Proving control of the key is the same on every Sui network, and the
+         address is identical across them, so the sign in must not depend on
+         which network the app settles against. Left unset, dapp-kit forces
+         `sui:${defaultNetwork}` and a wallet on any other network rejects it. */
+      const message = new TextEncoder().encode(challenge.message);
+      const chain = account.chains[0];
+      const { signature } = await signPersonalMessage(
+        chain === undefined ? { message, account } : { message, account, chain },
+      );
       await completeWalletSignIn({ address, signature });
     },
     onSuccess: options.onSuccess,

@@ -2,6 +2,7 @@ import { useId } from 'react';
 import type { CSSProperties, ReactElement, ReactNode } from 'react';
 import { ChainLink } from './chain-link';
 import { EmptyState } from './empty-state';
+import { LockIcon } from './icons';
 import type { MarketRole } from './market-delta';
 import { CurrencyMark } from './currency-mark';
 import { formatAmount, formatMoney } from './money';
@@ -129,16 +130,12 @@ export function OfferBook({
 
   const best = rows[0];
   const worst = rows[rows.length - 1];
-  /* The column exists only where there is something to open. A book read
-     from the ledger would otherwise carry a heading over a column of
-     dashes. */
-  const hasChain = rows.some((row) => row.chainObjectId !== null);
 
   return (
     <div className="flex flex-col">
       {/* Capped and scrolled rather than left to grow. A book of forty would
           otherwise push the form that acts on it off the screen. */}
-      <div className="max-h-72 overflow-y-auto">
+      <div className="max-h-96 overflow-y-auto">
         <table className="w-full table-fixed border-collapse text-xs tabular-nums">
           <caption className="sr-only">
             {isSelectable
@@ -155,7 +152,6 @@ export function OfferBook({
             <col />
             <col />
             <col />
-            {hasChain ? <col className="w-40" /> : null}
           </colgroup>
           <thead className="sticky top-0 z-10 bg-surface-sunken">
             <tr className="text-ink-secondary">
@@ -172,11 +168,6 @@ export function OfferBook({
               <th scope="col" className="px-2 py-1 text-right font-body font-medium">
                 vs best
               </th>
-              {hasChain ? (
-                <th scope="col" className="px-2 py-1 text-left font-body font-medium">
-                  On chain
-                </th>
-              ) : null}
             </tr>
           </thead>
           <tbody>
@@ -187,7 +178,6 @@ export function OfferBook({
                 currency={currency}
                 groupName={groupName}
                 isSelectable={isSelectable}
-                hasChain={hasChain}
                 /* Selection is meaningless without a way to change it. A
                    lender arriving on a link that carries an offer id would
                    otherwise see a row singled out and no way to see why. */
@@ -219,7 +209,6 @@ function BookRowView({
   currency,
   groupName,
   isSelectable,
-  hasChain,
   isSelected,
   onSelectOffer,
 }: {
@@ -227,7 +216,6 @@ function BookRowView({
   readonly currency: string;
   readonly groupName: string;
   readonly isSelectable: boolean;
-  readonly hasChain: boolean;
   readonly isSelected: boolean;
   /* Spelled with `undefined` because the package compiles under
      `exactOptionalPropertyTypes`: an absent prop and a prop holding
@@ -252,112 +240,126 @@ function BookRowView({
     );
   }
 
+  /* The same edge on both lines of the offer, so the pair reads as one row
+     rather than as a figure and an orphan under it. */
+  const edge = isSelected
+    ? 'border-l-accent'
+    : row.isMine
+      ? 'border-l-status-active'
+      : 'border-l-transparent';
+
   return (
-    <tr
-      data-best={row.isBest ? 'true' : undefined}
-      data-mine={row.isMine ? 'true' : undefined}
-      data-selected={isSelected ? 'true' : undefined}
-      className={[
-        'border-t border-edge transition-colors duration-control ease-enter',
-        isSelected ? 'bg-surface-sunken' : 'hover:bg-surface-sunken',
-      ].join(' ')}
-    >
-      <td
+    <>
+      <tr
+        data-offer-row="true"
+        data-best={row.isBest ? 'true' : undefined}
+        data-mine={row.isMine ? 'true' : undefined}
+        data-selected={isSelected ? 'true' : undefined}
         className={[
-          'border-l-2 px-2 py-1',
-          isSelected
-            ? 'border-l-accent'
-            : row.isMine
-              ? 'border-l-status-active'
-              : 'border-l-transparent',
+          'border-t border-edge transition-colors duration-control ease-enter',
+          isSelected ? 'bg-surface-sunken' : 'hover:bg-surface-sunken',
         ].join(' ')}
       >
-        <span className="flex items-center gap-2">
-          {isSelectable ? (
-            <input
-              type="radio"
-              id={choiceId}
-              name={groupName}
-              checked={isSelected}
-              onChange={() => onSelectOffer?.(row.offerId)}
-              /* Named in full here rather than left to the cell labels, so a
+        <td className={`border-l-2 px-2 py-1 ${edge}`}>
+          <span className="flex items-center gap-2">
+            {isSelectable ? (
+              <input
+                type="radio"
+                id={choiceId}
+                name={groupName}
+                checked={isSelected}
+                onChange={() => onSelectOffer?.(row.offerId)}
+                /* Named in full here rather than left to the cell labels, so a
                  reader hears one sentence that stands on its own instead of
                  four fragments. */
-              aria-label={`Offer ${String(row.rank)}, ${formatRate(row.rateBasisPoints)}, repay ${repayable}`}
-              className="h-4 w-4 shrink-0 cursor-pointer accent-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-status-active"
-            />
-          ) : null}
-          <Choosable>
-            <span className="font-figure text-ink-secondary">{row.rank}</span>
-          </Choosable>
-        </span>
-      </td>
-      <td className="px-2 py-1">
-        <Choosable>
-          <span className="flex items-center gap-1">
-            {row.isBest ? (
-              <span aria-hidden="true" className="text-accent">
-                {bestMarker}
-              </span>
+                aria-label={`Offer ${String(row.rank)}, ${formatRate(row.rateBasisPoints)}, repay ${repayable}`}
+                className="h-4 w-4 shrink-0 cursor-pointer accent-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-status-active"
+              />
             ) : null}
-            <span
-              className={`font-figure ${
-                row.isBest ? 'font-semibold text-accent' : 'text-ink-primary'
-              }`}
-            >
-              {formatRate(row.rateBasisPoints).replace(' p.a.', '')}
-            </span>
-            {row.isMine ? <span className="font-body text-status-active">you</span> : null}
+            <Choosable>
+              <span className="font-figure text-ink-secondary">{row.rank}</span>
+            </Choosable>
           </span>
-        </Choosable>
-      </td>
-      <td className="px-2 py-1 text-right font-figure text-ink-primary">
-        <Choosable>
-          <CurrencyMark currency={currency} />{' '}
-          {formatAmount({ minorUnits: row.repayable.toString(), currency })}
-        </Choosable>
-      </td>
-      {/* The premium, with a bar behind it. A number alone does not show that
+        </td>
+        <td className="px-2 py-1">
+          <Choosable>
+            <span className="flex items-center gap-1">
+              {row.isBest ? (
+                <span aria-hidden="true" className="text-accent">
+                  {bestMarker}
+                </span>
+              ) : null}
+              <span
+                className={`font-figure ${
+                  row.isBest ? 'font-semibold text-accent' : 'text-ink-primary'
+                }`}
+              >
+                {formatRate(row.rateBasisPoints).replace(' p.a.', '')}
+              </span>
+              {row.isMine ? <span className="font-body text-status-active">you</span> : null}
+            </span>
+          </Choosable>
+        </td>
+        <td className="px-2 py-1 text-right font-figure text-ink-primary">
+          <Choosable>
+            <CurrencyMark currency={currency} />{' '}
+            {formatAmount({ minorUnits: row.repayable.toString(), currency })}
+          </Choosable>
+        </td>
+        {/* The premium, with a bar behind it. A number alone does not show that
           half the book is bunched and the tail is not; a length does it
           without being read. */}
-      <td className="relative px-2 py-1 text-right font-figure">
-        <span
-          aria-hidden="true"
-          style={{ '--premium': `${String(row.premiumShare)}%` } as CSSProperties}
-          className="pointer-events-none absolute inset-y-0 right-0 w-[var(--premium)] bg-edge-strong opacity-30"
-        />
-        <Choosable>
+        <td className="relative px-2 py-1 text-right font-figure">
           <span
-            className={`relative ${row.premium === 0n ? 'text-ink-secondary' : 'text-ink-primary'}`}
-          >
-            {row.premium === 0n ? (
-              dash
-            ) : (
-              <>
-                +<CurrencyMark currency={currency} />{' '}
-                {formatAmount({ minorUnits: row.premium.toString(), currency })}
-              </>
-            )}
-          </span>
-        </Choosable>
-      </td>
-      {/* The hold itself, so the money behind a rate can be seen locked
-          rather than taken on the book's word. Not choosable: the link is
-          the control in this cell, and a click on it must open the explorer
-          rather than pick the row. */}
-      {hasChain ? (
-        <td className="px-2 py-1 text-left">
-          {row.chainObjectId === null ? (
-            <span className="text-ink-secondary">{dash}</span>
-          ) : (
-            <ChainLink
-              value={row.chainObjectId}
-              kind="object"
-              testId={`offer-chain-${row.offerId}`}
-            />
-          )}
+            aria-hidden="true"
+            style={{ '--premium': `${String(row.premiumShare)}%` } as CSSProperties}
+            className="pointer-events-none absolute inset-y-0 right-0 w-[var(--premium)] bg-edge-strong opacity-30"
+          />
+          <Choosable>
+            <span
+              className={`relative ${row.premium === 0n ? 'text-ink-secondary' : 'text-ink-primary'}`}
+            >
+              {row.premium === 0n ? (
+                dash
+              ) : (
+                <>
+                  +<CurrencyMark currency={currency} />{' '}
+                  {formatAmount({ minorUnits: row.premium.toString(), currency })}
+                </>
+              )}
+            </span>
+          </Choosable>
         </td>
-      ) : null}
-    </tr>
+      </tr>
+      {/* The hold itself, so the money behind a rate can be seen locked rather
+        than taken on the book's word. A line under the figures rather than a
+        column beside them: a fifth column made the book scroll sideways, and
+        a hash is not a thing anybody compares down a column. Named for what
+        it is, because the hash on its own says nothing. Not choosable: the
+        link is the control here, and a click on it must open the explorer
+        rather than pick the row. */}
+      {row.chainObjectId === null ? null : (
+        <tr
+          data-chain-row="true"
+          data-selected={isSelected ? 'true' : undefined}
+          className={isSelected ? 'bg-surface-sunken' : ''}
+        >
+          <td colSpan={4} className={`border-l-2 px-2 pb-1.5 pt-0 ${edge}`}>
+            <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 font-body text-xs text-ink-secondary">
+              <span aria-hidden="true" className="[&>svg]:h-3.5 [&>svg]:w-3.5">
+                <LockIcon />
+              </span>
+              <span>Escrow hold</span>
+              <span className="font-mono">escrow::FundsHold</span>
+              <ChainLink
+                value={row.chainObjectId}
+                kind="object"
+                testId={`offer-chain-${row.offerId}`}
+              />
+            </span>
+          </td>
+        </tr>
+      )}
+    </>
   );
 }

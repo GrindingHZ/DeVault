@@ -218,17 +218,36 @@ describe('OfferBook', () => {
       expect.stringContaining('/object/0xhold-b'),
       expect.stringContaining('/object/0xhold-c'),
     ]);
-    const headings = container.querySelectorAll('thead th').length;
-    expect(headings).toBe(5);
-    for (const row of container.querySelectorAll('tbody tr')) {
-      expect(row.querySelectorAll('td')).toHaveLength(headings);
+    /* Under the figures rather than beside them: a fifth column made the
+       book scroll sideways, and a hash is not something a reader compares
+       down a column anyway. The record spans the row, so the four headings
+       still count the four cells above it. */
+    expect(container.querySelectorAll('thead th')).toHaveLength(4);
+    const records = container.querySelectorAll('tbody tr[data-chain-row]');
+    expect(records).toHaveLength(3);
+    for (const record of records) {
+      expect(record.querySelectorAll('td')).toHaveLength(1);
+      expect(record.querySelector('td')?.getAttribute('colspan')).toBe('4');
     }
   });
 
-  it('shows no chain column when no offer carries an object', () => {
+  /* A hash on its own says nothing about what is at the end of it. */
+  it('names the object each offer is backed by', () => {
+    render(
+      <OfferBook
+        offers={[{ ...offer('a', 1100, '3616'), chainObjectId: '0xhold-a' }]}
+        role="lender"
+        currency="USD"
+      />,
+    );
+    expect(screen.getByText('Escrow hold')).toBeTruthy();
+    expect(screen.getByText('escrow::FundsHold')).toBeTruthy();
+  });
+
+  it('shows no chain record when no offer carries an object', () => {
     const { container } = render(<OfferBook offers={book} role="lender" currency="USD" />);
     expect(container.querySelectorAll('tbody a')).toHaveLength(0);
-    expect(container.querySelectorAll('thead th')).toHaveLength(4);
+    expect(container.querySelectorAll('tbody tr')).toHaveLength(3);
   });
 
   it('says something useful when nobody has offered', () => {

@@ -31,7 +31,12 @@ function SecondaryMarketPage(): ReactElement {
   if (currentAccount.data === null || currentAccount.data === undefined) {
     return <Navigate to="/login" />;
   }
-  return <SecondaryMarket viewerAccountId={currentAccount.data.id} />;
+  /* Identified by wallet address, because a note sale on chain names its seller
+     by address; the account id would never match, hiding nothing the seller
+     owns from their own browse. */
+  return (
+    <SecondaryMarket viewerAccountId={currentAccount.data.walletAddress ?? currentAccount.data.id} />
+  );
 }
 
 const scopes: readonly { readonly value: SaleScope; readonly label: string }[] = [

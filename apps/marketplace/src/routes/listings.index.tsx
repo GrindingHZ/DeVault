@@ -36,7 +36,13 @@ function WorkspacePage(): ReactElement | null {
   if (currentAccount.data === null || currentAccount.data === undefined) {
     return <Navigate to="/login" />;
   }
-  return <VaultFloor viewerAccountId={currentAccount.data.id} />;
+  /* On chain a listing names its borrower by wallet address, not by the account
+     id, so the viewer is identified the same way. Without this a borrower's own
+     wallet address never matched their account id, so their own listings fell
+     into the browse tab where a lender could offer on them. */
+  return (
+    <VaultFloor viewerAccountId={currentAccount.data.walletAddress ?? currentAccount.data.id} />
+  );
 }
 
 function VaultFloor({ viewerAccountId }: { readonly viewerAccountId: string }): ReactElement {

@@ -45,8 +45,10 @@ one capability: the one that vouches for the physical item.
 1. **Self-custody for everything that is a member's own claim.** The receipt, both notes, and each
    member's USDC live in that member's wallet. The platform cannot move them.
 2. **Custodial for the one thing that is atoms.** The physical item cannot be represented
-   trustlessly. The `CustodianCap` vouches that the item is in the vault at intake and co-signs its
-   release at the counter. This is the irreducible trust root and the only one.
+   trustlessly. The `CustodianCap` vouches that the item is in the vault at intake. Its release at
+   the counter is a physical act staff perform against the burn the borrower signs, not an on-chain
+   co-signature: one programmable transaction has one sender, so it cannot hold both the borrower's
+   receipt and the custodian's capability. This is the irreducible trust root and the only one.
 3. **One actor per transaction, and it is the member.** List, offer, cancel, accept, repay, collect,
    claim, and every secondary-market step are signed by the member who acts, not by the platform.
 4. **State and the clock decide, keys authorise only real decisions.** A refund after expiry, a
@@ -186,11 +188,12 @@ blocks new offers and blocks nothing else.
 
 1. **Intake.** Custodian signs with `CustodianCap`. `custody::issue` mints the receipt to the
    borrower's address. Custodial, because only a human can vouch that the gold is in the vault.
-2. **Redeem an unpledged item.** Borrower presents the receipt and the custodian co-signs the
-   handover at the counter: `custody::redeem` takes the receipt by value and the `CustodianCap`,
-   burns it, and emits `RedemptionRequested`; staff release the item. The claim is self-custodial;
-   the physical handover is inherently custodial, and this is the one place the platform's
-   cooperation is still required for the borrower's own item.
+2. **Redeem an unpledged item.** Borrower signs alone. `custody::redeem` takes the receipt by
+   value from the borrower, burns it, and emits `RedemptionRequested`; staff read that event and
+   release the item at the counter, where identity is checked. The burn carries no `CustodianCap`,
+   because a single transaction cannot hold both the borrower's receipt and the custodian's
+   capability. The claim is self-custodial; the physical handover is the one thing that still
+   depends on staff, because it is atoms.
 3. **List.** Borrower signs. `pledge::open` wraps the receipt into a shared OPEN Pledge.
 4. **Offer.** Lender signs. `escrow::make_offer` locks the lender's USDC in a shared `FundsHold`
    against the Pledge, with an expiry.
@@ -247,9 +250,9 @@ gap. The frontend holds the transaction digest and the created object ids the wa
 shows an optimistic pending state keyed on them until the indexer confirms. This is recorded as an
 open question below because it touches every write screen.
 
-**What stays operator-signed.** Intake with `CustodianCap`, the redemption handover with
-`CustodianCap`, pause and parameters with `AdminCap`. The loan and money path carries no operator
-signature at all. The platform can no longer move, freeze, or seize a member's receipt, note, or
+**What stays operator-signed.** Intake with `CustodianCap`, and pause and parameters with
+`AdminCap`. Redemption is signed by the borrower alone; the counter handover is physical. The loan
+and money path carries no operator signature at all. The platform can no longer move, freeze, or seize a member's receipt, note, or
 USDC, which is the entire point.
 
 **Gas.** The acting member pays their own gas. Sponsored transactions, where the platform pays gas

@@ -1,168 +1,148 @@
-# depawn
+# DeVault
 
-**A pawn shop with a public order book.**
+**A pawn shop with a public order book, settling on Sui.**
 
 You have a gold bar and a cash flow problem. You do not want to sell it, and you do not want to
-explain yourself to a bank. So you walk into a vault, hand it over, and walk out with a receipt.
-That receipt goes on a marketplace where lenders bid against each other for the right to lend you
-money. You take the cheapest offer. Thirty days later you repay and collect your gold, or you do
-not, and it is sold with the surplus coming back to you.
+explain yourself to a bank. So you hand it to a vault and walk out with a receipt. That receipt is
+an object in your own wallet, and it goes on a marketplace where lenders bid against each other for
+the right to lend you money. You take the cheapest offer. At maturity you repay and redeem your
+item, or you do not, and the lender takes the claim on it.
 
-That is the whole product. It is a pawnbroker running a loan book on modern rails, built so that
-the money, the custody, and the clock can be moved onto a blockchain later without the business
-rules noticing.
+The loan book lives on chain. Whoever holds the receipt is the owner of record, so there is no
+status column anywhere that has to be kept in step with who really owns what.
 
-```
-docker compose up --build
-```
+## Live
 
-Three apps, one database, seeded with a full story. Nothing else to install.
+| | |
+|---|---|
+| Marketplace | https://devault-marketplace.vercel.app |
+| Vault console | https://devault-vault.vercel.app |
+| API | https://devault-api.onrender.com/api/v1/health |
 
-| | Address | Sign in as |
-|---|---|---|
-| **Marketplace** | http://localhost:5273 | `ada@demo.test` borrows, `gita@demo.test` lends |
-| **Vault console** | http://localhost:5174 | `staff@demo.test` |
-| **Admin** | http://localhost:5175 | `ops@demo.test` |
+Sign in with a Sui wallet on testnet. zkLogin accounts, the kind a Google sign in makes, work as
+well as a seed phrase. Settlement is Circle's testnet USDC, so a wallet needs some to lend or buy.
 
-Password for everyone: `demo-password-123`
+## What it does
 
----
+**For borrowers and lenders.** The same person can be both; there is no borrower role and no lender
+role, only your relationship to a listing. Browse live listings, open a pledge against a receipt you
+hold, take offers ranked cheapest first, repay before maturity, and redeem the item. On the other
+side: make an offer and your coin is held rather than spent, reclaim it yourself if you lose, and
+collect the payoff if you win.
 
-## What is actually in here
+**A secondary market.** A lender who does not want to wait for maturity can list their position.
+Someone else buys the claim, and the payoff follows the new holder.
 
-### The marketplace, for borrowers and lenders
+**For vault staff.** A mint flow that takes an item in: photograph it, appraise it, and issue the
+receipt to the member's wallet. Plus the release queue for people collecting their property. Access
+is by wallet address, configured on the service rather than stored as a row, so a database reset can
+never revoke a custodian.
 
-The same person can be both. There is no borrower role and no lender role in the system, only your
-relationship to a particular listing.
+**Evidence stays off chain.** The receipt carries a hash that commits to the photographs, and the
+photographs themselves sit in a bucket. Each receipt also carries the URL of its own photograph, so
+a wallet showing the object renders the item rather than a bare object id.
 
-- **Browse** every live listing, filtered by category and by how much of the item's value is being
-  borrowed against, sorted by rate ceiling or by whichever closes soonest. Filtering happens in the
-  database, not over a page already fetched.
-- **A listing** shows the photograph the vault took, the appraisal, the loan to value, and an offer
-  book ranked cheapest first, with the interest and the total repayable spelled out separately so
-  nobody confuses one for the other.
-- **Place an offer** and your money is held, not spent. Lose the auction and you reclaim it
-  yourself. Nothing moves your money without you asking.
-- **My receipts, listings, loans, offers, funded loans, wallet.** Every screen names the item it is
-  about rather than the database key.
-- **Little `i` buttons** next to anything a person might not know. Each one says what the term
-  means and then what it means *for you*, and it says something different depending on whether you
-  are the borrower or the lender. Grace period is protection to one and a delay to the other.
+## On chain
 
-### The vault console, for staff
+Nine Move modules on Sui testnet:
 
-A five step intake wizard: identify, photograph, appraise, seal, issue. It refuses to seal without
-evidence, demands a second independent appraisal above a threshold, and will not take an item that
-would push the vault past its insured limit. Plus inventory, the release queue for people
-collecting their property, and current exposure.
+| Module | Holds |
+|---|---|
+| `custody` | `VaultReceipt`, the item's twin, owned by the borrower, plus its `Display` |
+| `pledge` | The loan: open, offer, accept, repay, claim, cancel |
+| `escrow` | Offer holds and their refunds |
+| `market` | The secondary market in lender positions |
+| `notes` | Borrower and lender notes, the two sides of a live loan |
+| `interest` | Accrual, truncating in the borrower's favour |
+| `config` | Capabilities, protocol parameters, the pause switch |
+| `attestation` | Vault attestations |
+| `usdc` | A stand in coin, used only on a local network |
 
-### The admin, for operations
+Writes a member makes are sponsored, so nobody needs gas to take part. The one custodial act is
+issuing a receipt, which the operator signs because only a person can vouch that an item is really
+in the vault. Everything after that is the member's own signature.
 
-Deposits, the loan book, liquidations, reconciliation, protocol parameters with full edit history,
-a pause switch, request metrics, and the dead letter queue.
+An indexer follows the package's events into a read model with a durable cursor, so the API can
+answer list and search queries that a full node cannot.
 
-The pause switch is the interesting one. It stops new listings, offers, acceptances and sales. It
-never stops a repayment, a redemption, a withdrawal, or the settling of a sale already under way,
-because trapping a borrower's money is not a safety feature.
+## Stack
 
-### Underneath
+TypeScript throughout, strict mode.
 
-- **64 endpoints.** Every write that moves money is idempotent, behind a key claimed before the
-  handler runs, so a double click replays the answer instead of paying twice. Every state change is
-  audited with who did it.
-- **A double entry ledger** where balances are derived and never stored, and every transaction is
-  proved balanced three separate ways: a domain assertion, a Postgres trigger, and property tests.
-- **Money as bigint minor units.** No floats anywhere near an amount. Division truncates in the
-  borrower's favour on purpose.
-- **Five item categories priced by liquidity.** We lend against 60 percent of a gold bar and 30
-  percent of a painting, because one of them sells the same day.
-- **A demo clock** you can push forward from the admin screen, so a loan can reach maturity in front
-  of an audience.
+- **Chain** Sui Move, `@mysten/sui`, `@mysten/dapp-kit`
+- **API** NestJS, Prisma, PostgreSQL
+- **Web** React 19, Vite, TanStack Router and Query, Tailwind
+- **Tests** Vitest, Supertest, Testcontainers, Playwright, `sui move test`
+- **Deployed on** Supabase, Render, Vercel
 
----
+## Architecture
 
-## Running it
-
-### The demo
-
-```bash
-docker compose up --build
-```
-
-First build takes a few minutes, then seconds. It migrates the database, seeds it if it is empty,
-and serves everything. Restarting keeps your data. To start the story over:
-
-```bash
-docker compose down -v && docker compose up
-```
-
-`docs/DEMO.md` is a twelve minute script with the exact click path if you want to be walked through
-it.
-
-### Working on it
-
-```bash
-pnpm install
-pnpm db:up          # postgres only
-pnpm db:migrate
-pnpm db:seed        # the whole story, through the real endpoints
-pnpm dev            # api plus all three apps, hot reload
-```
-
-Same addresses either way.
-
-### Checking it
-
-```bash
-pnpm check          # types, lint, format, architecture boundaries, prose, design tokens
-pnpm test           # unit and integration
-pnpm test:e2e       # playwright across all three apps
-```
-
-Roughly 340 unit tests, 170 integration tests against a real Postgres in a container, and 32
-Playwright tests including an accessibility pass and a walk through the demo runbook itself.
-
-One thing to know: `pnpm test:e2e` refuses to run while the demo is up, because a demo process
-runs its clock two months ahead and every deadline the suite writes would land in that clock's past.
-Stop it first.
-
----
-
-## How it is put together
+The rule everything follows: **the domain layer is identical in Web2 and Web3.** Money, custody,
+identity and time reach the domain only through ports, interfaces defined in the domain with no
+knowledge of Postgres, Prisma, HTTP or Sui. The Web2 adapters were swapped for Sui ones without the
+domain changing. `pnpm check` fails the build if a domain file so much as imports from
+infrastructure.
 
 ```
 apps/api              NestJS. Domain, use cases, ports, adapters, HTTP.
 apps/marketplace      Borrowers and lenders.
 apps/vault-console    Vault staff.
-apps/admin            Operations.
-packages/contracts    Request and response types, shared by all four.
+packages/contracts    Request and response types, shared by both front ends.
 packages/ui           Components and the frozen design tokens.
-docs/                 Fourteen normative documents, written before the code.
+packages/test-support Fixtures and the shared port contract suites.
+packages/move         The Sui package.
+docs/                 Sixteen normative documents, written before the code.
 ```
 
-The rule everything else follows: **the domain layer must be identical in Web2 and Web3.** Money,
-custody, identity and time reach the domain only through ports, of which there are fourteen. Today
-a Postgres adapter is behind them. Later a Sui adapter will be. Nothing in `apps/api/src/domain/`
-changes, and a build check fails if a domain file so much as imports from infrastructure.
+## Running it
 
-**Stack:** TypeScript, NestJS, PostgreSQL, Prisma, React, TanStack Router and Query, Tailwind,
-Vitest, Testcontainers, Playwright, Docker.
+```bash
+pnpm install
+pnpm db:up          # postgres in docker
+pnpm db:migrate
+pnpm dev            # api plus both front ends, hot reload
+```
 
----
+The API needs chain configuration to start: `.env.example` lists what to set, and the operator key
+is the one that holds the capabilities. `pnpm chain:publish` compiles the Move package, publishes
+it, and records the deployment the API boots from.
+
+```bash
+pnpm chain:localnet # a single validator network to develop against
+pnpm move:test      # the Move test suite
+pnpm chain:walk     # drive a loan end to end against the configured network
+```
+
+`docs/15-deployment.md` is the step by step for putting it on Supabase, Render and Vercel.
+
+## Checking it
+
+```bash
+pnpm check          # types, lint, format, architecture boundaries, prose, design tokens
+pnpm test           # unit and integration
+pnpm test:e2e       # playwright
+```
+
+346 unit tests across the API, 66 Move tests, integration tests against a real Postgres in a
+container, and Playwright suites across both front ends. Ports are proved by contract suites that
+run the same cases against every adapter behind a port, so a Sui adapter has to answer what the
+Postgres one answered.
 
 ## Reading further
 
 | | |
 |---|---|
-| `DOCUMENTATION.md` | Two pages on the approach, the decisions, and the flowcharts |
-| `docs/DEMO.md` | The runbook: what to click and what to say |
+| `DOCUMENTATION.md` | The short write up: approach, decisions, flows, architecture |
 | `docs/00-product-overview.md` | Domain, actors, glossary, business rules |
+| `docs/08-web3-migration.md` | What moved on chain, and what deliberately did not |
 | `docs/10-flows.md` | Every flow end to end, with failure modes |
-| `docs/OPEN-QUESTIONS.md` | 28 things that were ambiguous, and what was implemented instead of guessing |
+| `docs/15-deployment.md` | Taking it live |
+| `docs/OPEN-QUESTIONS.md` | What was ambiguous, and what was implemented instead of guessing |
 
 ## What this is not
 
-There is no chain, no wallet and no token yet. The seams are cut so the adapters can be swapped, and
-`docs/08-web3-migration.md` is the argument for why that will work, but nothing here has been on
-chain. The outbox is honestly at least once rather than exactly once. It is one vault, one currency,
-and one jurisdiction.
+Testnet only, with one vault, one settlement coin and one jurisdiction. The appraisal is a person's
+judgement typed into a form, not an oracle. Liquidation hands the claim to the lender rather than
+running an auction. The outbox is honestly at least once rather than exactly once. This is a
+pawnbroker running a loan book on modern rails, not a trustless protocol, and the custodian
+capability is exactly the trust assumption it looks like.

@@ -112,6 +112,14 @@ Both drivers have to be set. `configuration.ts` defaults them to `ledger` and `d
 adapters behind those defaults were removed in the web3 migration, so a service without them will
 not boot.
 
+`WALLET_VERIFY_NETWORKS` is optional and usually left unset. A zkLogin proof can only be checked on
+the network that made it, because the proof commits to a maxEpoch and every Sui network counts
+epochs on its own. Left unset, a sign in is checked against the settled network first and then the
+other public one, so a member whose wallet sits on mainnet can still open the door without moving
+it. Set it only to narrow or reorder that list. Transacting is a separate matter: every write
+targets the published package, so anyone who buys, lends or repays still needs their wallet on the
+settled network.
+
 `PUBLIC_BASE_URL` is the one variable that cannot be corrected later. It is written into every
 `VaultReceipt` as the url of the item's photograph, which is what lets a wallet render the item
 rather than a bare object. Point it at the marketplace origin, not the Render origin: the front end

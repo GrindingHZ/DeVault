@@ -53,6 +53,48 @@ export function readNetworkEndpoints(): NetworkEndpoints {
   };
 }
 
+/* A zkLogin proof can only be checked on the network that made it: the proof
+   commits to a maxEpoch, and every network counts epochs on its own. Pinning
+   sign in to the settled network alone would lock out any member whose wallet
+   sits on another one, so verification walks this list instead. The settled
+   network comes first, so the ordinary case costs a single call.
+
+   Localnet is absent unless the process already settles there. A deployed api
+   must never be talked into dialling 127.0.0.1. */
+function verificationOrder(settled: SuiNetwork): SuiNetwork[] {
+  if (settled === 'localnet') {
+    return ['localnet'];
+  }
+  return settled === 'mainnet' ? ['mainnet', 'testnet'] : ['testnet', 'mainnet'];
+}
+
+export function readVerificationNetworks(): NetworkEndpoints[] {
+  const settled = networkFrom(process.env.SUI_NETWORK);
+  const configured = process.env.WALLET_VERIFY_NETWORKS;
+  const names =
+    configured === undefined || configured.trim() === ''
+      ? verificationOrder(settled)
+      : configured
+          .split(',')
+          .map((name) => name.trim())
+          .filter((name) => name.length > 0)
+          .map((name) => networkFrom(name));
+
+  const seen = new Set<SuiNetwork>();
+  const endpoints: NetworkEndpoints[] = [];
+  for (const network of names) {
+    if (seen.has(network)) {
+      continue;
+    }
+    seen.add(network);
+    /* SUI_GRPC_URL overrides the node for the network this process settles on,
+       and says nothing about the others. */
+    const override = network === settled ? process.env.SUI_GRPC_URL : undefined;
+    endpoints.push({ network, grpcUrl: override ?? endpointsByNetwork[network].grpcUrl });
+  }
+  return endpoints;
+}
+
 function required(variable: string): string {
   const value = process.env[variable];
   if (value === undefined || value === '') {

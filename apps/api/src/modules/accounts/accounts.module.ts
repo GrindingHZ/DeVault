@@ -8,7 +8,7 @@ import { WALLET_CHALLENGE_REPOSITORY } from '../../domain/accounts/wallet-challe
 import { WALLET_SIGNATURE_VERIFIER } from '../../domain/accounts/wallet-signature-verifier';
 import { CUSTODIAN_WALLET_ADDRESSES } from '../../domain/accounts/custodian-addresses';
 import { loadConfiguration } from '../../config/configuration';
-import { readNetworkEndpoints } from '../../config/chain-configuration';
+import { readVerificationNetworks } from '../../config/chain-configuration';
 import { createReadOnlyChainClient } from '../../infrastructure/chain/chain-client';
 import { ID_GENERATOR } from '../../domain/shared/id-generator';
 import { UlidIdGeneratorAdapter } from '../../infrastructure/id/ulid-id-generator.adapter';
@@ -44,12 +44,18 @@ import { MeController } from './http/me.controller';
     { provide: SESSION_TOKEN_ISSUER, useClass: CryptoSessionTokenIssuerAdapter },
     { provide: WALLET_CHALLENGE_REPOSITORY, useClass: PrismaWalletChallengeRepository },
     {
-      /* Its own read-only client, so a zkLogin sign in can be verified whether
-         or not the settlement chain driver is on, and without the operator
-         key. */
+      /* Its own read-only clients, so a zkLogin sign in can be verified whether
+         or not the settlement chain driver is on, and without the operator key.
+         One per network we will check a proof against: a member whose wallet
+         sits on mainnet still has to be able to open the door. */
       provide: WALLET_SIGNATURE_VERIFIER,
       useFactory: (): SuiWalletSignatureVerifier =>
-        new SuiWalletSignatureVerifier(createReadOnlyChainClient(readNetworkEndpoints())),
+        new SuiWalletSignatureVerifier(
+          readVerificationNetworks().map((endpoints) => ({
+            network: endpoints.network,
+            client: createReadOnlyChainClient(endpoints),
+          })),
+        ),
     },
     { provide: ID_GENERATOR, useClass: UlidIdGeneratorAdapter },
     {

@@ -51,7 +51,7 @@ export interface ListNoteForSaleInput {
 
 /* The fixed price sale of a lender note. What is sold is the note itself:
    settlement pays the seller and the holder changes, nothing on the loan
-   moves (docs/superpowers/specs/2026-08-24-secondary-market-design.md). */
+   moves. */
 export class NoteSale {
   private constructor(private readonly fields: NoteSaleFields) {
     if (fields.askPrice.isNegative() || fields.askPrice.isZero()) {

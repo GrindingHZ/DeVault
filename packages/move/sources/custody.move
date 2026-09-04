@@ -3,8 +3,7 @@
 /// only a human can vouch that the item is in the vault. After that the
 /// receipt is an ordinary owned object: the borrower can transfer it, a
 /// `Pledge` can wrap it, and redemption burns it. Nothing here can move a
-/// receipt the borrower holds, which is the whole of self-custody
-/// (docs/superpowers/specs/2026-08-26-self-custody-loan-book-design.md).
+/// receipt the borrower holds, which is the whole of self-custody.
 module depawn::custody;
 
 use depawn::config::CustodianCap;

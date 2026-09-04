@@ -2,8 +2,7 @@
 /// position is transferring the lender note; the borrower is not a party and
 /// does not consent. The swap escrows the note in a shared listing so neither
 /// side trusts the other: a buyer's coin and the note change hands in one
-/// transaction, or none does. This is the same shape as the primary offer
-/// (docs/superpowers/specs/2026-08-26-self-custody-loan-book-design.md).
+/// transaction, or none does. This is the same shape as the primary offer.
 module depawn::market;
 
 use depawn::notes::LenderNote;

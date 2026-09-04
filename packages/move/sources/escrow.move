@@ -3,8 +3,7 @@
 /// own signature, and it can only ever go two places: into the loan the
 /// borrower accepts, or back to the lender. No capability appears here, and a
 /// pause blocks a new offer but never a refund, so the exit the lender
-/// controls can never be locked
-/// (docs/superpowers/specs/2026-08-26-self-custody-loan-book-design.md).
+/// controls can never be locked.
 ///
 /// The hold is made and judged through `pledge`, which reads the listing:
 /// this module never sees more than a pledge id and the facts that module

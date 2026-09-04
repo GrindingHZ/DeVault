@@ -218,8 +218,7 @@ the full Playwright cross-app test passes; the demo runbook executes without dev
 
 **Goal:** a lender can leave early by selling the note, which is what the note indirection was for.
 
-Specced in `docs/superpowers/specs/2026-08-24-secondary-market-design.md` after the market shipped
-without it. One vertical slice: the `NoteSale` entity and purchase policy, the `SELL_NOTE` ledger
+Specced after the market shipped without it. One vertical slice: the `NoteSale` entity and purchase policy, the `SELL_NOTE` ledger
 kind and the transfer reason on the settlement port, five endpoints, the `/secondary-market`
 page with the value chart on its own rail destination, sell and withdraw on the portfolio, and the
 demo seed leaving a note sale in every state.

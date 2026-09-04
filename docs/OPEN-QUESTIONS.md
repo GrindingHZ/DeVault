@@ -65,7 +65,7 @@ seeded demo where both auction winners held zero receipts (docs/14-state-machine
 **Notes:** The alternative is that we ship it, which introduces logistics, insurance in transit, and
 a delivery-dispute flow.
 
-**Resolved 2026-08-25:** implemented as recorded. `close-liquidation` now calls
+**Resolved:** implemented as recorded. `close-liquidation` now calls
 `CustodyPort.reissueToBuyer`, which burns the seller's receipt and issues the buyer one for the same
 item, in the same transaction. Every descriptive field carries over, the intake record hash included,
 so the buyer's receipt shows the same photograph and serial numbers the borrower's did. The receipt

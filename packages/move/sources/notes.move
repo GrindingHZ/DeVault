@@ -2,8 +2,7 @@
 /// is owed to whoever holds it; a BorrowerNote redeems the pledged item for
 /// whoever holds it. Both carry their terms so a buyer on the secondary
 /// market can read the claim from the object itself. Only the pledge module
-/// mints and burns them, so a note can exist only for a live loan
-/// (docs/superpowers/specs/2026-08-26-self-custody-loan-book-design.md).
+/// mints and burns them, so a note can exist only for a live loan.
 module depawn::notes;
 
 public struct LenderNote has key, store {

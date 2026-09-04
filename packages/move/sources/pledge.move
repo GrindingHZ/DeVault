@@ -3,8 +3,7 @@
 /// settles, so the receipt never has to move between objects and a losing
 /// offer can read the pledge's status to prove it lost. Every transition is
 /// signed by the member who acts and carries no capability: the object holds
-/// only shared state and the one signer's own inputs
-/// (docs/superpowers/specs/2026-08-26-self-custody-loan-book-design.md).
+/// only shared state and the one signer's own inputs.
 ///
 /// A pledge is never deleted. A cancelled listing and a collected loan stay
 /// behind as the record of what happened, because an offer made against

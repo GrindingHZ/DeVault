@@ -62,7 +62,7 @@ export function loadConfiguration(): Configuration {
 
 /* Either port on the chain needs a transaction builder carried by the unit of
    work, and the Prisma adapters keep working through that context, so one
-   answer serves the whole process (docs/superpowers/specs/2026-08-25-web3-migration-design.md). */
+   answer serves the whole process. */
 export function isChainDriverEnabled(configuration: Configuration): boolean {
   return configuration.settlementDriver === 'chain' || configuration.custodyDriver === 'chain';
 }

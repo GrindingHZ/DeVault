@@ -1,7 +1,6 @@
 /// The market's state machines run in the api. Every transition they make is
 /// written here, in the same transaction as the settlement it belongs to, so
-/// the chain carries the whole history of the book and not only the money
-/// (docs/superpowers/specs/2026-08-25-web3-migration-design.md).
+/// the chain carries the whole history of the book and not only the money.
 module depawn::attestation;
 
 use depawn::config::OperatorCap;

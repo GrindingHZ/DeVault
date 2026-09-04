@@ -28,7 +28,7 @@ export const loanResponseSchema = z.object({
   graceEndsAt: z.string(),
   lenderNoteHolderAccountId: z.string(),
   /* Names the claim itself, so a lender can act on it: selling a position
-     sells this note (docs/superpowers/specs/2026-08-24-secondary-market-design.md). */
+     sells this note. */
   lenderNoteId: z.string(),
   status: loanStatusSchema,
   /* What this loan has earned so far, computed against the server's clock.

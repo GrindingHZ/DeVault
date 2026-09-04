@@ -80,7 +80,7 @@ function isRejectedResult(value: unknown): boolean {
    block is signed and executed before the database commits, so a chain
    failure rolls the rows back and a database failure after a successful
    execution is the dual write gap the indexer and reconciliation exist to
-   catch (docs/superpowers/specs/2026-08-25-web3-migration-design.md). */
+   catch. */
 @Injectable()
 export class SuiUnitOfWork implements UnitOfWork {
   constructor(

@@ -231,9 +231,9 @@ Content-Type: application/json
   "durationMs": 2592000000,
   "fundsHold": {
     "id": "01HZ...",
-    "settlementRef": { "kind": "ledger", "reference": "01J0...", "settledAt": "2026-08-14T..." }
+    "settlementRef": { "kind": "ledger", "reference": "01J0...", "settledAt": "2026-09-01T..." }
   },
-  "createdAt": "2026-08-14T...",
+  "createdAt": "2026-09-01T...",
   "expiresAt": "2026-09-01T00:00:00.000Z"
 }
 ```
@@ -247,13 +247,13 @@ Accepting an offer:
     "status": "ACTIVE",
     "principal": { "minorUnits": "250000", "currency": "USD" },
     "annualPercentageRateBasisPoints": 1800,
-    "startedAt": "2026-08-14T...",
-    "maturesAt": "2026-09-13T...",
-    "graceEndsAt": "2026-09-20T..."
+    "startedAt": "2026-09-01T...",
+    "maturesAt": "2026-10-01T...",
+    "graceEndsAt": "2026-10-08T..."
   },
   "disbursement": { "minorUnits": "245000", "currency": "USD" },
   "originationFee": { "minorUnits": "5000", "currency": "USD" },
-  "settlementRef": { "kind": "ledger", "reference": "01J2...", "settledAt": "2026-08-14T..." }
+  "settlementRef": { "kind": "ledger", "reference": "01J2...", "settledAt": "2026-09-01T..." }
 }
 ```
 

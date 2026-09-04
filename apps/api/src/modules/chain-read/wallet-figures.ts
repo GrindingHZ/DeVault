@@ -3,8 +3,7 @@
    over gRPC and derives the figures here. The arithmetic is the contract's own
    (interest.move): simple interest, pro-rated by elapsed time, clamped at
    maturity, truncating in the borrower's favour. Base units throughout, since
-   the settlement coin has its own decimals, not the ledger's cents
-   (docs/superpowers/specs/2026-08-26-wallet-self-custody-design.md). */
+   the settlement coin has its own decimals, not the ledger's cents. */
 
 const MILLISECONDS_PER_YEAR = 365n * 24n * 60n * 60n * 1000n;
 
